@@ -1,6 +1,4 @@
 #include "download_tbz.h"
-#include "filter_check_signature.h"
-#include "constants.h"
 #include "user_agent.h"
 #include "proxy.h"
 #include "tbz.h"
@@ -18,10 +16,7 @@ namespace network
 	{
 		struct user_data_t
 		{
-			user_data_t (key_chain_t const& keychain, double* progress, double start_progress, double stop_progress, bool const* stop_flag, int tbz_fd, int tmp_fd) : progress(progress), start_progress(start_progress), stop_progress(stop_progress), stop_flag(stop_flag), tbz_fd(tbz_fd), tmp_fd(tmp_fd), verify_signature(keychain, kHTTPSigneeHeader, kHTTPSignatureHeader)
-			{
-				verify_signature.setup();
-			}
+			user_data_t (double* progress, double start_progress, double stop_progress, bool const* stop_flag, int tbz_fd, int tmp_fd) : progress(progress), start_progress(start_progress), stop_progress(stop_progress), stop_flag(stop_flag), tbz_fd(tbz_fd), tmp_fd(tmp_fd) { }
 
 			void receive (size_t len)
 			{
@@ -47,8 +42,6 @@ namespace network
 
 			int tbz_fd;
 			int tmp_fd;
-
-			network::check_signature_t verify_signature;
 
 			size_t received = 0;
 			size_t total = 0;
@@ -87,8 +80,6 @@ namespace network
 						data.etag = value;
 					else if(header == "content-length")
 						data.total = strtol(value.c_str(), nullptr, 10);
-					else if(header == kHTTPSigneeHeader || header == kHTTPSignatureHeader)
-						data.verify_signature.receive_header(header, value);
 				}
 			}
 			return data.should_stop() ? 0 : size * nmemb;
@@ -100,13 +91,12 @@ namespace network
 
 			write(data.tbz_fd, ptr, size * nmemb);
 			write(data.tmp_fd, ptr, size * nmemb);
-			data.verify_signature.receive_data((char const*)ptr, size * nmemb);
 			data.receive(size * nmemb);
 			return data.should_stop() ? 0 : size * nmemb;
 		}
 	}
 
-	std::string download_tbz (std::string const& url, key_chain_t const& keyChain, std::string const& destination, std::string& error, double* progress, double progressStart, double progressStop, bool const* stopFlag)
+	std::string download_tbz (std::string const& url, std::string const& destination, std::string& error, double* progress, double progressStart, double progressStop, bool const* stopFlag)
 	{
 		std::string res = NULL_STR;
 		if(CURL* handle = curl_easy_init())
@@ -122,9 +112,11 @@ namespace network
 			// = Curl =
 			// ========
 
-			user_data_t data(keyChain, progress, progressStart, progressStop, stopFlag, tbz.input_fd(), tmpInput);
+			user_data_t data(progress, progressStart, progressStop, stopFlag, tbz.input_fd(), tmpInput);
 
 			curl_easy_setopt(handle, CURLOPT_URL,              url.c_str());
+			curl_easy_setopt(handle, CURLOPT_PROTOCOLS_STR,    "https");
+			curl_easy_setopt(handle, CURLOPT_REDIR_PROTOCOLS_STR, "https");
 			curl_easy_setopt(handle, CURLOPT_FOLLOWLOCATION,   true);
 			curl_easy_setopt(handle, CURLOPT_FAILONERROR,      true);
 			curl_easy_setopt(handle, CURLOPT_ENCODING,         "");
@@ -173,16 +165,11 @@ namespace network
 
 			close(tmpInput);
 
-			bool goodSignature = false;
+			bool downloaded = false;
 			if(serverReply == 200)
 			{
-				if(goodSignature = data.verify_signature.receive_end(error))
-				{
-					path::set_attr(tmpPath, kHTTPEntityTagAttribute, data.etag);
-					path::set_attr(tmpPath, kHTTPSigneeHeader,       data.verify_signature.signee());
-					path::set_attr(tmpPath, kHTTPSignatureHeader,    data.verify_signature.signature());
-					path::rename_or_copy(tmpPath, destination);
-				}
+				path::set_attr(tmpPath, kHTTPEntityTagAttribute, data.etag);
+				downloaded = path::rename_or_copy(tmpPath, destination);
 			}
 			else if(serverReply == 304)
 			{
@@ -209,12 +196,12 @@ namespace network
 				error = text::format("Unexpected server reply (%ld).", serverReply);
 			}
 
-			if(!goodSignature) // If not, tmpPath has been moved to destination
+			if(!downloaded) // If not, tmpPath has been moved to destination
 				unlink(tmpPath.c_str());
 
 			if(tbz.wait_for_tbz())
 			{
-				if(serverReply == 304 || goodSignature)
+				if(serverReply == 304 || downloaded)
 					res = tbzDestination;
 			}
 			else if(serverReply == 200 || serverReply == 304)

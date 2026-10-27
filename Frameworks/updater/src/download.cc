@@ -5,14 +5,19 @@
 
 namespace bundles_db
 {
-	std::string download_etag (std::string const& url, key_chain_t const& keyChain, std::string* etag, double* progress, double min, double max)
+	std::string download_etag (std::string const& url, std::string* etag, double* progress, double min, double max)
 	{
-		network::check_signature_t validator(keyChain, kHTTPSigneeHeader, kHTTPSignatureHeader);
+		if(url.find("https://") != 0)
+		{
+			os_log_error(OS_LOG_DEFAULT, "download_etag(‘%{public}s’): refusing to download without HTTPS", url.c_str());
+			return NULL_STR;
+		}
+
 		network::save_t archiver(false);
 		network::header_t collect_etag("etag");
 
 		std::string error = NULL_STR;
-		long res = network::download(network::request_t(url, &validator, &archiver, &collect_etag, nullptr).set_entity_tag(etag ? *etag : NULL_STR).update_progress_variable(progress, min, max), &error);
+		long res = network::download(network::request_t(url, &archiver, &collect_etag, nullptr).set_entity_tag(etag ? *etag : NULL_STR).update_progress_variable(progress, min, max), &error);
 		if(res == 304) // not modified
 		{
 			path::remove(archiver.path);

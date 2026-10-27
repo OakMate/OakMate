@@ -2,5 +2,6 @@ target "${dirname}" {
 	require text
 	headers src/*.h
 	sources src/*.mm
+	tests tests/t_*.mm
 	frameworks Cocoa
 }

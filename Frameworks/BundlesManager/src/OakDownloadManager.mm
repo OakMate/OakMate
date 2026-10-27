@@ -1,27 +1,12 @@
 #import "OakDownloadManager.h"
 #import <oak/misc.h>
 
-static NSString* const OakHTTPHeaderSignee    = @"x-amz-meta-x-signee";
-static NSString* const OakHTTPHeaderSignature = @"x-amz-meta-x-signature";
-
-@interface OakDownloadManager ()
-- (BOOL)data:(NSData*)contentData hasValidBase64EncodedSignature:(NSString*)encodedSignature usingPublicKeyString:(NSString*)publicKeyString;
-@end
-
-static NSString* GetHardwareInfo (int field, BOOL isInteger = NO)
+// Downloads are only allowed over HTTPS, which authenticates the server
+static NSError* InsecureURLError (NSURL* url)
 {
-	char buf[1024];
-	size_t bufSize = sizeof(buf);
-	int request[] = { CTL_HW, field };
-
-	if(sysctl(request, sizeofA(request), buf, &bufSize, nullptr, 0) != -1)
-	{
-		if(isInteger && bufSize == 4)
-			return [NSString stringWithFormat:@"%d", *(int*)buf];
-		return [[NSString alloc] initWithUTF8String:buf];
-	}
-
-	return @"???";
+	if([url.scheme isEqualToString:@"https"])
+		return nil;
+	return [NSError errorWithDomain:@"OakDownloadManager" code:0 userInfo:@{ NSLocalizedDescriptionKey: [NSString stringWithFormat:@"Refusing to download %@ without HTTPS.", url.absoluteString] }];
 }
 
 // ==========================
@@ -30,13 +15,7 @@ static NSString* GetHardwareInfo (int field, BOOL isInteger = NO)
 
 @interface OakDownloadArchiveTask : NSObject <NSProgressReporting, NSURLSessionDataDelegate>
 {
-	NSDictionary<NSString*, NSString*>* _publicKeys;
-	NSString*                           _signee;
-	NSString*                           _signature;
-
 	void(^_completionHandler)(NSURL* extractedArchiveURL, NSError* error);
-
-	NSMutableData*                      _data;
 
 	NSURL*                              _fileURLToReplace;
 	NSURL*                              _temporaryFileURL;
@@ -55,20 +34,26 @@ static NSString* GetHardwareInfo (int field, BOOL isInteger = NO)
 @end
 
 @implementation OakDownloadArchiveTask
-- (instancetype)initWithURL:(NSURL*)url forReplacingURL:(NSURL*)localURL publicKeys:(NSDictionary<NSString*, NSString*>*)publicKeys completionHandler:(void(^)(NSURL* extractedArchiveURL, NSError* error))completionHandler
+- (instancetype)initWithURL:(NSURL*)url forReplacingURL:(NSURL*)localURL completionHandler:(void(^)(NSURL* extractedArchiveURL, NSError* error))completionHandler
 {
 	if(self = [super init])
 	{
 		_fileURLToReplace       = localURL;
-		_publicKeys             = publicKeys;
 		_completionHandler      = completionHandler;
 		_progress               = [NSProgress discreteProgressWithTotalUnitCount:-1];
-		_data                   = [NSMutableData data];
 		_extractorDispatchGroup = dispatch_group_create();
 
 		_progress.kind = NSProgressKindFile;
 		_progress.fileOperationKind = NSProgressFileOperationKindDownloading;
 		_progress.localizedDescription = [NSString stringWithFormat:@"Downloading %@…", url.lastPathComponent];
+
+		if(NSError* error = InsecureURLError(url))
+		{
+			dispatch_async(dispatch_get_main_queue(), ^{
+				completionHandler(nil, error);
+			});
+			return self;
+		}
 
 		NSMutableURLRequest* request = [NSMutableURLRequest requestWithURL:url cachePolicy:NSURLRequestUseProtocolCachePolicy timeoutInterval:60];
 		[request setValue:OakDownloadManager.sharedInstance.userAgentString forHTTPHeaderField:@"User-Agent"];
@@ -147,16 +132,15 @@ static NSString* GetHardwareInfo (int field, BOOL isInteger = NO)
 
 - (void)URLSession:(NSURLSession*)session task:(NSURLSessionTask*)task willPerformHTTPRedirection:(NSHTTPURLResponse*)response newRequest:(NSURLRequest*)request completionHandler:(void(^)(NSURLRequest*))completionHandler
 {
-	_signee    = _signee    ?: response.allHeaderFields[OakHTTPHeaderSignee];
-	_signature = _signature ?: response.allHeaderFields[OakHTTPHeaderSignature];
-	completionHandler(request);
+	completionHandler(InsecureURLError(request.URL) ? nil : request);
 }
 
 - (void)URLSession:(NSURLSession*)session dataTask:(NSURLSessionDataTask*)dataTask didReceiveResponse:(NSURLResponse*)response completionHandler:(void(^)(NSURLSessionResponseDisposition disposition))completionHandler
 {
-	_signee    = _signee    ?: ((NSHTTPURLResponse*)response).allHeaderFields[OakHTTPHeaderSignee];
-	_signature = _signature ?: ((NSHTTPURLResponse*)response).allHeaderFields[OakHTTPHeaderSignature];
-	completionHandler(NSURLSessionResponseAllow);
+	NSInteger statusCode = ((NSHTTPURLResponse*)response).statusCode;
+	if(statusCode != 200)
+		_extractorError = [NSError errorWithDomain:@"OakDownloadManager" code:0 userInfo:@{ NSLocalizedDescriptionKey: [NSString stringWithFormat:@"Server returned %ld for %@", statusCode, response.URL.absoluteString] }];
+	completionHandler(statusCode == 200 ? NSURLSessionResponseAllow : NSURLSessionResponseCancel);
 }
 
 - (void)URLSession:(NSURLSession*)session dataTask:(NSURLSessionDataTask*)dataTask didReceiveData:(NSData*)data
@@ -165,7 +149,6 @@ static NSString* GetHardwareInfo (int field, BOOL isInteger = NO)
 	if(fileHandle && !_progress.isCancelled)
 	{
 		[fileHandle writeData:data];
-		[_data appendData:data];
 
 		if(dataTask.countOfBytesExpectedToReceive != NSURLSessionTransferSizeUnknown)
 		{
@@ -212,11 +195,6 @@ static NSString* GetHardwareInfo (int field, BOOL isInteger = NO)
 	{
 		os_log_error(OS_LOG_DEFAULT, "Failed to download %{public}@: %{public}@", dataTask.originalRequest.URL, error.localizedDescription);
 		_completionHandler(nil, error);
-	}
-	else if(![OakDownloadManager.sharedInstance data:_data hasValidBase64EncodedSignature:_signature usingPublicKeyString:_publicKeys[_signee]])
-	{
-		os_log_error(OS_LOG_DEFAULT, "Unable to verify signature");
-		_completionHandler(nil, [NSError errorWithDomain:@"OakDownloadManager" code:0 userInfo:@{ NSLocalizedDescriptionKey: @"Unable to verify signature." }]);
 	}
 	else
 	{
@@ -269,30 +247,20 @@ static NSString* GetHardwareInfo (int field, BOOL isInteger = NO)
 {
 	if(!_userAgentString)
 	{
-		uuid_t uuidBytes;
-		timespec wait = { };
-		gethostuuid(uuidBytes, &wait);
-
 		NSString* appName    = [NSBundle.mainBundle objectForInfoDictionaryKey:@"CFBundleName"];
 		NSString* appVersion = [NSBundle.mainBundle objectForInfoDictionaryKey:@"CFBundleShortVersionString"];
-		NSUUID* uuid         = [[NSUUID alloc] initWithUUIDBytes:uuidBytes];
 
 		NSOperatingSystemVersion osVersion = NSProcessInfo.processInfo.operatingSystemVersion;
-
-		NSString* res = [NSString stringWithFormat:@"%@/%@/%@ %ld.%ld.%ld/%@/%@/%@",
-			appName, appVersion, uuid.UUIDString,
-			osVersion.majorVersion, osVersion.minorVersion, osVersion.patchVersion,
-			GetHardwareInfo(HW_MACHINE),
-			GetHardwareInfo(HW_MODEL),
-			GetHardwareInfo(HW_NCPU, YES)
-		];
-		_userAgentString = res;
+		_userAgentString = [NSString stringWithFormat:@"%@/%@ macOS/%ld.%ld.%ld", appName, appVersion, osVersion.majorVersion, osVersion.minorVersion, osVersion.patchVersion];
 	}
 	return _userAgentString;
 }
 
-- (void)downloadFileAtURL:(NSURL*)serverURL replacingFileAtURL:(NSURL*)localFileURL publicKeys:(NSDictionary<NSString*, NSString*>*)publicKeys completionHandler:(void(^)(BOOL wasUpdated, NSError* error))completionHandler
+- (void)downloadFileAtURL:(NSURL*)serverURL replacingFileAtURL:(NSURL*)localFileURL completionHandler:(void(^)(BOOL wasUpdated, NSError* error))completionHandler
 {
+	if(NSError* error = InsecureURLError(serverURL))
+		return completionHandler(NO, error);
+
 	NSMutableURLRequest* request = [NSMutableURLRequest requestWithURL:serverURL cachePolicy:NSURLRequestReloadIgnoringLocalCacheData timeoutInterval:60];
 	[request setValue:self.userAgentString forHTTPHeaderField:@"User-Agent"];
 
@@ -319,45 +287,19 @@ static NSString* GetHardwareInfo (int field, BOOL isInteger = NO)
 			if(!error && statusCode != 304)
 				error = [NSError errorWithDomain:@"OakDownloadManager" code:0 userInfo:@{ NSLocalizedDescriptionKey: [NSString stringWithFormat:@"Server returned %ld for %@", statusCode, serverURL.absoluteString] }];
 		}
-		else
+		else if([data writeToURL:localFileURL options:NSDataWritingAtomic error:&error])
 		{
-			NSString* signee    = ((NSHTTPURLResponse*)response).allHeaderFields[OakHTTPHeaderSignee];
-			NSString* signature = ((NSHTTPURLResponse*)response).allHeaderFields[OakHTTPHeaderSignature];
-			if(signee && signature)
-			{
-				if(NSString* publicKey = publicKeys[signee])
-				{
-					if([self data:data hasValidBase64EncodedSignature:signature usingPublicKeyString:publicKey])
-					{
-						if([data writeToURL:localFileURL options:NSDataWritingAtomic error:&error])
-						{
-							wasUpdated = YES;
+			wasUpdated = YES;
 
-							if(NSString* newETag = ((NSHTTPURLResponse*)response).allHeaderFields[@"ETag"])
-							{
-								char const* str = newETag.UTF8String;
-								if(setxattr(localFileURL.fileSystemRepresentation, "org.w3.http.etag", str, strlen(str), 0, 0) == -1)
-									os_log_error(OS_LOG_DEFAULT, "setxattr(%{public}@): %{darwin.errno}d", localFileURL.path, errno);
-							}
-							else
-							{
-								os_log_error(OS_LOG_DEFAULT, "No ETag: %{public}@", serverURL.absoluteString);
-							}
-						}
-					}
-					else
-					{
-						error = [NSError errorWithDomain:@"OakDownloadManager" code:0 userInfo:@{ NSLocalizedDescriptionKey: @"Unable to verify signature." }];
-					}
-				}
-				else
-				{
-					error = [NSError errorWithDomain:@"OakDownloadManager" code:0 userInfo:@{ NSLocalizedDescriptionKey: [NSString stringWithFormat:@"Unable to obtain public key for %@.", signee] }];
-				}
+			if(NSString* newETag = ((NSHTTPURLResponse*)response).allHeaderFields[@"ETag"])
+			{
+				char const* str = newETag.UTF8String;
+				if(setxattr(localFileURL.fileSystemRepresentation, "org.w3.http.etag", str, strlen(str), 0, 0) == -1)
+					os_log_error(OS_LOG_DEFAULT, "setxattr(%{public}@): %{darwin.errno}d", localFileURL.path, errno);
 			}
 			else
 			{
-				error = [NSError errorWithDomain:@"OakDownloadManager" code:0 userInfo:@{ NSLocalizedDescriptionKey: @"Missing signature" }];
+				os_log_error(OS_LOG_DEFAULT, "No ETag: %{public}@", serverURL.absoluteString);
 			}
 		}
 
@@ -366,81 +308,8 @@ static NSString* GetHardwareInfo (int field, BOOL isInteger = NO)
 	[dataTask resume];
 }
 
-- (id <NSProgressReporting>)downloadArchiveAtURL:(NSURL*)serverURL forReplacingURL:(nullable NSURL*)localURL publicKeys:(NSDictionary<NSString*, NSString*>*)publicKeys completionHandler:(void(^)(NSURL* extractedArchiveURL, NSError* error))completionHandler
+- (id <NSProgressReporting>)downloadArchiveAtURL:(NSURL*)serverURL forReplacingURL:(nullable NSURL*)localURL completionHandler:(void(^)(NSURL* extractedArchiveURL, NSError* error))completionHandler
 {
-	return [[OakDownloadArchiveTask alloc] initWithURL:serverURL forReplacingURL:localURL publicKeys:publicKeys completionHandler:completionHandler];
-}
-
-// ==================
-// = Helper Methods =
-// ==================
-
-- (NSString*)signingKeyForPublicKeyString:(NSString*)publicKeyString
-{
-	id res = nil;
-	if(NSData* publicKeyData = [publicKeyString dataUsingEncoding:NSUTF8StringEncoding])
-	{
-		SecItemImportExportKeyParameters params = { .keyUsage = nullptr, .keyAttributes = nullptr };
-		SecExternalItemType type = kSecItemTypePublicKey;
-		SecExternalFormat format = kSecFormatPEMSequence;
-
-		CFArrayRef items = nullptr;
-		OSStatus err = SecItemImport((CFDataRef)publicKeyData, nullptr, &format, &type, 0, &params, nullptr, &items);
-		if(err == errSecSuccess)
-		{
-			if(SecKeyRef publicKey = (SecKeyRef)CFArrayGetValueAtIndex(items, 0))
-				res = (__bridge id)publicKey;
-			CFRelease(items);
-		}
-		else
-		{
-			if(CFStringRef message = SecCopyErrorMessageString(err, nullptr))
-			{
-				os_log_error(OS_LOG_DEFAULT, "SecItemImport() failed: %{public}@", message);
-				CFRelease(message);
-			}
-		}
-	}
-	return res;
-}
-
-- (BOOL)data:(NSData*)contentData hasValidBase64EncodedSignature:(NSString*)encodedSignature usingPublicKeyString:(NSString*)publicKeyString
-{
-	if(!encodedSignature || !contentData || !publicKeyString)
-		return NO;
-
-	BOOL res = NO;
-	if(NSData* signatureData = [[NSData alloc] initWithBase64EncodedString:encodedSignature options:0])
-	{
-		if(SecKeyRef publicKey = (SecKeyRef)CFBridgingRetain([self signingKeyForPublicKeyString:publicKeyString]))
-		{
-			CFErrorRef err = nullptr;
-			if(SecTransformRef verifier = SecVerifyTransformCreate(publicKey, (CFDataRef)signatureData, &err))
-			{
-				if(SecTransformSetAttribute(verifier, kSecTransformInputAttributeName, (CFDataRef)contentData, &err))
-				{
-					if(SecTransformExecute(verifier, &err) == kCFBooleanTrue)
-						res = YES;
-					else if(err)
-						os_log_error(OS_LOG_DEFAULT, "SecTransformExecute: %{public}@", err);
-				}
-				else
-				{
-					os_log_error(OS_LOG_DEFAULT, "SecTransformSetAttribute: %{public}@", err);
-				}
-				CFRelease(verifier);
-			}
-			else
-			{
-				os_log_error(OS_LOG_DEFAULT, "SecVerifyTransformCreate: %{public}@", err);
-			}
-			CFRelease(publicKey);
-		}
-	}
-	else
-	{
-		os_log_error(OS_LOG_DEFAULT, "Unable to decode signature: %{public}@", encodedSignature);
-	}
-	return res;
+	return [[OakDownloadArchiveTask alloc] initWithURL:serverURL forReplacingURL:localURL completionHandler:completionHandler];
 }
 @end

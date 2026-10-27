@@ -143,6 +143,7 @@ namespace network
 		if(CURL* handle = curl_easy_init())
 		{
 			curl_easy_setopt(handle, CURLOPT_URL,              request._url.c_str());
+			curl_easy_setopt(handle, CURLOPT_REDIR_PROTOCOLS_STR, "https");
 			curl_easy_setopt(handle, CURLOPT_FOLLOWLOCATION,   true);
 			curl_easy_setopt(handle, CURLOPT_FAILONERROR,      true);
 			curl_easy_setopt(handle, CURLOPT_ENCODING,         "");

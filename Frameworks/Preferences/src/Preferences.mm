@@ -3,7 +3,6 @@
 #import "ProjectsPreferences.h"
 #import "BundlesPreferences.h"
 #import "VariablesPreferences.h"
-#import "SoftwareUpdatePreferences.h"
 #import "TerminalPreferences.h"
 #import "Keys.h"
 #import <OakAppKit/OakTransitionViewController.h>
@@ -97,7 +96,6 @@ static NSString* const kMASPreferencesSelectedViewKey = @"MASPreferences Selecte
 			[[ProjectsPreferences alloc] init],
 			[[BundlesPreferences alloc] init],
 			[[VariablesPreferences alloc] init],
-			[[SoftwareUpdatePreferences alloc] init],
 			[[TerminalPreferences alloc] init]
 		];
 
