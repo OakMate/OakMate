@@ -53,4 +53,4 @@ end
 %>
 </div>
 
-[1]: https://github.com/OakMate/OakMate/commits/master
+[1]: https://github.com/OakMate/OakMate/commits/main

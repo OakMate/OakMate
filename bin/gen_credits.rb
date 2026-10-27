@@ -189,4 +189,4 @@ credits = generate_credits(File.expand_path('~/Library/Caches/com.isztld.oakmate
 <%= credits %>
 </table>
 
-[1]: https://github.com/OakMate/OakMate/commits/master
+[1]: https://github.com/OakMate/OakMate/commits/main

@@ -1,12 +1,38 @@
 # OakMate
 
-OakMate is a fast, native text editor for macOS. It is a continuation of [TextMate 2][TextMate] and keeps working with TextMate bundles, themes, and `.tm_properties` files. The name pays tribute to the Oak frameworks that TextMate is built from.
+[![Build](https://github.com/OakMate/OakMate/actions/workflows/build.yml/badge.svg)](https://github.com/OakMate/OakMate/actions/workflows/build.yml)
+[![Release](https://img.shields.io/github/v/release/OakMate/OakMate)][Releases]
+[![License: GPL v3](https://img.shields.io/badge/license-GPLv3-blue)](LICENSE)
+
+OakMate is a fast, native text editor for macOS. It continues [TextMate 2][TextMate] and works with TextMate bundles, themes, and `.tm_properties` files, so existing TextMate setups carry over. The name is a tribute to the Oak frameworks TextMate is built from.
 
 OakMate is not affiliated with or endorsed by MacroMates.
 
-## Download
+## Features
 
-Download the newest version from [GitHub Releases][Releases]. OakMate checks for new releases once a day and offers to install them. To check manually, use _OakMate_ → _Check for Updates…_. To turn off the daily check:
+* Bundles for dozens of languages and tools, with commands written in any scripting language
+* Multiple carets, column selections, snippets, and macros
+* Fuzzy file finder, symbol list, and project-wide find and replace with regular expressions
+* File browser with Git, Mercurial, and Subversion status
+* Per-folder and per-file-type settings with `.tm_properties`
+* The `mate` command-line tool, and `rmate` for editing files on remote servers
+* Quick Look previews and thumbnails with syntax highlighting
+
+## Differences from TextMate
+
+* Requires macOS 14 or later on Apple silicon.
+* The default bundles ship with the application. Nothing is downloaded from a bundle server.
+* Bundle commands run with a modern Ruby (2.6 through 4.0).
+* Updates are published as GitHub releases.
+* No registration, license keys, or crash reporting.
+
+The full list is in the [release notes](Applications/OakMate/about/Changes.md).
+
+## Install
+
+Download the disk image from the [latest release][Releases], open it, and drag OakMate to Applications.
+
+OakMate checks for new releases once a day and offers to install them. To check manually, choose _OakMate_ → _Check for Updates…_. To turn off the daily check, run:
 
 ```sh
 defaults write com.isztld.oakmate disableSoftwareUpdate -bool YES
@@ -14,29 +40,21 @@ defaults write com.isztld.oakmate disableSoftwareUpdate -bool YES
 
 ## Bundles
 
-OakMate uses TextMate bundles. The `TM_*` environment variables, the `txmt://` URL scheme, `mate`, and `rmate` work as they do in TextMate.
+The default bundles are included with OakMate. To add another bundle, double-click a `.tmbundle` file or place it in `~/Library/Application Support/OakMate/Bundles`.
 
-The default bundles are part of this repository (`Applications/OakMate/support/Bundles`, see `vendor/README.md` for their origins) and ship inside the application. OakMate does not download or update bundles. To add another bundle, double-click a `.tmbundle` or place it in `~/Library/Application Support/OakMate/Bundles`.
+TextMate bundles work unchanged: the `TM_*` environment variables, the `txmt://` URL scheme, `mate`, and `rmate` behave as they do in TextMate. Commands written in Ruby run with the system Ruby, with Ruby from Homebrew if the system Ruby is not installed, or with the Ruby set in `TM_RUBY` (_Preferences_ → _Variables_).
 
-Bundle commands written in Ruby run with the system ruby (`/usr/bin/ruby`), or with ruby from Homebrew if the system ruby is not installed. They work with ruby 2.6 through 4.0. Set `TM_RUBY` (e.g. in _Preferences_ → _Variables_) to use a different ruby. Commands of third-party bundles that ask for `ruby18` also run with this ruby.
+## Documentation
 
-# Building
+Most TextMate documentation also applies to OakMate:
 
-## Setup
+* [TextMate manual](https://macromates.com/textmate/manual/)
+* [Frequently asked questions](https://github.com/textmate/textmate/wiki/FAQ)
+* [Hidden settings](https://github.com/textmate/textmate/wiki/Hidden-Settings) (write them to `com.isztld.oakmate` instead of `com.macromates.TextMate`)
 
-OakMate builds on Apple silicon Macs running macOS 14 or later. You need:
+## Building from Source
 
- * [Xcode][]            — the compiler and macOS SDK
- * [ninja][]            — build system similar to `make`
-
-Every other dependency is part of this repository. Ninja can be installed with [Homebrew][] or [MacPorts][]:
-
-```sh
-brew install ninja         # Homebrew
-sudo port install ninja    # MacPorts
-```
-
-Then clone the repository and run `./configure` followed by `ninja`, for example:
+You need a Mac with Apple silicon running macOS 14 or later, [Xcode][], and [ninja][] (`brew install ninja`). Every other dependency is part of this repository.
 
 ```sh
 git clone https://github.com/OakMate/OakMate.git
@@ -44,90 +62,20 @@ cd OakMate
 ./configure && ninja OakMate/run
 ```
 
-The `./configure` script checks that the tools can be found and then calls `bin/rave` to bootstrap a `build.ninja` file with default config set to `release` and default target set to `OakMate`.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for build targets, running the tests, and how to submit changes.
 
-Machine-specific settings (extra compiler flags, code signing identity, etc.) can be placed in an optional `local.rave` file, which is not under version control.
+## Reporting Issues
 
-## Building from within OakMate
+Report bugs and request features in [GitHub Issues][Issues]. Include your macOS version, the OakMate version (_OakMate_ → _About OakMate_), and the steps that reproduce the problem.
 
-You should install the [Ninja][NinjaBundle] bundle, e.g. by cloning it into `~/Library/Application Support/OakMate/Bundles`.
+## License
 
-After this you can press ⌘B to build from within OakMate. In case you haven't already you also need to set up the `PATH` variable either in _Preferences_ → _Variables_ or `~/.tm_properties` so it can find `ninja` and related tools; an example could be `$PATH:/usr/local/bin`.
-
-The default target (set in `.tm_properties`) is `OakMate/run`. This will relaunch OakMate but when called from within OakMate, a dialog will appear before the current instance is killed. As there is full session restore, it is safe to relaunch even with unsaved changes.
-
-If the current file is a test file then the target to build is changed to build the library to which the test belongs (this is done by setting `TM_NINJA_TARGET` in the `.tm_properties` file found in the root of the source tree).
-
-Similarly, if the current file belongs to an application target (other than `OakMate.app`) then `TM_NINJA_TARGET` is set to build and run this application.
-
-## Build Targets
-
-For the `OakMate.app` application there are two symbolic build targets:
-
-```sh
-ninja OakMate       # Build and sign OakMate
-ninja OakMate/run   # Build, sign, and (re)launch OakMate
-```
-
-To build and run all unit tests:
-
-```sh
-ninja test          # All tests
-ninja buffer/test   # Tests of a single framework
-```
-
-To clean everything run:
-
-```sh
-ninja -t clean
-```
-
-Or simply delete the build directory, `~/build/«name of the source folder»` by default.
-
-## Code Signing
-
-Builds are ad-hoc signed by default. To sign with your own certificate, set the identity in `local.rave` (not under version control):
-
-```
-set CS_IDENTITY "Developer ID Application: «Name» («Team ID»)"
-```
-
-When an identity is set, executables shipped inside bundles are signed as well (`bin/sign_nested`), which notarization requires.
-
-## Releasing
-
-Releases are built, signed, notarized, and published by the [release workflow](.github/workflows/release.yml) when a version tag is pushed:
-
-1. Give the newest entry in `Applications/OakMate/about/Changes.md` its release date, e.g. `## 2026-11-01 (v2.1.0)`. The version of the application is taken from this entry, and its text becomes the release notes.
-2. Commit, then tag and push: `git tag v2.1.0 && git push origin v2.1.0`.
-
-The workflow publishes `OakMate-«version».zip` (used by the updater), a disk image, and their SHA-256 checksums. An update is only installed if it is signed by the same team as the running copy of OakMate.
-
-The workflow needs these repository secrets:
-
-| Secret | Value |
-|--------|-------|
-| `DEVELOPER_ID_CERTIFICATE_P12` | The “Developer ID Application” certificate with its private key, exported from Keychain Access as `.p12` and base64 encoded (`base64 -i cert.p12 \| pbcopy`) |
-| `DEVELOPER_ID_CERTIFICATE_PASSWORD` | Password chosen when exporting the `.p12` |
-| `NOTARIZATION_APPLE_ID` | Apple ID of the developer account |
-| `NOTARIZATION_PASSWORD` | An app-specific password for that Apple ID, created at [appleid.apple.com](https://appleid.apple.com) |
-| `NOTARIZATION_TEAM_ID` | Team ID, shown at [developer.apple.com/account](https://developer.apple.com/account) |
-
-# Legal
-
-OakMate is a modified version of TextMate, copyright MacroMates Ltd. and contributors. Like TextMate, the source is released under the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. See [LICENSE](LICENSE).
+OakMate is a modified version of TextMate, copyright MacroMates Ltd. and contributors. Like TextMate, it is free software released under the [GNU General Public License](LICENSE), version 3 or (at your option) any later version.
 
 TextMate is a trademark of Allan Odgaard. OakMate does not use the TextMate name or artwork other than to describe where it comes from.
 
-## App Icon
-
-The icon is an [Icon Composer][] file, `Applications/OakMate/icon/OakMate.icon`, compiled by `actool` during the build. Its layers are generated by `Applications/OakMate/icon/leaf.py`.
-
-[Xcode]:         https://developer.apple.com/xcode/
-[ninja]:         https://ninja-build.org/
-[MacPorts]:      http://www.macports.org/
-[Homebrew]:      http://brew.sh/
-[NinjaBundle]:   https://github.com/textmate/ninja.tmbundle
-[TextMate]:      https://github.com/textmate/textmate
-[Releases]:      https://github.com/OakMate/OakMate/releases
-[Icon Composer]: https://developer.apple.com/icon-composer/
+[TextMate]: https://github.com/textmate/textmate
+[Releases]: https://github.com/OakMate/OakMate/releases/latest
+[Issues]:   https://github.com/OakMate/OakMate/issues
+[Xcode]:    https://developer.apple.com/xcode/
+[ninja]:    https://ninja-build.org/
