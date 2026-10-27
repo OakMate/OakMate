@@ -121,6 +121,12 @@ static NSError* UpdateError (NSString* description)
 					release = [self releaseFromJSON:data error:&error];
 			else if(status == 404)
 					error = UpdateError(@"No release of OakMate has been published yet.");
+			else if((status == 403 || status == 429) && [[(NSHTTPURLResponse*)response valueForHTTPHeaderField:@"X-RateLimit-Remaining"] isEqualToString:@"0"])
+			{
+				NSDate* resetDate = [NSDate dateWithTimeIntervalSince1970:[[(NSHTTPURLResponse*)response valueForHTTPHeaderField:@"X-RateLimit-Reset"] doubleValue]];
+				NSString* resetTime = [NSDateFormatter localizedStringFromDate:resetDate dateStyle:NSDateFormatterNoStyle timeStyle:NSDateFormatterShortStyle];
+				error = UpdateError([NSString stringWithFormat:@"GitHub limits how often it can be asked for updates from your network. Please try again after %@.", resetTime]);
+			}
 			else	error = UpdateError([NSString stringWithFormat:@"GitHub responded with status %ld.", status]);
 		}
 

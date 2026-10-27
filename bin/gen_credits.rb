@@ -83,13 +83,15 @@ class GitHubLookup
   end
 
   # Map author emails to GitHub logins using the commit list of the OakMate
-  # repository. Set GITHUB_TOKEN to avoid the API rate limit for anonymous
-  # requests. Results are cached, so only new commits are fetched.
+  # repository. Set GITHUB_TOKEN (or log in with `gh`) to avoid the API rate
+  # limit for anonymous requests. Results are cached, so only new commits are
+  # fetched.
   def self.load_repository_authors
     @loaded_repository_authors = true
 
     headers = { 'User-Agent' => 'OakMate-gen_credits', 'Accept' => 'application/vnd.github+json' }
-    headers['Authorization'] = "Bearer #{ENV['GITHUB_TOKEN']}" if ENV['GITHUB_TOKEN']
+    token = ENV['GITHUB_TOKEN'] || (`gh auth token 2>/dev/null`.chomp rescue nil)
+    headers['Authorization'] = "Bearer #{token}" unless token.nil? || token.empty?
 
     newest_seen = @db['__newest_commit']
     newest = nil
@@ -150,7 +152,9 @@ def generate_credits(dbm_file, warn=false)
       date = DateTime.parse(fields[3])
       subject = CGI.escapeHTML(fields[4])
       body = CGI.escapeHTML(fields[5].sub(fields[4], '').sub(/[\s\x00]+$/, '').sub(/^[\s\x00]+/, ''))
-      userpic = "https://www.gravatar.com/avatar/#{emailhash}?s=48&amp;d=https://a248.e.akamai.net/assets.github.com%2Fimages%2Fgravatars%2Fgravatar-user-420.png"
+
+      # use the GitHub avatar if we know the login, otherwise Gravatar
+      userpic = user && user != '' ? "https://avatars.githubusercontent.com/#{user}?s=72" : "https://www.gravatar.com/avatar/#{emailhash}?s=72&amp;d=mp"
 
       # if we have a github username, populate a link to their
       # profile.
