@@ -31,7 +31,7 @@ jobs:
         echo "KEYCHAIN=$RUNNER_TEMP/signing.keychain-db" >> "$GITHUB_ENV"
         echo "BUILD_DIR=$RUNNER_TEMP/build" >> "$GITHUB_ENV"
 
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
       with:
         fetch-depth: 0  # The Contributions page is generated from the commit history
 
