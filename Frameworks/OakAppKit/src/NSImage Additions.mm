@@ -22,3 +22,23 @@
 	return nil;
 }
 @end
+
+@implementation NSImage (FileIcons)
++ (NSImage*)tmIconForFilenameExtension:(NSString*)anExtension
+{
+	UTType* type = anExtension.length ? [UTType typeWithFilenameExtension:anExtension] : nil;
+	return [NSWorkspace.sharedWorkspace iconForContentType:type ?: UTTypeData];
+}
+
++ (NSImage*)tmMissingFileIcon
+{
+	static NSImage* image;
+	static dispatch_once_t onceToken;
+	dispatch_once(&onceToken, ^{
+		image = [[NSBundle bundleWithPath:@"/System/Library/CoreServices/CoreTypes.bundle"] imageForResource:@"UnknownFSObjectIcon"];
+		if(!image)
+			image = [NSWorkspace.sharedWorkspace iconForContentType:UTTypeData];
+	});
+	return image;
+}
+@end

@@ -1,6 +1,7 @@
 #import "FileBrowserOutlineView.h"
 #import <text/utf8.h>
 #import <ns/ns.h>
+#import <OakAppKit/NSPasteboard Additions.h>
 
 @implementation FileBrowserOutlineView
 - (void)expandItem:(id)someItem expandChildren:(BOOL)flag
@@ -94,7 +95,7 @@
 	{
 		NSMutableArray* urls = [NSMutableArray array];
 		NSPasteboard* pboard = session.draggingPasteboard;
-		for(NSString* path in [pboard availableTypeFromArray:@[ NSFilenamesPboardType ]] ? [pboard propertyListForType:NSFilenamesPboardType] : @[ ])
+		for(NSString* path in pboard.tmFilePaths)
 			[urls addObject:[NSURL fileURLWithPath:path]];
 		[(id <FileBrowserOutlineViewDelegate>)self.delegate outlineView:self didTrashURLs:urls];
 	}

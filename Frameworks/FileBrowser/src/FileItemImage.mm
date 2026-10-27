@@ -1,5 +1,6 @@
 #import "FileItemImage.h"
 #import <TMFileReference/TMFileReference.h>
+#import <OakAppKit/NSImage Additions.h>
 
 NSImage* CreateIconImageForURL (NSURL* url, BOOL isModified, BOOL isMissing, BOOL isDirectory, BOOL isSymbolicLink, scm::status::type scmStatus)
 {
@@ -7,7 +8,7 @@ NSImage* CreateIconImageForURL (NSURL* url, BOOL isModified, BOOL isMissing, BOO
 
 	if(isMissing && (scmStatus == scm::status::none || scmStatus == scm::status::unknown))
 	{
-		res = [NSWorkspace.sharedWorkspace iconForFileType:NSFileTypeForHFSTypeCode(kUnknownFSObjectIcon)];
+		res = NSImage.tmMissingFileIcon;
 	}
 	else
 	{

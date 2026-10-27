@@ -4,6 +4,7 @@
 #import <text/case.h>
 #import <text/utf8.h>
 #import <ns/ns.h>
+#import "NSImage Additions.h"
 
 @interface MenuAttributedString : NSAttributedString
 @property (nonatomic) NSAttributedString* wrappedAttributedString;
@@ -69,9 +70,9 @@ static char const* kOakMenuItemTabTrigger    = "OakMenuItemTabTrigger";
 	if([NSFileManager.defaultManager fileExistsAtPath:path])
 		icon = [NSWorkspace.sharedWorkspace iconForFile:path];
 	else if(OakNotEmptyString([path pathExtension]))
-		icon = [NSWorkspace.sharedWorkspace iconForFileType:[path pathExtension]];
+		icon = [[NSImage tmIconForFilenameExtension:[path pathExtension]] copy];
 	else
-		icon = [NSWorkspace.sharedWorkspace iconForFileType:NSFileTypeForHFSTypeCode(kUnknownFSObjectIcon)];
+		icon = [NSImage.tmMissingFileIcon copy];
 
 	if(icon)
 	{

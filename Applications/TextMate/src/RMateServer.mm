@@ -360,7 +360,7 @@ namespace // wrap in anonymous namespace to avoid clashing with other callbacks 
 			++*counter;
 			__weak __block id token = [NSNotificationCenter.defaultCenter addObserverForName:OakDocumentWillCloseNotification object:document queue:nil usingBlock:^(NSNotification*){
 				if(--*counter == 0)
-					[*terminal activateWithOptions:NSApplicationActivateIgnoringOtherApps];
+					[*terminal activateFromApplication:NSRunningApplication.currentApplication options:0];
 				[NSNotificationCenter.defaultCenter removeObserver:token];
 			}];
 		}

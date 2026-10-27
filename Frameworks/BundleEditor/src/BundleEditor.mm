@@ -26,7 +26,7 @@
 
 @class OakCommand;
 
-@interface BundleEditor () <NSWindowDelegate, OakTextViewDelegate>
+@interface BundleEditor () <NSWindowDelegate, NSEditor, OakTextViewDelegate>
 {
 	NSViewController*      _browserViewController;
 	NSViewController*      _documentViewController;
@@ -921,7 +921,7 @@ static NSMutableDictionary* DictionaryForPropertyList (plist::dictionary_t const
 	else
 	{
 		self.window.representedFilename = NSHomeDirectory();
-		[self.window standardWindowButton:NSWindowDocumentIconButton].image = [NSWorkspace.sharedWorkspace iconForFileType:[NSString stringWithCxxString:info.file_type]];
+		[self.window standardWindowButton:NSWindowDocumentIconButton].image = [NSImage tmIconForFilenameExtension:[NSString stringWithCxxString:info.file_type]];
 	}
 
 	plist::dictionary_t const& plist = it != changes.end() ? it->second : bundleItem->plist();

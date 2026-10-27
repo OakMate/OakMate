@@ -14,6 +14,16 @@ static int kvdbQueryCallback(void *resultBlock, int argc, char **argv, char **co
 
 #define kKVDBTableName @"kvdb"
 
+static id KVDBUnarchiveData(NSData *data) {
+    if (data == nil) return nil;
+
+    NSKeyedUnarchiver *unarchiver = [[NSKeyedUnarchiver alloc] initForReadingFromData:data error:nil];
+    unarchiver.requiresSecureCoding = NO;
+    id object = [unarchiver decodeObjectForKey:NSKeyedArchiveRootObjectKey];
+    [unarchiver finishDecoding];
+    return object;
+}
+
 @implementation KVDB
 
 #define kDefaultSQLFile @"kvdb.sqlite3"
@@ -388,13 +398,11 @@ static KVDB *kvdbInstance = nil;
 }
 
 - (NSData *)archiveObject:(id)object {
-    return [NSKeyedArchiver archivedDataWithRootObject:object];
+    return [NSKeyedArchiver archivedDataWithRootObject:object requiringSecureCoding:NO error:nil];
 }
 
 - (id)unarchiveData:(NSData *)data {
-    if (data == nil) return nil;
-
-    return [NSKeyedUnarchiver unarchiveObjectWithData:data];
+    return KVDBUnarchiveData(data);
 }
 
 @end
@@ -423,8 +431,7 @@ int kvdbQueryCallback(void *resultBlock, int argc, char **argv, char **column) {
                                                                   blob:&blob];
 
             // Revive object from NSKeyedArchiver
-            if (data != nil)
-                value = [NSKeyedUnarchiver unarchiveObjectWithData:data];
+            value = KVDBUnarchiveData(data);
         }
         
         if (value != nil) [row setObject:value forKey:columnName];

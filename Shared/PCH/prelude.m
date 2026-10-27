@@ -11,6 +11,7 @@
 #import <CoreFoundation/CFPlugInCOM.h> // must be loaded before QuickLook.h
 #import <Quartz/Quartz.h> // includes the private QuickLookUI.h
 #import <WebKit/WebKit.h>
+#import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
 
 #include "oak/sdk-compat.h"
 
