@@ -20,34 +20,29 @@ Before you submit a bug report please read the [writing bug reports](https://git
 
 ## Setup
 
-To build TextMate, you need the following:
+TextMate builds on Apple silicon Macs running macOS 14 or later. You need:
 
- * [boost][]            — portable C++ source libraries
- * [Cap’n Proto][capnp] — serialization library
- * [multimarkdown][]    — marked-up plain text compiler
+ * [Xcode][]            — the compiler and macOS SDK
  * [ninja][]            — build system similar to `make`
- * [ragel][]            — state machine compiler
- * [sparsehash][]       — a cache friendly `hash_map`
 
-All this can be installed using either [Homebrew][] or [MacPorts][]:
+Every other dependency is part of this repository. Ninja can be installed with [Homebrew][] or [MacPorts][]:
 
 ```sh
-# Homebrew
-brew install boost capnp google-sparsehash multimarkdown ninja ragel
-
-# MacPorts
-sudo port install boost capnproto multimarkdown ninja ragel sparsehash
+brew install ninja         # Homebrew
+sudo port install ninja    # MacPorts
 ```
 
-After installing dependencies, make sure you have a full checkout (including submodules) and then run `./configure` followed by `ninja`, for example:
+Then clone the repository and run `./configure` followed by `ninja`, for example:
 
 ```sh
-git clone --recursive https://github.com/textmate/textmate.git
+git clone https://github.com/textmate/textmate.git
 cd textmate
 ./configure && ninja TextMate/run
 ```
 
-The `./configure` script simply checks that all dependencies can be found, and then calls `bin/rave` to bootstrap a `build.ninja` file with default config set to `release` and default target set to `TextMate`.
+The `./configure` script checks that the tools can be found and then calls `bin/rave` to bootstrap a `build.ninja` file with default config set to `release` and default target set to `TextMate`.
+
+Machine-specific settings (extra compiler flags, code signing identity, etc.) can be placed in an optional `local.rave` file, which is not under version control.
 
 ## Building from within TextMate
 
@@ -70,6 +65,13 @@ ninja TextMate      # Build and sign TextMate
 ninja TextMate/run  # Build, sign, and (re)launch TextMate
 ```
 
+To build and run all unit tests:
+
+```sh
+ninja test          # All tests
+ninja buffer/test   # Tests of a single framework
+```
+
 To clean everything run:
 
 ```sh
@@ -84,14 +86,10 @@ The source for TextMate is released under the GNU General Public License as publ
 
 TextMate is a trademark of Allan Odgaard.
 
-[boost]:         http://www.boost.org/
+[Xcode]:         https://developer.apple.com/xcode/
 [ninja]:         https://ninja-build.org/
-[multimarkdown]: http://fletcherpenney.net/multimarkdown/
-[ragel]:         http://www.complang.org/ragel/
-[capnp]:         https://github.com/capnproto/capnproto.git
 [MacPorts]:      http://www.macports.org/
 [Homebrew]:      http://brew.sh/
 [NinjaBundle]:   https://github.com/textmate/ninja.tmbundle
-[sparsehash]:    https://code.google.com/p/sparsehash/
 [#textmate]:     irc://irc.freenode.net/#textmate
 [freenode.net]:  http://freenode.net/
