@@ -13,41 +13,6 @@ data:     <DEADBEEF>
 date:     @2010-05-10 20:34:12 +0000
 */
 
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunused-const-variable"
-%%{
-
-	machine string;
-
-	action clear_str       { strBuf.clear(); }
-	action push_char       { strBuf.push_back(fc); }
-	action push_esc        { strBuf.push_back('\\'); }
-	action matched         { matched = true; }
-
-	BARE      = ([a-zA-Z_] [a-zA-Z0-9_\-.]*) >clear_str $push_char;
-
-	S_ESCAPE  = '\'' '\'' @push_char;
-	S_ANY     = [^'] $push_char;
-	SINGLE    = '\'' (S_ESCAPE | S_ANY)* >clear_str '\'';
-
-	D_ESCAPE  = '\\' ([\\"] | [^\\"] >push_esc) $push_char;
-	D_ANY     = [^\\"] $push_char;
-	DOUBLE    = '"' (D_ESCAPE | D_ANY)* >clear_str '"';
-
-	string   := (BARE | SINGLE | DOUBLE) @matched;
-
-	write data;
-
-	machine comment;
-	SINGLE   = '//' [^\n]* '\n';
-	DOUBLE   = '/*' ([^*] | '*' [^/])* '*/';
-	WS       = [ \t\n]+;
-	comment := (SINGLE | DOUBLE | WS)+;
-	write data;
-
-}%%
-#pragma clang diagnostic pop
-
 static bool backtrack (char const*& p, char const* bt, plist::any_t& res)
 {
 	return (res = plist::any_t()), (p = bt), false;
@@ -55,8 +20,28 @@ static bool backtrack (char const*& p, char const* bt, plist::any_t& res)
 
 static bool parse_ws (char const*& p, char const* pe)
 {
-	int cs;
-	%% machine comment; write init; write exec;
+	static char const* const kCommentEnd = "*/";
+
+	while(p != pe)
+	{
+		if(*p == ' ' || *p == '\t' || *p == '\n')
+		{
+			++p;
+		}
+		else if(*p == '/' && pe - p >= 2 && p[1] == '/')
+		{
+			p = std::find(p + 2, pe, '\n');
+		}
+		else if(*p == '/' && pe - p >= 2 && p[1] == '*')
+		{
+			p = std::search(p + 2, pe, kCommentEnd, kCommentEnd + 2);
+			p = p == pe ? pe : p + 2;
+		}
+		else
+		{
+			break;
+		}
+	}
 	return true;
 }
 
@@ -94,16 +79,65 @@ static bool parse_bool (char const*& p, char const* pe, plist::any_t& res)
 	return backtrack(p, bt, res);
 }
 
+static bool is_bare_head (char ch) { return ('a' <= ch && ch <= 'z') || ('A' <= ch && ch <= 'Z') || ch == '_'; }
+static bool is_bare_tail (char ch) { return is_bare_head(ch) || ('0' <= ch && ch <= '9') || ch == '-' || ch == '.'; }
+
 static bool parse_string (char const*& p, char const* pe, plist::any_t& res)
 {
-	int cs;
 	char const* bt = p;
-	bool matched = false;
-	std::string& strBuf = std::get<std::string>(res = std::string());
-
 	parse_ws(p, pe);
-	%% machine string; write init; write exec;
-	return matched || backtrack(p, bt, res);
+	if(p == pe)
+		return backtrack(p, bt, res);
+
+	std::string str;
+	if(is_bare_head(*p))
+	{
+		char const* first = p;
+		while(p != pe && is_bare_tail(*p))
+			++p;
+		str.assign(first, p);
+	}
+	else if(*p == '\'') // single quoted: '' is an escaped quote
+	{
+		for(++p; true; ++p)
+		{
+			if(p == pe)
+				return backtrack(p, bt, res);
+			else if(*p != '\'')
+				str.push_back(*p);
+			else if(pe - p >= 2 && p[1] == '\'')
+				str.push_back(*++p);
+			else
+				break;
+		}
+		++p;
+	}
+	else if(*p == '"') // double quoted: \\ and \" are unescaped, other escapes are kept verbatim
+	{
+		for(++p; true; ++p)
+		{
+			if(p == pe)
+				return backtrack(p, bt, res);
+			else if(*p == '"')
+				break;
+			else if(*p != '\\')
+				str.push_back(*p);
+			else if(++p == pe)
+				return backtrack(p, bt, res);
+			else if(*p == '\\' || *p == '"')
+				str.push_back(*p);
+			else
+				str.append({ '\\', *p });
+		}
+		++p;
+	}
+	else
+	{
+		return backtrack(p, bt, res);
+	}
+
+	res = std::move(str);
+	return true;
 }
 
 static bool parse_date (char const*& p, char const* pe, plist::any_t& res)

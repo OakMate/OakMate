@@ -631,20 +631,6 @@ class CompileClang < Compiler
   end
 end
 
-class CompileRagel < Compiler
-  transforms '.rl' => '.cc', '.mm.rl' => '.mm', '.cc.rl' => '.cc'
-
-  def transform(file, config, builddir)
-    super.merge(
-      flags:        config['RAGEL_FLAGS'],
-      command:      'ragel -o $out $flags $in',
-      description:  'Ragel ‘${in}’…',
-      new_flags:    "-iquote #{File.dirname(file).shellescape}",
-      dependencies: config.dig(:inference, 'RAGEL_FLAGS'),
-    )
-  end
-end
-
 class CompileXib < Compiler
   transforms '.xib' => '.nib'
 
