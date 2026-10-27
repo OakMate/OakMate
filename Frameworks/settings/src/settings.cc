@@ -137,12 +137,28 @@ namespace
 		return res;
 	}
 
-	static std::vector<section_t> const& sections (std::string const& path)
+	static std::mutex& sections_mutex ()
+	{
+		static std::mutex mutex;
+		return mutex;
+	}
+
+	static std::vector<section_t> const& sections (std::string const& path, bool forget = false)
 	{
 		static track_paths_t tracked_paths;
 		static std::map<std::string, std::vector<section_t> > cache;
 
-		if(path == NULL_STR)
+		if(forget)
+		{
+			// The file change notification is delivered asynchronously, so a writer
+			// drops the cached copy to make its change visible to the next reader.
+			tracked_paths.remove(path);
+			cache.erase(path);
+
+			static std::vector<section_t> dummy;
+			return dummy;
+		}
+		else if(path == NULL_STR)
 		{
 			if(cache.size() > 64)
 			{
@@ -190,8 +206,7 @@ namespace
 
 	static void collect (std::string const& directory, std::string const& path, scope::scope_t const& scope, std::function<void(section_t::assignment_t const& assignment, section_t const& section)> filter)
 	{
-		static std::mutex mutex;
-		std::lock_guard<std::mutex> lock(mutex);
+		std::lock_guard<std::mutex> lock(sections_mutex());
 		sections(NULL_STR); // clear cache if too big
 
 		auto const globalSections  = sections(global_settings_path());
@@ -456,4 +471,7 @@ void settings_t::set (std::string const& key, std::string const& value, std::str
 		}
 		fclose(fp);
 	}
+
+	std::lock_guard<std::mutex> lock(sections_mutex());
+	::sections(global_settings_path(), true);
 }
