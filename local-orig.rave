@@ -1,7 +1,6 @@
 # ninja TextMate/release/bump && ninja TextMate/release/deploy
 
 set CS_IDENTITY "${APPLE_DEVELOPER_ID}"
-add IB_FLAGS    "--minimum-deployment-target=${APP_MIN_OS}"
 add FLAGS       "-I${HOME}/.nix-profile/include"
 
 extend pretty_plist {
@@ -16,11 +15,7 @@ config debug {
 }
 
 config release {
-	arch "arm64" "x86_64" {
-		add FLAGS    "-target macos-${arch}"
-		add LN_FLAGS "-target macos-${arch}"
-		add LN_FLAGS "-L${HOME}/.nix-profile/sdk/${arch}/lib"
-	}
+	add LN_FLAGS "-L${HOME}/.nix-profile/sdk/${APP_ARCH}/lib"
 }
 
 extend TextMate {
