@@ -16,7 +16,7 @@ The document icons from https://github.com/textmate/document-icons.git were remo
 
 ## Bundles
 
-The bundles in `Applications/OakMate/support/Bundles` were downloaded from the TextMate bundle server (`api.textmate.org`), which builds them from the repositories below. The version is the server’s build number for that bundle. Unless a bundle says otherwise, its files are licensed as: “Permission to copy, use, modify, sell and distribute this software is granted. This software is provided “as is” without express or implied warranty, and with no claim as to its suitability for any purpose.”
+The bundles in `Applications/OakMate/support/Bundles` were downloaded from the TextMate bundle server, which builds them from the repositories below. The version is the server’s build number for that bundle. The bundles have since been changed in this repository: they run with ruby 2.6 or later instead of ruby 1.8, the compiled ruby extensions for property lists and the keychain are replaced by ruby code, CocoaDialog is replaced by AppleScript, and binaries that only ran on Intel or PowerPC are removed. Unless a bundle says otherwise, its files are licensed as: “Permission to copy, use, modify, sell and distribute this software is granted. This software is provided “as is” without express or implied warranty, and with no claim as to its suitability for any purpose.”
 
 | Bundle | Origin | Version (date) |
 |--------|--------|----------------|
