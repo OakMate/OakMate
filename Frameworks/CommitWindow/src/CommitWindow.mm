@@ -544,7 +544,15 @@ static void* kOakCommitWindowIncludeItemObserverContext = &kOakCommitWindowInclu
 
 	self.retainedSelf = self;
 
-	[aWindow beginSheet:self.window completionHandler:aCompletionHandler];
+	if(aWindow)
+	{
+		[aWindow beginSheet:self.window completionHandler:aCompletionHandler];
+	}
+	else
+	{
+		[self.window center];
+		[self.window makeKeyAndOrderFront:self];
+	}
 }
 
 - (void)sendCommitMessageToClient:(BOOL)success
@@ -715,19 +723,26 @@ static void* kOakCommitWindowIncludeItemObserverContext = &kOakCommitWindowInclu
 - (void)performCommit:(id)sender
 {
 	[self sendCommitMessageToClient:YES];
-	[self.window.sheetParent endSheet:self.window returnCode:NSModalResponseOK];
+	[self dismissWithReturnCode:NSModalResponseOK];
 }
 
 - (void)performCommitAndContinue:(id)sender
 {
 	[self sendCommitMessageToClient:YES andContinue:YES];
-	[self.window.sheetParent endSheet:self.window returnCode:NSModalResponseOK];
+	[self dismissWithReturnCode:NSModalResponseOK];
 }
 
 - (void)cancel:(id)sender
 {
 	[self sendCommitMessageToClient:NO];
-	[self.window.sheetParent endSheet:self.window returnCode:NSModalResponseCancel];
+	[self dismissWithReturnCode:NSModalResponseCancel];
+}
+
+- (void)dismissWithReturnCode:(NSModalResponse)returnCode
+{
+	if(NSWindow* parent = self.window.sheetParent)
+			[parent endSheet:self.window returnCode:returnCode];
+	else	[self.window orderOut:self];
 }
 
 - (void)checkAll:(id)sender
@@ -922,6 +937,20 @@ static void* kOakCommitWindowIncludeItemObserverContext = &kOakCommitWindowInclu
 		}
 	}
 
+	// The main window is nil when TextMate is not active, so fall back to the frontmost project window
+	if(!projectWindow)
+	{
+		for(NSWindow* window in [NSApp orderedWindows])
+		{
+			if(window.isVisible && [window.delegate respondsToSelector:@selector(identifier)])
+			{
+				projectWindow = window;
+				break;
+			}
+		}
+	}
+
+	[NSApp activate];
 	OakCommitWindow* commitWindow = [[OakCommitWindow alloc] initWithOptions:someOptions connection:connection];
 	[commitWindow beginSheetModalForWindow:projectWindow completionHandler:^(NSModalResponse returnCode){ }];
 }
