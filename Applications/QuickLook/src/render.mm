@@ -1,5 +1,5 @@
 #import <OSAKit/OSAKit.h>
-#import "plugin.h"
+#import "render.h"
 #import <buffer/buffer.h>
 #import <bundles/bundles.h>
 #import <file/bytes.h>
@@ -14,19 +14,18 @@
 #import <settings/settings.h>
 #import <theme/theme.h>
 #import <OakFoundation/NSString Additions.h>
+#import <OakSystem/application.h>
 
-OAK_EXTERN_C_BEGIN
-
-static void initialize (CFBundleRef generatorBundle)
+static void initialize ()
 {
 	static dispatch_once_t onceToken;
 	dispatch_once(&onceToken, ^{
-		// Load settings
-		NSURL* bundleURL = (__bridge_transfer NSURL*)CFBundleCopyBundleURL(generatorBundle);
-		NSString* parentBundlePath = [[[[[[bundleURL filePathURL] path] stringByDeletingLastPathComponent] stringByDeletingLastPathComponent] stringByDeletingLastPathComponent] stringByDeletingLastPathComponent];
-		NSBundle* parentBundle = [NSBundle bundleWithPath:parentBundlePath];
+		// The extension is located in TextMate.app/Contents/PlugIns
+		NSString* appPath = NSBundle.mainBundle.bundlePath.stringByDeletingLastPathComponent.stringByDeletingLastPathComponent.stringByDeletingLastPathComponent;
+		oak::application_t::set_path(to_s(appPath));
 
-		settings_t::set_default_settings_path([[parentBundle pathForResource:@"Default" ofType:@"tmProperties"] fileSystemRepresentation]);
+		// Load settings
+		settings_t::set_default_settings_path(oak::application_t::path("Contents/Resources/Default.tmProperties"));
 		settings_t::set_global_settings_path(path::join(path::home(), "Library/Application Support/TextMate/Global.tmProperties"));
 
 		// Load bundle index
@@ -42,27 +41,16 @@ static void initialize (CFBundleRef generatorBundle)
 	});
 }
 
-static std::string URLtoString (CFURLRef url)
+static std::string setup_buffer (NSURL* url, ng::buffer_t& buffer, size_t maxSize, size_t maxLines = SIZE_T_MAX)
 {
-	std::string filePath = NULL_STR;
-	if(CFStringRef path = CFURLCopyFileSystemPath(url, kCFURLPOSIXPathStyle))
-	{
-		filePath = cf::to_s(path);
-		CFRelease(path);
-	}
-	return filePath;
-}
-
-static std::string setup_buffer (CFURLRef url, ng::buffer_t& buffer, size_t maxSize = 20480, size_t maxLines = SIZE_T_MAX)
-{
-	std::string filePath = URLtoString(url);
+	std::string filePath = to_s(url.filePathURL.path);
 
 	std::string fileContents = NULL_STR;
 	if(path::extension(filePath) == ".scpt")
 	{
 		@autoreleasepool {
 			NSDictionary* err = nil;
-			if(OSAScript* script = [[OSAScript alloc] initWithContentsOfURL:(__bridge NSURL*)url error:&err])
+			if(OSAScript* script = [[OSAScript alloc] initWithContentsOfURL:url error:&err])
 			{
 				fileContents = [[script source] UTF8String] ?: NULL_STR;
 				std::replace(fileContents.begin(), fileContents.end(), '\r', '\n');
@@ -136,112 +124,42 @@ static NSAttributedString* create_attributed_string (ng::buffer_t& buffer, std::
 	return output;
 }
 
-// =========================
-// = QLGenerator interface =
-// =========================
+// =============
+// = Interface =
+// =============
 
-OSStatus TextMateQuickLookPlugIn_GenerateThumbnailForURL (void* instance, QLThumbnailRequestRef request, CFURLRef url, CFStringRef contentTypeUTI, CFDictionaryRef options, CGSize maxSize)
+NSAttributedString* TMQLCreatePreview (NSURL* url, NSColor** backgroundColor)
 {
-	initialize(QLThumbnailRequestGetGeneratorBundle(request));
+	initialize();
 
-	// Load file
 	ng::buffer_t buffer;
-	setup_buffer(url, buffer, 1024, 50);
-
-	// Check if cancelled
-	if(QLThumbnailRequestIsCancelled(request))
-		return noErr;
-
-	NSFont* font = [NSFont userFixedPitchFontOfSize:4];
-	NSAttributedString* output = create_attributed_string(buffer, kMacClassicThemeUUID, to_s([font fontName]), [font pointSize]);
-
-	// Check if cancelled
-	if(QLThumbnailRequestIsCancelled(request))
-		return noErr;
-
-	// w/e the 3rd parameter, the context will always be a bitmap context
-	CGContextRef bitmapContext = QLThumbnailRequestCreateContext(request, maxSize, true, NULL);
-	if(bitmapContext)
-	{
-		NSGraphicsContext* context = [NSGraphicsContext graphicsContextWithGraphicsPort:bitmapContext flipped:YES];
-		if(context)
-		{
-			[NSGraphicsContext saveGraphicsState];
-			[NSGraphicsContext setCurrentContext:context];
-			CGContextSaveGState(bitmapContext);
-			CGContextTranslateCTM(bitmapContext, 0.0, maxSize.height);
-			CGContextScaleCTM(bitmapContext, 1.0, -1.0);
-			[output drawAtPoint:NSZeroPoint];
-			CGContextRestoreGState(bitmapContext);
-			[NSGraphicsContext restoreGraphicsState];
-		}
-		QLThumbnailRequestFlushContext(request, bitmapContext);
-		CGContextRelease(bitmapContext);
-	}
-
-	return noErr;
-}
-
-void TextMateQuickLookPlugIn_CancelThumbnailGeneration (void* instance, QLThumbnailRequestRef request)
-{
-}
-
-OSStatus TextMateQuickLookPlugIn_GeneratePreviewForURL (void* instance, QLPreviewRequestRef request, CFURLRef url, CFStringRef contentTypeUTI, CFDictionaryRef options)
-{
-	initialize(QLPreviewRequestGetGeneratorBundle(request));
-
-	// Load file
-	ng::buffer_t buffer;
-	std::string fileType = setup_buffer(url, buffer);
-
+	std::string fileType = setup_buffer(url, buffer, 20480);
 	if(fileType == NULL_STR)
-	{
-		// We don't know the type, let the system handle it
-		NSData* data = [NSData dataWithContentsOfURL:(__bridge NSURL*)url];
-		QLPreviewRequestSetDataRepresentation(request, (__bridge CFDataRef)data, kUTTypePlainText, nil);
-		return noErr;
-	}
-
-	// Check if cancelled
-	if(QLPreviewRequestIsCancelled(request))
-		return noErr;
+		fileType = "text.plain";
 
 	NSUserDefaults* userDefaults = [[NSUserDefaults alloc] initWithSuiteName:@"com.macromates.TextMate"];
 	NSString* appearance = [userDefaults stringForKey:@"themeAppearance"];
 	BOOL darkMode = [appearance isEqualToString:@"dark"];
-	if(@available(macos 10.14, *))
-	{
-		if(!darkMode && ![appearance isEqualToString:@"light"]) // If it is not ‘light’ then assume ‘auto’
-			darkMode = [[NSAppearance.currentAppearance bestMatchFromAppearancesWithNames:@[ NSAppearanceNameAqua, NSAppearanceNameDarkAqua ]] isEqualToString:NSAppearanceNameDarkAqua];
-	}
-	NSString* themeUUID = [userDefaults stringForKey:darkMode ? @"darkModeThemeUUID" : @"universalThemeUUID"];
+	if(!darkMode && ![appearance isEqualToString:@"light"]) // If it is not ‘light’ then assume ‘auto’
+		darkMode = [[NSUserDefaults.standardUserDefaults stringForKey:@"AppleInterfaceStyle"] isEqualToString:@"Dark"];
+	NSString* themeUUID = [userDefaults stringForKey:darkMode ? @"darkModeThemeUUID" : @"universalThemeUUID"] ?: (darkMode ? @(kTwilightThemeUUID) : @(kMacClassicThemeUUID));
 
-	settings_t const settings = settings_for_path(URLtoString(url), fileType);
+	settings_t const settings = settings_for_path(to_s(url.filePathURL.path), fileType);
 	theme_ptr theme;
 	NSFont* font = [NSFont userFixedPitchFontOfSize:0];
-	NSAttributedString* output = create_attributed_string(buffer, to_s(themeUUID), settings.get(kSettingsFontNameKey, to_s([font fontName])), settings.get(kSettingsFontSizeKey, [font pointSize]), &theme);
-	if(!output)
-	{
-		NSData* data = [NSData dataWithContentsOfURL:(__bridge NSURL*)url];
-		QLPreviewRequestSetDataRepresentation(request, (__bridge CFDataRef)data, kUTTypePlainText, nil);
-		return noErr;
-	}
-
-	// Check if cancelled
-	if(QLPreviewRequestIsCancelled(request))
-		return noErr;
-
-	NSData* outputData = [output RTFFromRange:NSMakeRange(0, [output length]) documentAttributes:@{
-		NSDocumentTypeDocumentAttribute:    [NSString stringWithCxxString:fileType],
-		NSBackgroundColorDocumentAttribute: theme ? [NSColor colorWithCGColor:theme->background(fileType)] : [NSColor whiteColor],
-	}];
-
-	QLPreviewRequestSetDataRepresentation(request, (__bridge CFDataRef)outputData, kUTTypeRTF, nil);
-	return noErr;
+	NSAttributedString* res = create_attributed_string(buffer, to_s(themeUUID), settings.get(kSettingsFontNameKey, to_s([font fontName])), settings.get(kSettingsFontSizeKey, [font pointSize]), &theme);
+	if(res && backgroundColor)
+		*backgroundColor = [NSColor colorWithCGColor:theme->background(fileType)];
+	return res;
 }
 
-void TextMateQuickLookPlugIn_CancelPreviewGeneration (void* instance, QLPreviewRequestRef request)
+NSAttributedString* TMQLCreateThumbnail (NSURL* url, CGFloat fontSize, size_t maxLines)
 {
-}
+	initialize();
 
-OAK_EXTERN_C_END
+	ng::buffer_t buffer;
+	setup_buffer(url, buffer, 4096, maxLines);
+
+	NSFont* font = [NSFont userFixedPitchFontOfSize:fontSize];
+	return create_attributed_string(buffer, kMacClassicThemeUUID, to_s([font fontName]), [font pointSize]);
+}

@@ -1,11 +1,59 @@
-target "TextMateQL" {
-	require OakFoundation buffer bundles cf file io ns plist scope settings theme
+target "TextMateQLRender" {
+	require OakFoundation OakSystem buffer bundles cf file io ns plist scope settings theme
+	sources src/*.mm
+	frameworks AppKit OSAKit
+}
 
-	prefix "${target}.qlgenerator/Contents"
-	files Info.plist "."
-	add LN_FLAGS "-bundle"
+target "TextMateQLPreview" {
+	require TextMateQLRender
 
-	sources src/*.{c,mm}
+	capture APP_VERSION "grep -om1 '^## .* (v.*)$' '${dir}/../TextMate/about/Changes.md'|sed 's/.*(v\\(.*\))/\\1/'"
+
+	config "debug" {
+		add PLIST_FLAGS "-d'CS_GET_TASK_ALLOW=true'"
+	}
+
+	config "release" {
+		add PLIST_FLAGS "-d'CS_GET_TASK_ALLOW=false'"
+	}
+
+	expand CS_ENTITLEMENTS "${dir}/Preview/Entitlements.plist"
+
+	add PLIST_FLAGS "-dAPP_VERSION='${APP_VERSION}'"
+	add CS_FLAGS    "--entitlements '${CS_ENTITLEMENTS}'"
+	add LN_FLAGS    "-fapplication-extension -e _NSExtensionMain"
+
+	prefix "${target}.appex/Contents"
+	files Preview/Info.plist "."
+
+	sources Preview/*.mm
 	executable "MacOS/${target}"
-	frameworks CoreFoundation QuickLook AppKit OSAKit
+	frameworks QuickLookUI UniformTypeIdentifiers
+}
+
+target "TextMateQLThumbnail" {
+	require TextMateQLRender
+
+	capture APP_VERSION "grep -om1 '^## .* (v.*)$' '${dir}/../TextMate/about/Changes.md'|sed 's/.*(v\\(.*\))/\\1/'"
+
+	config "debug" {
+		add PLIST_FLAGS "-d'CS_GET_TASK_ALLOW=true'"
+	}
+
+	config "release" {
+		add PLIST_FLAGS "-d'CS_GET_TASK_ALLOW=false'"
+	}
+
+	expand CS_ENTITLEMENTS "${dir}/Thumbnail/Entitlements.plist"
+
+	add PLIST_FLAGS "-dAPP_VERSION='${APP_VERSION}'"
+	add CS_FLAGS    "--entitlements '${CS_ENTITLEMENTS}'"
+	add LN_FLAGS    "-fapplication-extension -e _NSExtensionMain"
+
+	prefix "${target}.appex/Contents"
+	files Thumbnail/Info.plist "."
+
+	sources Thumbnail/*.mm
+	executable "MacOS/${target}"
+	frameworks QuickLookThumbnailing
 }
