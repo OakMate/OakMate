@@ -636,8 +636,8 @@ static pid_t run_command (dispatch_group_t rootGroup, std::string const& cmd, in
 {
 	if(id target = [self targetForAction:_cmd])
 		[target discardHTMLOutputView:htmlOutputView];
-	else if(id delegate = htmlOutputView.webView.UIDelegate)
-		[delegate performSelector:@selector(webViewClose:) withObject:htmlOutputView.webView];
+	else if(id <WKUIDelegate> delegate = htmlOutputView.webView.UIDelegate)
+		[delegate webViewDidClose:htmlOutputView.webView];
 }
 
 - (void)showToolTip:(NSString*)aToolTip
@@ -659,83 +659,5 @@ static pid_t run_command (dispatch_group_t rootGroup, std::string const& cmd, in
 	if(id target = [self targetForAction:_cmd])
 		return [target presentError:anError];
 	return NO;
-}
-@end
-
-// =====================
-// = Custom URL Scheme =
-// =====================
-
-@interface OakFileHandleURLProtocol : NSURLProtocol
-{
-	BOOL _stop;
-}
-@end
-
-@implementation OakFileHandleURLProtocol
-+ (void)load
-{
-	[self registerClass:self];
-	[WebView registerURLSchemeAsLocal:kOakFileHandleURLScheme];
-}
-
-+ (BOOL)canInitWithRequest:(NSURLRequest*)request                            { return [request.URL.scheme isEqualToString:kOakFileHandleURLScheme]; }
-+ (NSURLRequest*)canonicalRequestForRequest:(NSURLRequest*)request           { return request; }
-+ (BOOL)requestIsCacheEquivalent:(NSURLRequest*)a toRequest:(NSURLRequest*)b { return NO; }
-
-// =============================================
-// = These methods might be called in a thread =
-// =============================================
-
-- (void)startLoading
-{
-	NSFileHandle* fileHandle = [NSURLProtocol propertyForKey:@"fileHandle" inRequest:self.request];
-	if(!fileHandle)
-	{
-		NSURLResponse* response = [[NSHTTPURLResponse alloc] initWithURL:self.request.URL statusCode:404 HTTPVersion:@"HTTP/1.1" headerFields:nil];
-		[self.client URLProtocol:self didReceiveResponse:response cacheStoragePolicy:NSURLCacheStorageNotAllowed];
-		[self.client URLProtocolDidFinishLoading:self];
-		NSLog(@"No command output for ‘%@’", self.request.URL);
-		return;
-	}
-
-	NSURLResponse* response = [[NSURLResponse alloc] initWithURL:self.request.URL MIMEType:@"text/html" expectedContentLength:-1 textEncodingName:@"utf-8"];
-	[self.client URLProtocol:self didReceiveResponse:response cacheStoragePolicy:NSURLCacheStorageNotAllowed];
-
-	dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-		int len;
-		char buf[8192];
-		__block BOOL keepRunning = YES;
-		@try {
-			while(keepRunning && (len = read(fileHandle.fileDescriptor, buf, sizeof(buf))) > 0)
-			{
-				NSData* data = [NSData dataWithBytes:buf length:len];
-				dispatch_sync(dispatch_get_main_queue(), ^{
-					if(keepRunning = !_stop)
-						[self.client URLProtocol:self didLoadData:data];
-				});
-			}
-		}
-		@catch(NSException* e) {
-			NSData* data = [[NSString stringWithFormat:@"<p>Exception thrown while reading data: %@.</p>", e.reason] dataUsingEncoding:NSUTF8StringEncoding];
-			dispatch_sync(dispatch_get_main_queue(), ^{
-				if(!_stop)
-					[self.client URLProtocol:self didLoadData:data];
-			});
-		}
-
-		if(len == -1)
-			perror("HTMLOutput: read");
-
-		[fileHandle closeFile];
-		[self.client URLProtocolDidFinishLoading:self];
-	});
-}
-
-- (void)stopLoading
-{
-	_stop = YES;
-	if(pid_t pid = [[NSURLProtocol propertyForKey:@"processIdentifier" inRequest:self.request] intValue])
-		oak::kill_process_group_in_background(pid);
 }
 @end

@@ -6,5 +6,5 @@ target "${dirname}" {
 
 	sources src/*.mm
 	tests tests/t_*.mm
-	frameworks Cocoa WebKit
+	frameworks Cocoa
 }

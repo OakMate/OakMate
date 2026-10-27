@@ -1,5 +1,5 @@
 target "${dirname}" {
-	require OakAppKit OakFoundation cf document io ns text
+	require OakAppKit OakFoundation OakSystem cf document io ns text
 	headers src/HTMLOutput.h
 
 	files resources/* "Resources"

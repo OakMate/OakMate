@@ -2,334 +2,333 @@
 #import "add_to_buffer.h"
 #import <OakAppKit/NSAlert Additions.h>
 #import <OakFoundation/NSString Additions.h>
-#import <oak/debug.h>
 #import <document/OakDocument.h>
 #import <document/OakDocumentController.h>
 #import <text/utf8.h>
 #import <ns/ns.h>
-#import <cf/run_loop.h>
 #import <io/exec.h>
+#import <oak/debug.h>
+
+static NSString* const kBridgePrompt = @"x-txmt-bridge";
+
+// ====================
+// = HOJSShellCommand =
+// ====================
 
 @interface HOJSShellCommand : NSObject
-- (id)initShellCommand:(NSString*)aCommand withEnvironment:(const std::map<std::string, std::string>&)someEnvironment andExitHandler:(id)aHandler;
-@end
-
-/*
-	This class exposes a ‘TextMate’ object to the JavaScript interpreter.
-	The object will have the following methods available:
-
-		system()                 See HOJSShellCommand class below for information.
-		log(msg)                 Adds a message to the system console (using NSLog).
-		open(path, options)      Opens a file on disk as a document in the current application.
-		                         options may be either a selection range string or a (line) number.
-
-	in addition, these properties are exposed:
-
-		busy       (boolean)     The busy spinner in the output window will be displayed when this is true.
-		progress   (double, 0-1) Controls the value displayed in the determinate progress indicator.
-*/
-
-@implementation HOJSBridge
-{
-	std::map<std::string, std::string> environment;
-
-	// unused dummy keys to get them exposed to javascript
-	BOOL isBusy;
-	float progress;
-}
-
-- (std::map<std::string, std::string> const&)environment;
-{
-	return environment;
-}
-
-- (void)setEnvironment:(const std::map<std::string, std::string>&)variables;
-{
-	environment = variables;
-}
-
-+ (BOOL)isSelectorExcludedFromWebScript:(SEL)aSelector
-{
-	return aSelector != @selector(system:handler:) && aSelector != @selector(log:) && aSelector != @selector(openFile:withOptions:);
-}
-
-+ (NSString*)webScriptNameForSelector:(SEL)aSelector
-{
-	if(aSelector == @selector(system:handler:))
-		return @"system";
-	else if(aSelector == @selector(log:))
-		return @"log";
-	else if(aSelector == @selector(openFile:withOptions:))
-		return @"open";
-	return NSStringFromSelector(aSelector);
-}
-
-+ (BOOL)isKeyExcludedFromWebScript:(char const*)name
-{
-	return strcmp(name, "isBusy") != 0 && strcmp(name, "progress") != 0;
-}
-
-+ (NSString*)webScriptNameForKey:(char const*)name
-{
-	return @(name);
-}
-
-- (void)setIsBusy:(BOOL)flag
-{
-	[_delegate setBusy:flag];
-}
-
-- (void)setProgress:(id)newProgress;
-{
-	[_delegate setProgress:[newProgress floatValue]];
-}
-
-- (double)progress
-{
-	return [_delegate progress];
-}
-
-- (void)log:(NSString*)aMessage
-{
-	NSLog(@"JavaScript Log: %@", aMessage);
-}
-
-- (void)openFile:(NSString*)path withOptions:(id)options
-{
-	text::range_t range = text::range_t::undefined;
-	if([options isKindOfClass:[NSNumber class]])
-		range = text::pos_t([options intValue]-1, 0);
-	else if([options isKindOfClass:[NSString class]])
-		range = to_s(options);
-	if(OakDocument* doc = [OakDocumentController.sharedInstance documentWithPath:path])
-		[OakDocumentController.sharedInstance showDocument:doc andSelect:range inProject:nil bringToFront:YES];
-}
-
-- (id)system:(NSString*)aCommand handler:(id)aHandler
-{
-	return [[HOJSShellCommand alloc] initShellCommand:aCommand withEnvironment:[self environment] andExitHandler:[aHandler isKindOfClass:[WebUndefined class]] ? nil : aHandler];
-}
-@end
-
-/*
-	<http://developer.apple.com/documentation/AppleApplications/Conceptual/Dashboard_ProgTopics/Articles/CommandLine.html>
-
-	# Synchronous Operation
-
-	Example: obj = TextMate.system("/usr/bin/id -un", null);
-
-	Result is an object with following properties:
-
-		outputString:  The output of the command, as placed on stdout.
-		errorString:   The output of the command, as placed on stderr.
-		status:        The exit status of the command.
-
-	# Asynchronous Operation
-
-	Example: obj = TextMate.system("/usr/bin/id -un", handler);
-
-	Handler is called when the command is finished and given an object with the following properties:
-
-		outputString:  The last output of the command, as placed on stdout.
-		errorString:   The last output of the command, as placed on stderr.
-		status:        The exit status of the command.
-
-	Result is an object with following properties/methods:
-
-		outputString:  The current string written to stdout (standard output) by the command.
-		errorString:   The current string written to stderr (standard error output) by the command.
-		status:        The command’s exit status, as defined by the command.
-		onreadoutput:  A function called whenever the command writes to stdout. The handler must accept a single argument; when called, the argument contains the current string placed on stdout.
-		onreaderror:   A function called whenever the command writes to stderr. The handler must accept a single argument; when called, the argument contains the current string placed on stderr.
-		cancel():      Cancels the execution of the command.
-		write(string): Writes a string to stdin (standard input).
-		close():       Closes stdin (EOF).
-
-*/
-
-@interface HOJSShellCommand ()
-{
-	io::process_t process;
-	std::string output, error;
-
-	// unused dummy keys to get them exposed to javascript
-	NSString* outputString;
-	NSString* errorString;
-}
-@property (nonatomic) id exitHandler;
-@property (nonatomic) id onreadoutput;
-@property (nonatomic) id onreaderror;
-@property (nonatomic) int status;
+- (instancetype)initWithCommand:(NSString*)aCommand environment:(std::map<std::string, std::string> const&)someEnvironment outputHandler:(void(^)(BOOL isError, NSString* str))outputHandler exitHandler:(void(^)(int status, NSString* output, NSString* error))exitHandler;
+- (void)writeToInput:(NSString*)someData;
+- (void)closeInput;
+- (void)cancel;
+@property (nonatomic, readonly, getter = isRunning) BOOL running;
 @end
 
 @implementation HOJSShellCommand
-// We need @synthesize to avoid the instance variables from being prefixed with an underscore, as they are mapped to JavaScript
-@synthesize onreadoutput, onreaderror, status;
+{
+	io::process_t _process;
+	std::string _output, _error;
+	void(^_outputHandler)(BOOL, NSString*);
+	void(^_exitHandler)(int, NSString*, NSString*);
+}
 
-- (id)initShellCommand:(NSString*)aCommand withEnvironment:(const std::map<std::string, std::string>&)someEnvironment andExitHandler:(id)aHandler
+- (instancetype)initWithCommand:(NSString*)aCommand environment:(std::map<std::string, std::string> const&)someEnvironment outputHandler:(void(^)(BOOL isError, NSString* str))outputHandler exitHandler:(void(^)(int status, NSString* output, NSString* error))exitHandler
 {
 	if(self = [super init])
 	{
-		self.exitHandler = aHandler;
-		if(process = io::spawn(std::vector<std::string>{ "/bin/sh", "-c", to_s(aCommand) }, someEnvironment))
+		_outputHandler = outputHandler;
+		_exitHandler   = exitHandler;
+
+		if(_process = io::spawn(std::vector<std::string>{ "/bin/sh", "-c", to_s(aCommand) }, someEnvironment))
 		{
-			auto runLoop = std::make_shared<cf::run_loop_t>(kCFRunLoopDefaultMode, 15);
-			auto weakRunLoop = std::weak_ptr<cf::run_loop_t>(runLoop);
-			auto group = dispatch_group_create();
-			auto queue = aHandler ? dispatch_get_main_queue() : dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
+			_running = YES;
 
-			[self exhaustFileDescriptor:process.out inQueue:queue group:group buffer:output isError:NO];
-			[self exhaustFileDescriptor:process.err inQueue:queue group:group buffer:error isError:YES];
+			dispatch_group_t group = dispatch_group_create();
+			[self exhaustFileDescriptor:_process.out group:group buffer:_output isError:NO];
+			[self exhaustFileDescriptor:_process.err group:group buffer:_error isError:YES];
 
-			dispatch_group_async(group, dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+			__block int status = -1;
+			pid_t pid = _process.pid;
+			dispatch_group_async(group, dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
 				int result = 0;
-				if(waitpid(process.pid, &result, 0) != process.pid)
-					perror("HOJSShellCommand: waitpid");
-				process.pid = -1;
-				dispatch_sync(queue, ^{
-					self.status = WIFEXITED(result) ? WEXITSTATUS(result) : -1;
-				});
+				if(waitpid(pid, &result, 0) == pid)
+						status = WIFEXITED(result) ? WEXITSTATUS(result) : -1;
+				else	perror("HOJSShellCommand: waitpid");
 			});
 
 			dispatch_group_notify(group, dispatch_get_main_queue(), ^{
-				close(process.out);
-				close(process.err);
-				if(self.exitHandler)
-					[self.exitHandler callWebScriptMethod:@"call" withArguments:@[ self.exitHandler, self ]];
-				else if(auto runLoop = weakRunLoop.lock())
-					runLoop->stop();
+				close(_process.out);
+				close(_process.err);
+				[self closeInput];
+				_process.pid = -1;
+				_running = NO;
+
+				if(auto handler = std::exchange(_exitHandler, nil))
+					handler(status, [self stringFromBuffer:_output], [self stringFromBuffer:_error]);
+				_outputHandler = nil;
 			});
 
-			if(!self.exitHandler)
-			{
+			if(!_outputHandler)
 				[self closeInput];
-
-				while(runLoop->start() == false) // timeout
-				{
-					NSAlert* alert        = [[NSAlert alloc] init];
-					alert.messageText     = @"JavaScript Warning";
-					alert.informativeText = [NSString stringWithFormat:@"The command ‘%@’ has been running for 15 seconds. Would you like to stop it?\n\nTo avoid this warning, the bundle command should use the asynchronous version of TextMate.system().", aCommand];
-					[alert addButtons:@"Stop Command", @"Cancel", nil];
-					if([alert runModal] == NSAlertFirstButtonReturn) // "Stop Command"
-					{
-						runLoop.reset();
-						[self cancelCommand];
-						break;
-					}
-				}
-			}
+		}
+		else
+		{
+			dispatch_async(dispatch_get_main_queue(), ^{
+				if(auto handler = std::exchange(_exitHandler, nil))
+					handler(-1, @"", [NSString stringWithFormat:@"Failed to run ‘%@’.", aCommand]);
+			});
 		}
 	}
 	return self;
 }
 
-- (void)exhaustFileDescriptor:(int)fd inQueue:(dispatch_queue_t)queue group:(dispatch_group_t)group buffer:(std::string&)buf isError:(BOOL)isError
+- (NSString*)stringFromBuffer:(std::string const&)buf
 {
-	dispatch_group_async(group, dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-		char tmp[1024];
+	return buf.empty() ? @"" : [[NSString alloc] initWithBytes:buf.data() length:utf8::find_safe_end(buf.begin(), buf.end()) - buf.begin() encoding:NSUTF8StringEncoding] ?: @"";
+}
+
+- (void)exhaustFileDescriptor:(int)fd group:(dispatch_group_t)group buffer:(std::string&)buf isError:(BOOL)isError
+{
+	dispatch_group_async(group, dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
+		char tmp[8192];
 		while(ssize_t len = read(fd, &tmp[0], sizeof(tmp)))
 		{
 			if(len < 0)
 				break;
 
 			char const* bytes = &tmp[0];
-			dispatch_sync(queue, ^{
-				id handler = isError ? self.onreaderror : self.onreadoutput;
-
-				auto range = add_bytes_to_utf8_buffer(buf, bytes, bytes + len, handler != nil);
-				if(handler && range.first != range.second)
-					[handler callWebScriptMethod:@"call" withArguments:@[ handler, [NSString stringWithCxxString:std::string(range.first, range.second)] ]];
+			dispatch_sync(dispatch_get_main_queue(), ^{
+				auto range = add_bytes_to_utf8_buffer(buf, bytes, bytes + len, _outputHandler != nil);
+				if(_outputHandler && range.first != range.second)
+					_outputHandler(isError, [NSString stringWithCxxString:std::string(range.first, range.second)]);
 			});
 		}
 	});
 }
 
-- (void)cancelCommand
-{
-	self.onreadoutput = nil;
-	self.onreaderror  = nil;
-	self.exitHandler  = nil;
-
-	[self closeInput];
-
-	if(process)
-		kill(process.pid, SIGINT);
-}
-
 - (void)writeToInput:(NSString*)someData
 {
-	if(process.in != -1)
+	if(_process.in != -1)
 	{
 		char const* bytes = [someData UTF8String];
-		write(process.in, bytes, strlen(bytes));
+		if(write(_process.in, bytes, strlen(bytes)) == -1)
+			perror("HOJSShellCommand: write");
 	}
 }
 
 - (void)closeInput
 {
-	if(process.in != -1)
+	if(_process.in != -1)
 	{
-		close(process.in);
-		process.in = -1;
+		close(_process.in);
+		_process.in = -1;
 	}
+}
+
+- (void)cancel
+{
+	_outputHandler = nil;
+	_exitHandler   = nil;
+
+	[self closeInput];
+	if(_process)
+		kill(_process.pid, SIGINT);
 }
 
 - (void)dealloc
 {
-	[self cancelCommand];
+	[self cancel];
+}
+@end
+
+// ============
+// = HOJSBridge =
+// ============
+
+@interface HOJSBridge ()
+@property (nonatomic, weak) WKWebView* webView;
+@property (nonatomic) NSMutableDictionary<NSNumber*, HOJSShellCommand*>* commands;
+@end
+
+@implementation HOJSBridge
++ (WKUserScript*)userScript
+{
+	static WKUserScript* userScript;
+	static dispatch_once_t onceToken;
+	dispatch_once(&onceToken, ^{
+		NSString* source;
+		if(NSURL* url = [[NSBundle bundleForClass:self] URLForResource:@"HTMLOutputBridge" withExtension:@"js"])
+			source = [NSString stringWithContentsOfURL:url encoding:NSUTF8StringEncoding error:nil];
+		if(!source)
+			os_log_error(OS_LOG_DEFAULT, "Unable to load HTMLOutputBridge.js");
+		userScript = [[WKUserScript alloc] initWithSource:source ?: @"" injectionTime:WKUserScriptInjectionTimeAtDocumentStart forMainFrameOnly:YES];
+	});
+	return userScript;
 }
 
-// =========================
-// = JavaScript Properties =
-// =========================
-
-+ (BOOL)isKeyExcludedFromWebScript:(char const*)name
+- (instancetype)initWithWebView:(WKWebView*)aWebView
 {
-	static auto const PublicProperties = new std::set<std::string>{ "outputString", "errorString", "onreadoutput", "onreaderror" };
-	return PublicProperties->find(name) == PublicProperties->end();
+	if(self = [super init])
+	{
+		_webView  = aWebView;
+		_commands = [NSMutableDictionary dictionary];
+	}
+	return self;
 }
 
-+ (NSString*)webScriptNameForKey:(char const*)name
+- (void)dealloc
 {
-	return @(name);
+	[self cancelAllCommands];
 }
 
-+ (BOOL)isSelectorExcludedFromWebScript:(SEL)aSelector
+- (void)cancelAllCommands
 {
-	static auto const PublicMethods = new std::set<SEL>{ @selector(cancelCommand), @selector(writeToInput:), @selector(closeInput) };
-	return PublicMethods->find(aSelector) == PublicMethods->end();
+	for(HOJSShellCommand* command in _commands.allValues)
+		[command cancel];
+	[_commands removeAllObjects];
 }
 
-+ (NSString*)webScriptNameForSelector:(SEL)aSelector
+- (BOOL)isTrustedFrame:(WKFrameInfo*)frame
 {
-	if(aSelector == @selector(cancelCommand))
-		return @"cancel";
-	else if(aSelector == @selector(writeToInput:))
-		return @"write";
-	else if(aSelector == @selector(closeInput))
-		return @"close";
-
-	ASSERT(false);
-	return @"undefined";
+	return _enabled && frame.isMainFrame && [frame.securityOrigin.protocol isEqualToString:@"file"];
 }
 
-- (NSString*)outputString     { return output.empty() ? @"" : [NSString stringWithUTF8String:output.data() length:utf8::find_safe_end(output.begin(), output.end()) - output.begin()]; }
-- (NSString*)errorString      { return error.empty()  ? @"" : [NSString stringWithUTF8String:error.data()  length:utf8::find_safe_end(error.begin(),  error.end())  - error.begin()];  }
-
-- (void)setOnreadoutput:(id)aHandler
+- (void)sendCommandEvent:(NSNumber*)commandId type:(NSString*)type data:(id)data
 {
-	if(onreadoutput = aHandler)
-		[onreadoutput callWebScriptMethod:@"call" withArguments:@[ onreadoutput, [self outputString] ]];
+	[_webView callAsyncJavaScript:@"if(window.TextMate) TextMate._commandEvent(id, type, data);" arguments:@{ @"id": commandId, @"type": type, @"data": data } inFrame:nil inContentWorld:WKContentWorld.pageWorld completionHandler:nil];
 }
 
-- (void)setOnreaderror:(id)aHandler
+// ============================
+// = WKScriptMessageHandler =
+// ============================
+
+- (void)userContentController:(WKUserContentController*)userContentController didReceiveScriptMessage:(WKScriptMessage*)message
 {
-	if(onreaderror = aHandler)
-		[onreaderror callWebScriptMethod:@"call" withArguments:@[ onreaderror, [self errorString] ]];
+	NSDictionary* body = [message.body isKindOfClass:[NSDictionary class]] ? message.body : nil;
+	NSString* command  = body[@"command"];
+	NSDictionary* payload = [body[@"payload"] isKindOfClass:[NSDictionary class]] ? body[@"payload"] : @{ };
+
+	if([command isEqualToString:@"console"])
+	{
+		static os_log_t log = os_log_create("com.macromates.JavaScript", "HTMLOutput");
+		os_log(log, "%{public}@: %{public}@", message.frameInfo.request.URL.absoluteString, payload[@"message"]);
+		return;
+	}
+
+	if(![self isTrustedFrame:message.frameInfo])
+	{
+		os_log_error(OS_LOG_DEFAULT, "Ignoring JavaScript bridge message ‘%{public}@’ from %{public}@", command, message.frameInfo.request.URL.absoluteString);
+		return;
+	}
+
+	if([command isEqualToString:@"log"])
+	{
+		NSLog(@"JavaScript Log: %@", payload[@"message"]);
+	}
+	else if([command isEqualToString:@"open"])
+	{
+		id options = payload[@"options"];
+		text::range_t range = text::range_t::undefined;
+		if([options isKindOfClass:[NSNumber class]])
+			range = text::pos_t([options intValue]-1, 0);
+		else if([options isKindOfClass:[NSString class]])
+			range = to_s(options);
+
+		if(NSString* path = payload[@"path"])
+		{
+			if(OakDocument* doc = [OakDocumentController.sharedInstance documentWithPath:path])
+				[OakDocumentController.sharedInstance showDocument:doc andSelect:range inProject:nil bringToFront:YES];
+		}
+	}
+	else if([command isEqualToString:@"setBusy"])
+	{
+		[_delegate setBusy:[payload[@"value"] boolValue]];
+	}
+	else if([command isEqualToString:@"setProgress"])
+	{
+		[_delegate setProgress:[payload[@"value"] doubleValue]];
+	}
+	else if([command isEqualToString:@"system"])
+	{
+		NSNumber* commandId = payload[@"id"];
+		NSString* shellCommand = payload[@"command"];
+		if(![commandId isKindOfClass:[NSNumber class]] || ![shellCommand isKindOfClass:[NSString class]])
+			return;
+
+		__weak HOJSBridge* weakSelf = self;
+		_commands[commandId] = [[HOJSShellCommand alloc] initWithCommand:shellCommand environment:_environment outputHandler:^(BOOL isError, NSString* str){
+			[weakSelf sendCommandEvent:commandId type:(isError ? @"error" : @"output") data:str];
+		} exitHandler:^(int status, NSString* output, NSString* error){
+			[weakSelf.commands removeObjectForKey:commandId];
+			[weakSelf sendCommandEvent:commandId type:@"exit" data:@(status)];
+		}];
+	}
+	else if([command isEqualToString:@"write"])
+	{
+		if(NSString* data = payload[@"data"])
+			[_commands[payload[@"id"]] writeToInput:data];
+	}
+	else if([command isEqualToString:@"closeInput"])
+	{
+		[_commands[payload[@"id"]] closeInput];
+	}
+	else if([command isEqualToString:@"cancel"])
+	{
+		[_commands[payload[@"id"]] cancel];
+		[_commands removeObjectForKey:payload[@"id"]];
+	}
 }
 
-- (void)finalizeForWebScript
+// ================================================
+// = Synchronous calls (via window.prompt()) =
+// ================================================
+
+- (BOOL)handlePrompt:(NSString*)prompt defaultText:(NSString*)defaultText frame:(WKFrameInfo*)frame completionHandler:(void(^)(NSString*))completionHandler
 {
-	[self cancelCommand];
+	if(![prompt isEqualToString:kBridgePrompt])
+		return NO;
+
+	NSDictionary* request = [NSJSONSerialization JSONObjectWithData:[defaultText dataUsingEncoding:NSUTF8StringEncoding] ?: [NSData data] options:0 error:nil];
+	NSString* shellCommand = [request isKindOfClass:[NSDictionary class]] && [request[@"command"] isEqual:@"system"] ? request[@"payload"][@"command"] : nil;
+	if(![self isTrustedFrame:frame] || ![shellCommand isKindOfClass:[NSString class]])
+	{
+		completionHandler(nil);
+		return YES;
+	}
+
+	__block BOOL didFinish = NO;
+	__block void(^handler)(NSString*) = completionHandler;
+	HOJSShellCommand* command = [[HOJSShellCommand alloc] initWithCommand:shellCommand environment:_environment outputHandler:nil exitHandler:^(int status, NSString* output, NSString* error){
+		didFinish = YES;
+		NSData* data = [NSJSONSerialization dataWithJSONObject:@{ @"outputString": output, @"errorString": error, @"status": @(status) } options:0 error:nil];
+		if(auto fn = std::exchange(handler, nil))
+			fn([[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding]);
+	}];
+
+	// JavaScript is blocked until the command finishes, so periodically offer to stop it
+	__block void(^checkCommand)() = ^{
+		if(!didFinish)
+		{
+			NSAlert* alert        = [[NSAlert alloc] init];
+			alert.messageText     = @"JavaScript Warning";
+			alert.informativeText = [NSString stringWithFormat:@"The command ‘%@’ has been running for 15 seconds. Would you like to stop it?\n\nTo avoid this warning, the bundle command should use the asynchronous version of TextMate.system().", shellCommand];
+			[alert addButtons:@"Stop Command", @"Cancel", nil];
+
+			if([alert runModal] == NSAlertFirstButtonReturn) // "Stop Command"
+			{
+				[command cancel];
+				if(auto fn = std::exchange(handler, nil))
+					fn(nil);
+			}
+			else if(!didFinish)
+			{
+				dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 15 * NSEC_PER_SEC), dispatch_get_main_queue(), checkCommand);
+				return;
+			}
+		}
+		checkCommand = nil; // Break retain cycle
+	};
+	dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 15 * NSEC_PER_SEC), dispatch_get_main_queue(), checkCommand);
+
+	return YES;
 }
 @end

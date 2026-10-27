@@ -1,14 +1,21 @@
+#import <WebKit/WebKit.h>
+
 @protocol HOJSBridgeDelegate
 @property (nonatomic, getter = isBusy) BOOL busy;
 @property (nonatomic) double progress;
 @end
 
-@interface HOJSBridge : NSObject
+// Implements the native side of the ‘TextMate’ JavaScript object (see HTMLOutputBridge.js)
+@interface HOJSBridge : NSObject <WKScriptMessageHandler>
++ (WKUserScript*)userScript;
+
+- (instancetype)initWithWebView:(WKWebView*)aWebView;
+
 @property (nonatomic, weak) id <HOJSBridgeDelegate> delegate;
+@property (nonatomic) std::map<std::string, std::string> environment;
+@property (nonatomic, getter = isEnabled) BOOL enabled;
 
-- (void)setEnvironment:(const std::map<std::string, std::string>&)variables;
-- (std::map<std::string, std::string> const&)environment;
-
-- (id)system:(NSString*)aCommand handler:(id)aHandler;
-- (void)log:(NSString*)aMessage;
+// Returns NO if the prompt was not sent by the bridge
+- (BOOL)handlePrompt:(NSString*)prompt defaultText:(NSString*)defaultText frame:(WKFrameInfo*)frame completionHandler:(void(^)(NSString*))completionHandler;
+- (void)cancelAllCommands;
 @end

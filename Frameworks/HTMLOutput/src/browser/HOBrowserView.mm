@@ -1,47 +1,146 @@
 #import "HOBrowserView.h"
-#import "HOWebViewDelegateHelper.h"
 #import "HOStatusBar.h"
+#import "../helpers/HOJSBridge.h"
+#import <OakAppKit/NSAlert Additions.h>
 #import <OakAppKit/OakUIConstructionFunctions.h>
+#import <io/path.h>
+
+static NSString* const kUserDefaultsDefaultURLProtocolKey = @"defaultURLProtocol";
 
 static NSString* EscapeHTML (NSString* str)
 {
 	return [[[str stringByReplacingOccurrencesOfString:@"&" withString:@"&amp;"] stringByReplacingOccurrencesOfString:@"<" withString:@"&lt;"] stringByReplacingOccurrencesOfString:@"\"" withString:@"&quot;"];
 }
 
-static void ShowLoadErrorForURL (WebFrame* frame, NSURL* url, NSError* error)
+static BOOL IsProtocolRelativeURL (NSURL* url)
 {
-	NSString* options  = [[url scheme] isEqualToString:@"file"] ? @" -R" : @"";
-	NSString* errorMsg = [NSString stringWithFormat:@"<title>Load Error</title><h1>Load Error</h1><p>WebKit reported <em>%@</em> while loading <tt><a href=\"#\" onClick=\"javascript:TextMate.system('/usr/bin/open%@ &quot;%@&quot;', null)\">%@</a></tt>.</p>", EscapeHTML([error localizedDescription]), options, EscapeHTML([url absoluteString]), EscapeHTML([url absoluteString])];
-	[frame loadHTMLString:errorMsg baseURL:[NSURL fileURLWithPath:NSTemporaryDirectory()]];
+	// If host has a dot and does not exist on disk then treat as protocol-relative URL
+	return [url.scheme isEqualToString:@"file"] && [url.host containsString:@"."] && ![NSFileManager.defaultManager fileExistsAtPath:[@"/" stringByAppendingPathComponent:url.host]];
 }
 
-@interface HOBrowserView () <WebPolicyDelegate, WebUIDelegate, WebResourceLoadDelegate>
-@property (nonatomic, readwrite) WebView* webView;
+// Rewrite tm-file: and protocol-relative URLs and redirect missing files to an error page, returns nil if no change is needed
+static NSURL* RedirectURL (NSURL* url)
+{
+	NSURL* res = nil;
+	if([url.scheme isEqualToString:@"tm-file"])
+	{
+		NSURLComponents* components = [NSURLComponents componentsWithURL:url resolvingAgainstBaseURL:YES];
+		components.scheme = @"file";
+		components.host   = nil;
+		res = url = components.URL;
+	}
+
+	if(IsProtocolRelativeURL(url))
+	{
+		NSURLComponents* components = [NSURLComponents componentsWithURL:url resolvingAgainstBaseURL:YES];
+		components.scheme = [NSUserDefaults.standardUserDefaults stringForKey:kUserDefaultsDefaultURLProtocolKey];
+		return components.URL;
+	}
+
+	if(url.isFileURL)
+	{
+		struct stat buf;
+		char const* path = url.fileSystemRepresentation;
+		if(path && stat(path, &buf) == 0)
+		{
+			if(S_ISDIR(buf.st_mode) && path::exists(path::join(path, "index.html")))
+			{
+				NSURLComponents* components = [NSURLComponents componentsWithURL:url resolvingAgainstBaseURL:YES];
+				components.path = [components.path stringByAppendingPathComponent:@"index.html"];
+				res = components.URL;
+			}
+		}
+		else if(NSURL* errorPage = [[NSBundle bundleForClass:[HOBrowserView class]] URLForResource:@"error_not_found" withExtension:@"html"])
+		{
+			NSURLComponents* components = [NSURLComponents componentsWithURL:errorPage resolvingAgainstBaseURL:YES];
+			components.queryItems = @[ [NSURLQueryItem queryItemWithName:@"path" value:url.path], [NSURLQueryItem queryItemWithName:@"error" value:@"1"] ];
+			res = components.URL;
+		}
+	}
+	return res;
+}
+
+// Forward console messages and errors to the system log and show link targets in the status bar
+static NSString* const kHelperScript = @"(function () {"
+	"	const post = (command, payload) => window.webkit.messageHandlers.textmate.postMessage({ command: command, payload: payload });"
+	"	for(const level of [ 'log', 'info', 'warn', 'error' ]) {"
+	"		const original = console[level];"
+	"		console[level] = function (...args) { post('console', { message: args.map(String).join(' ') }); return original.apply(console, args); };"
+	"	}"
+	"	window.addEventListener('error', (event) => post('console', { message: `${event.message} (${event.filename}:${event.lineno})` }));"
+	"})();";
+
+static NSString* const kStatusScript = @"(function () {"
+	"	let current = null;"
+	"	const update = (url) => { if(url !== current) window.webkit.messageHandlers.status.postMessage(current = url); };"
+	"	window.addEventListener('mouseover', (event) => { const link = event.target.closest && event.target.closest('a[href]'); update(link ? link.href : ''); }, true);"
+	"	window.addEventListener('mouseout', (event) => { if(!event.relatedTarget) update(''); }, true);"
+	"})();";
+
+@interface HOStatusBar (BusyAndProgressProperties) <HOJSBridgeDelegate>
+@end
+
+@interface HOBrowserView () <WKScriptMessageHandler>
+@property (nonatomic, readwrite) HOWebView* webView;
+@property (nonatomic, readwrite) HOJSBridge* bridge;
 @property (nonatomic, readwrite) HOStatusBar* statusBar;
-@property (nonatomic) HOWebViewDelegateHelper* webViewDelegateHelper;
+@property (nonatomic, readwrite) BOOL needsNewWebView;
 @end
 
 @implementation HOBrowserView
-- (id)initWithFrame:(NSRect)frame
++ (void)initialize
 {
-	if(self = [super initWithFrame:frame])
-	{
-		_webView = [[WebView alloc] initWithFrame:NSZeroRect];
+	[NSUserDefaults.standardUserDefaults registerDefaults:@{
+		kUserDefaultsDefaultURLProtocolKey: @"https",
+	}];
+}
 
-		NSString* const kHTMLOutputPreferencesIdentifier = @"HTML Output Preferences Identifier";
-		WebPreferences* webViewPrefs = [[WebPreferences alloc] initWithIdentifier:kHTMLOutputPreferencesIdentifier];
-		webViewPrefs.plugInsEnabled = NO;
-		self.webView.preferencesIdentifier = kHTMLOutputPreferencesIdentifier;
++ (WKWebViewConfiguration*)defaultConfiguration
+{
+	WKWebViewConfiguration* config = [[WKWebViewConfiguration alloc] init];
+	config.preferences.javaScriptCanOpenWindowsAutomatically = YES;
+	@try {
+		// Bundle commands load resources from disk and are allowed to use XMLHttpRequest for file: URLs
+		[config.preferences setValue:@YES forKey:@"allowFileAccessFromFileURLs"];
+		[config setValue:@YES forKey:@"allowUniversalAccessFromFileURLs"];
+	}
+	@catch(NSException* e) {
+		os_log_error(OS_LOG_DEFAULT, "Unable to allow file access for file URLs: %{public}@", e.reason);
+	}
+	return config;
+}
+
+- (instancetype)initWithFrame:(NSRect)aRect
+{
+	return [self initWithFrame:aRect configuration:[HOBrowserView defaultConfiguration]];
+}
+
+- (instancetype)initWithFrame:(NSRect)aRect configuration:(WKWebViewConfiguration*)aConfiguration
+{
+	if(self = [super initWithFrame:aRect])
+	{
+		_webView = [[HOWebView alloc] initWithFrame:NSZeroRect configuration:aConfiguration];
+		_webView.navigationDelegate = self;
+		_webView.UIDelegate         = self;
+		_webView.allowsBackForwardNavigationGestures = YES;
+		_webView.allowsMagnification = YES;
+		_webView.inspectable         = YES;
 
 		_statusBar = [[HOStatusBar alloc] initWithFrame:NSZeroRect];
 		_statusBar.delegate = _webView;
 
-		_webViewDelegateHelper          = [HOWebViewDelegateHelper new];
-		_webViewDelegateHelper.delegate = _statusBar;
-		_webView.policyDelegate         = self;
-		_webView.resourceLoadDelegate   = _webViewDelegateHelper;
-		_webView.UIDelegate             = _webViewDelegateHelper;
-		_webView.frameLoadDelegate      = self;
+		_bridge = [[HOJSBridge alloc] initWithWebView:_webView];
+		_bridge.delegate = _statusBar;
+		_bridge.enabled  = YES;
+
+		WKUserContentController* controller = _webView.configuration.userContentController;
+		[controller removeAllScriptMessageHandlers];
+		[controller addScriptMessageHandler:_bridge contentWorld:WKContentWorld.pageWorld name:@"textmate"];
+		[controller addScriptMessageHandler:self contentWorld:WKContentWorld.defaultClientWorld name:@"status"];
+		[self updateUserScripts];
+
+		for(NSString* keyPath in @[ @"estimatedProgress", @"loading", @"canGoBack", @"canGoForward" ])
+			[_webView addObserver:self forKeyPath:keyPath options:NSKeyValueObservingOptionInitial context:nullptr];
 
 		NSDictionary* views = @{
 			@"webView":   _webView,
@@ -56,40 +155,76 @@ static void ShowLoadErrorForURL (WebFrame* frame, NSURL* url, NSError* error)
 	return self;
 }
 
-- (BOOL)needsNewWebView
-{
-	return _webViewDelegateHelper.needsNewWebView;
-}
-
-- (void)webViewProgressEstimateChanged:(NSNotification*)notification
-{
-	_statusBar.progress = _webView.estimatedProgress;
-}
-
 - (void)dealloc
 {
-	[self setUpdatesProgress:NO];
-	_webView.frameLoadDelegate      = nil;
-	_webView.UIDelegate             = nil;
-	_webView.resourceLoadDelegate   = nil;
-	_webView.policyDelegate         = nil;
-	[[_webView mainFrame] stopLoading];
+	for(NSString* keyPath in @[ @"estimatedProgress", @"loading", @"canGoBack", @"canGoForward" ])
+		[_webView removeObserver:self forKeyPath:keyPath];
+
+	WKUserContentController* controller = _webView.configuration.userContentController;
+	[controller removeAllScriptMessageHandlers];
+	[controller removeAllUserScripts];
+
+	_webView.navigationDelegate = nil;
+	_webView.UIDelegate         = nil;
+	[_webView stopLoading];
+	[_bridge cancelAllCommands];
 }
 
-- (void)setUpdatesProgress:(BOOL)flag
+- (void)updateUserScripts
 {
-	if(flag)
+	WKUserContentController* controller = _webView.configuration.userContentController;
+	[controller removeAllUserScripts];
+	[controller addUserScript:[[WKUserScript alloc] initWithSource:kHelperScript injectionTime:WKUserScriptInjectionTimeAtDocumentStart forMainFrameOnly:NO inContentWorld:WKContentWorld.pageWorld]];
+	[controller addUserScript:[[WKUserScript alloc] initWithSource:kStatusScript injectionTime:WKUserScriptInjectionTimeAtDocumentStart forMainFrameOnly:YES inContentWorld:WKContentWorld.defaultClientWorld]];
+	if(!_disableJavaScriptAPI)
+		[controller addUserScript:HOJSBridge.userScript];
+}
+
+- (void)setDisableJavaScriptAPI:(BOOL)flag
+{
+	if(_disableJavaScriptAPI == flag)
+		return;
+	_disableJavaScriptAPI = flag;
+	_bridge.enabled = !flag;
+	[self updateUserScripts];
+}
+
+- (void)loadURL:(NSURL*)aURL
+{
+	if(NSURL* redirectURL = RedirectURL(aURL))
+		aURL = redirectURL;
+
+	if(aURL.isFileURL)
+			[_webView loadFileURL:aURL allowingReadAccessToURL:[NSURL fileURLWithPath:@"/"]];
+	else	[_webView loadRequest:[NSURLRequest requestWithURL:aURL]];
+}
+
+- (void)observeValueForKeyPath:(NSString*)keyPath ofObject:(id)object change:(NSDictionary*)change context:(void*)context
+{
+	if([keyPath isEqualToString:@"estimatedProgress"])
 	{
-		[NSNotificationCenter.defaultCenter addObserver:self selector:@selector(webViewProgressEstimateChanged:) name:WebViewProgressFinishedNotification object:_webView];
-		[NSNotificationCenter.defaultCenter addObserver:self selector:@selector(webViewProgressEstimateChanged:) name:WebViewProgressEstimateChangedNotification object:_webView];
-		[NSNotificationCenter.defaultCenter addObserver:self selector:@selector(webViewProgressEstimateChanged:) name:WebViewProgressStartedNotification object:_webView];
+		_statusBar.progress = _webView.isLoading ? _webView.estimatedProgress : 0;
 	}
-	else
+	else if([keyPath isEqualToString:@"loading"])
 	{
-		[NSNotificationCenter.defaultCenter removeObserver:self name:WebViewProgressStartedNotification object:_webView];
-		[NSNotificationCenter.defaultCenter removeObserver:self name:WebViewProgressEstimateChangedNotification object:_webView];
-		[NSNotificationCenter.defaultCenter removeObserver:self name:WebViewProgressFinishedNotification object:_webView];
+		_statusBar.busy = _webView.isLoading;
+		if(!_webView.isLoading)
+			_statusBar.progress = 0;
 	}
+	else if([keyPath isEqualToString:@"canGoBack"])
+	{
+		_statusBar.canGoBack = _webView.canGoBack;
+	}
+	else if([keyPath isEqualToString:@"canGoForward"])
+	{
+		_statusBar.canGoForward = _webView.canGoForward;
+	}
+}
+
+- (void)userContentController:(WKUserContentController*)userContentController didReceiveScriptMessage:(WKScriptMessage*)message
+{
+	if([message.name isEqualToString:@"status"] && [message.body isKindOfClass:[NSString class]])
+		_statusBar.statusText = [message.body stringByRemovingPercentEncoding] ?: message.body;
 }
 
 // ==============
@@ -114,87 +249,160 @@ For performKeyEquivalent:
 A webView default implementation passes all key events, including potential key equivalents (except ESC),
 to the webpage so that it may have a chance to respond. Unfortunately, we cannot know if these events are
 handled so the events are still forwarded down their respective chains as shown above. So to avoid the
-NSBeep when hitting the end of the responder chain, we let HOBrowserView swallow all key events. This is
-safe since performKeyEquivalent: is called first, which leads to another problem: we can pass
-the key event back to the webView (minus the modifier). Therefore, we also terminate the above chain for
-performKeyEquivalent: by overriding the method here and returning just NO. Note: that if none of the views
-in the hierachy returns YES, the key (equivalent) event is then passed to the menus.
+NSBeep when hitting the end of the responder chain, we let HOBrowserView swallow all key events.
 */
-
-- (BOOL)performKeyEquivalent
-{
-	return NO;
-}
 
 - (void)keyDown:(NSEvent*)anEvent
 {
-
 }
 
-// =========
-// = Swipe =
-// =========
+// ===========================
+// = WKNavigationDelegate =
+// ===========================
 
-- (BOOL)wantsScrollEventsForSwipeTrackingOnAxis:(NSEventGestureAxis)axis
+- (void)webView:(WKWebView*)webView decidePolicyForNavigationAction:(WKNavigationAction*)navigationAction decisionHandler:(void(^)(WKNavigationActionPolicy))decisionHandler
 {
-	return axis == NSEventGestureAxisHorizontal;
+	NSURL* url = navigationAction.request.URL;
+	if(navigationAction.targetFrame.isMainFrame)
+	{
+		if(NSURL* redirectURL = RedirectURL(url))
+		{
+			decisionHandler(WKNavigationActionPolicyCancel);
+			[self loadURL:redirectURL];
+			return;
+		}
+	}
+
+	if([WKWebView handlesURLScheme:url.scheme])
+		return decisionHandler(WKNavigationActionPolicyAllow);
+
+	decisionHandler(WKNavigationActionPolicyCancel);
+	if([url.scheme isEqualToString:@"txmt"])
+		[self openTxMtURL:url];
+	else if(![url.scheme isEqualToString:@"tm-file"])
+		[NSWorkspace.sharedWorkspace openURL:url];
 }
 
-- (void)scrollWheel:(NSEvent*)anEvent
+- (void)openTxMtURL:(NSURL*)url
 {
-	if(![NSEvent isSwipeTrackingFromScrollEventsEnabled] || [anEvent phase] == NSEventPhaseNone || fabs([anEvent scrollingDeltaX]) <= fabs([anEvent scrollingDeltaY]))
+	[NSApp sendAction:@selector(handleTxMtURL:) to:nil from:url];
+}
+
+- (void)webView:(WKWebView*)webView decidePolicyForNavigationResponse:(WKNavigationResponse*)navigationResponse decisionHandler:(void(^)(WKNavigationResponsePolicy))decisionHandler
+{
+	if(navigationResponse.canShowMIMEType || !navigationResponse.isForMainFrame)
+		return decisionHandler(WKNavigationResponsePolicyAllow);
+
+	// Hand content WebKit cannot show to the system (as WebView did)
+	decisionHandler(WKNavigationResponsePolicyCancel);
+	[NSWorkspace.sharedWorkspace openURL:navigationResponse.response.URL];
+}
+
+- (void)webView:(WKWebView*)webView didCommitNavigation:(WKNavigation*)navigation
+{
+	[_bridge cancelAllCommands];
+}
+
+- (void)showLoadError:(NSError*)error
+{
+	if([error.domain isEqualToString:NSURLErrorDomain] && error.code == NSURLErrorCancelled)
+		return;
+	if([error.domain isEqualToString:WKErrorDomain] && error.code == 102) // Frame load interrupted
 		return;
 
-	[anEvent trackSwipeEventWithOptions:0 dampenAmountThresholdMin:(_webView.canGoForward ? -1 : 0) max:(_webView.canGoBack ? +1 : 0) usingHandler:^(CGFloat gestureAmount, NSEventPhase phase, BOOL isComplete, BOOL* stop) {
-		if(phase == NSEventPhaseBegan)
-		{
-			// Setup animation overlay layers
-		}
+	NSURL* url = error.userInfo[NSURLErrorFailingURLErrorKey] ?: _webView.URL;
+	NSString* options  = [[url scheme] isEqualToString:@"file"] ? @" -R" : @"";
+	NSString* errorMsg = [NSString stringWithFormat:@"<title>Load Error</title><h1>Load Error</h1><p>WebKit reported <em>%@</em> while loading <tt><a href=\"#\" onClick=\"javascript:TextMate.system('/usr/bin/open%@ &quot;%@&quot;', null)\">%@</a></tt>.</p>", EscapeHTML([error localizedDescription]), options, EscapeHTML([url absoluteString]), EscapeHTML([url absoluteString])];
+	[_webView loadHTMLString:errorMsg baseURL:[NSURL fileURLWithPath:NSTemporaryDirectory()]];
+}
 
-		// Update animation overlay to match gestureAmount
+- (void)webView:(WKWebView*)webView didFailProvisionalNavigation:(WKNavigation*)navigation withError:(NSError*)error
+{
+	[self showLoadError:error];
+}
 
-		if(phase == NSEventPhaseEnded)
-		{
-			if(gestureAmount > 0 && _webView.canGoBack)
-				[_webView goBack:self];
-			else if(gestureAmount < 0 && _webView.canGoForward)
-				[_webView goForward:self];
-		}
+- (void)webView:(WKWebView*)webView didFailNavigation:(WKNavigation*)navigation withError:(NSError*)error
+{
+	[self showLoadError:error];
+}
 
-		if(isComplete)
-		{
-			// Tear down animation overlay here
-		}
+// ====================
+// = WKUIDelegate =
+// ====================
+
+- (void)webView:(WKWebView*)webView runJavaScriptAlertPanelWithMessage:(NSString*)message initiatedByFrame:(WKFrameInfo*)frame completionHandler:(void(^)())completionHandler
+{
+	NSAlert* alert = [NSAlert tmAlertWithMessageText:NSLocalizedString(@"Script Message", @"JavaScript alert title") informativeText:message buttons:NSLocalizedString(@"OK", @"JavaScript alert confirmation"), nil];
+	if(webView.window)
+			[alert beginSheetModalForWindow:webView.window completionHandler:^(NSModalResponse){ completionHandler(); }];
+	else	[alert runModal], completionHandler();
+}
+
+- (void)webView:(WKWebView*)webView runJavaScriptConfirmPanelWithMessage:(NSString*)message initiatedByFrame:(WKFrameInfo*)frame completionHandler:(void(^)(BOOL))completionHandler
+{
+	NSAlert* alert        = [[NSAlert alloc] init];
+	alert.messageText     = NSLocalizedString(@"Script Message", @"JavaScript alert title");
+	alert.informativeText = message;
+	[alert addButtons:NSLocalizedString(@"OK", @"JavaScript alert confirmation"), NSLocalizedString(@"Cancel", @"JavaScript alert cancel"), nil];
+	completionHandler([alert runModal] == NSAlertFirstButtonReturn);
+}
+
+- (void)webView:(WKWebView*)webView runJavaScriptTextInputPanelWithPrompt:(NSString*)prompt defaultText:(NSString*)defaultText initiatedByFrame:(WKFrameInfo*)frame completionHandler:(void(^)(NSString*))completionHandler
+{
+	if([_bridge handlePrompt:prompt defaultText:defaultText frame:frame completionHandler:completionHandler])
+		return;
+
+	NSTextField* textField = [[NSTextField alloc] initWithFrame:NSMakeRect(0, 0, 300, 22)];
+	textField.stringValue = defaultText ?: @"";
+
+	NSAlert* alert        = [[NSAlert alloc] init];
+	alert.messageText     = NSLocalizedString(@"Script Message", @"JavaScript alert title");
+	alert.informativeText = prompt;
+	alert.accessoryView   = textField;
+	[alert addButtons:NSLocalizedString(@"OK", @"JavaScript alert confirmation"), NSLocalizedString(@"Cancel", @"JavaScript alert cancel"), nil];
+	[alert layout];
+	[alert.window makeFirstResponder:textField];
+	completionHandler([alert runModal] == NSAlertFirstButtonReturn ? textField.stringValue : nil);
+}
+
+- (void)webView:(WKWebView*)webView runOpenPanelWithParameters:(WKOpenPanelParameters*)parameters initiatedByFrame:(WKFrameInfo*)frame completionHandler:(void(^)(NSArray<NSURL*>*))completionHandler
+{
+	NSOpenPanel* panel = [NSOpenPanel openPanel];
+	panel.directoryURL            = [NSURL fileURLWithPath:NSHomeDirectory()];
+	panel.allowsMultipleSelection = parameters.allowsMultipleSelection;
+	panel.canChooseDirectories    = parameters.allowsDirectories;
+	completionHandler([panel runModal] == NSModalResponseOK ? panel.URLs : nil);
+}
+
+- (WKWebView*)webView:(WKWebView*)webView createWebViewWithConfiguration:(WKWebViewConfiguration*)configuration forNavigationAction:(WKNavigationAction*)navigationAction windowFeatures:(WKWindowFeatures*)windowFeatures
+{
+	NSPoint origin = [webView.window cascadeTopLeftFromPoint:NSMakePoint(NSMinX(webView.window.frame), NSMaxY(webView.window.frame))];
+	origin.y -= NSHeight(webView.window.frame);
+
+	HOBrowserView* view = [[HOBrowserView alloc] initWithFrame:NSZeroRect configuration:configuration];
+	view.disableJavaScriptAPI = _disableJavaScriptAPI;
+	view.bridge.environment   = _bridge.environment;
+
+	NSWindow* window = [[NSWindow alloc] initWithContentRect:(NSRect){ origin, NSMakeSize(750, 800) } styleMask:(NSWindowStyleMaskTitled|NSWindowStyleMaskClosable|NSWindowStyleMaskResizable|NSWindowStyleMaskMiniaturizable) backing:NSBackingStoreBuffered defer:NO];
+	[window bind:NSTitleBinding toObject:view.webView withKeyPath:@"title" options:@{ NSNullPlaceholderBindingOption: @"" }];
+	[window setContentView:view];
+	[window setReleasedWhenClosed:NO];
+	[window makeKeyAndOrderFront:self];
+
+	// Keep window (and view) alive until it is closed
+	__block id token = [NSNotificationCenter.defaultCenter addObserverForName:NSWindowWillCloseNotification object:window queue:nil usingBlock:^(NSNotification*){
+		[window unbind:NSTitleBinding];
+		[NSNotificationCenter.defaultCenter removeObserver:token];
+		token = nil;
 	}];
+
+	return view.webView;
 }
 
-// =======================
-// = Frame Load Delegate =
-// =======================
-
-- (void)webView:(WebView*)sender didStartProvisionalLoadForFrame:(WebFrame*)frame
+- (void)webViewDidClose:(WKWebView*)webView
 {
-	_statusBar.busy = YES;
-	[self setUpdatesProgress:YES];
-}
-
-- (void)webView:(WebView*)sender didFailProvisionalLoadWithError:(NSError*)error forFrame:(WebFrame*)frame
-{
-	ShowLoadErrorForURL(frame, [[[frame provisionalDataSource] request] URL], error);
-	[self webView:sender didFinishLoadForFrame:frame];
-}
-
-- (void)webView:(WebView*)sender didFailLoadWithError:(NSError*)error forFrame:(WebFrame*)frame
-{
-	ShowLoadErrorForURL(frame, [[[frame provisionalDataSource] request] URL], error);
-	[self webView:sender didFinishLoadForFrame:frame];
-}
-
-- (void)webView:(WebView*)sender didFinishLoadForFrame:(WebFrame*)frame
-{
-	_statusBar.canGoBack    = _webView.canGoBack;
-	_statusBar.canGoForward = _webView.canGoForward;
-	_statusBar.busy         = NO;
-	_statusBar.progress     = 0;
+	if(![webView tryToPerform:@selector(toggleHTMLOutput:) with:self])
+		[webView.window performClose:self];
+	self.needsNewWebView = YES;
 }
 @end
