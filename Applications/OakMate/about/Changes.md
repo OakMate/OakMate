@@ -2,7 +2,7 @@ Title: Release Notes
 
 # Changes
 
-## Unreleased (v2.1.0)
+## 2026-10-27 (v2.1.0)
 
 First release of OakMate, a continuation of TextMate 2.0.22.
 
