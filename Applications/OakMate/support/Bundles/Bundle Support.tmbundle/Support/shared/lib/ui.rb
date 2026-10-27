@@ -59,7 +59,7 @@ module TextMate
         prefix, string = string.match(/(#?)([0-9A-F]{3,6})/i)[1,2]
         string = $1 * 2 + $2 * 2 + $3 * 2 if string =~ /^(.)(.)(.)$/
         def_col = ' default color {' + string.scan(/../).map { |i| i.hex * 257 }.join(",") + '}'
-        app_id = ENV['TM_APP_IDENTIFIER'] || 'com.macromates.TextMate'
+        app_id = ENV['TM_APP_IDENTIFIER'] || 'com.isztld.oakmate'
         col = `osascript 2>/dev/null -e 'tell app id "#{app_id}" to choose color#{def_col}'`
         return nil if col == "" # user cancelled -- when it happens, an exception is written to stderr
         col = col.scan(/\d+/).map { |i| "%02X" % (i.to_i / 257) }.join("")

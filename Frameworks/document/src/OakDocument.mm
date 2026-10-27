@@ -115,7 +115,7 @@ namespace document
 		{
 			std::map<text::pos_t, std::string> res;
 
-			std::string const str = path::get_attr(path, "com.macromates.bookmarks");
+			std::string const str = path::get_attr(path, "com.isztld.oakmate.bookmarks");
 			if(str == NULL_STR)
 				return res;
 
@@ -343,18 +343,18 @@ static void* kDocumentEditedObserverContext = &kDocumentEditedObserverContext;
 	if(self = [self init])
 	{
 		std::string const path = to_s(backupPath);
-		_identifier     = [[NSUUID alloc] initWithUUIDString:to_ns(path::get_attr(path, "com.macromates.backup.identifier"))];
+		_identifier     = [[NSUUID alloc] initWithUUIDString:to_ns(path::get_attr(path, "com.isztld.oakmate.backup.identifier"))];
 		_backupPath     = backupPath;
 
-		_path           = to_ns(path::resolve(path::get_attr(path, "com.macromates.backup.path")));
+		_path           = to_ns(path::resolve(path::get_attr(path, "com.isztld.oakmate.backup.path")));
 		_onDisk         = _path && access([_path fileSystemRepresentation], F_OK) == 0;
-		_fileType       = to_ns(path::get_attr(path, "com.macromates.backup.file-type"));
-		_diskEncoding   = to_ns(path::get_attr(path, "com.macromates.backup.encoding"));
-		_diskNewlines   = to_ns(path::get_attr(path, "com.macromates.backup.newlines"));
-		_customName     = to_ns(path::get_attr(path, "com.macromates.backup.custom-name"));
-		_untitledCount  = atoi(path::get_attr(path, "com.macromates.backup.untitled-count").c_str());
+		_fileType       = to_ns(path::get_attr(path, "com.isztld.oakmate.backup.file-type"));
+		_diskEncoding   = to_ns(path::get_attr(path, "com.isztld.oakmate.backup.encoding"));
+		_diskNewlines   = to_ns(path::get_attr(path, "com.isztld.oakmate.backup.newlines"));
+		_customName     = to_ns(path::get_attr(path, "com.isztld.oakmate.backup.custom-name"));
+		_untitledCount  = atoi(path::get_attr(path, "com.isztld.oakmate.backup.untitled-count").c_str());
 
-		if(path::get_attr(path, "com.macromates.backup.modified") == "YES")
+		if(path::get_attr(path, "com.isztld.oakmate.backup.modified") == "YES")
 			_savedRevision = _revision-1;
 	}
 	return self;
@@ -406,7 +406,7 @@ static void* kDocumentEditedObserverContext = &kDocumentEditedObserverContext;
 	for(auto dirEntry : path::entries(dir))
 	{
 		std::string const path = path::join(dir, dirEntry->d_name);
-		std::string const uuid = path::get_attr(path, "com.macromates.backup.identifier");
+		std::string const uuid = path::get_attr(path, "com.isztld.oakmate.backup.identifier");
 		if(uuid != NULL_STR && [anIdentifier isEqual:[[NSUUID alloc] initWithUUIDString:to_ns(uuid)]])
 		{
 			if(OakDocument* res = [[OakDocument alloc] initWithBackupPath:to_ns(path)])
@@ -540,12 +540,11 @@ static void* kDocumentEditedObserverContext = &kDocumentEditedObserverContext;
 		[editor documentWillSave:self];
 
 	std::map<std::string, std::string> res = {
-		{ "com.macromates.bookmarks",      to_s([self stringifyMarksOfType:OakDocumentBookmarkIdentifier]) },
-		{ "com.macromates.selectionRange", to_s(_selection) },
-		{ "com.macromates.visibleIndex",   _visibleIndex ? to_s(_visibleIndex) : NULL_STR },
-		{ "com.macromates.crc32",          NULL_STR },
-		{ "com.macromates.folded",         NULL_STR },
-		{ "com.macromates.visibleRect",    NULL_STR }, // Clear legacy attribute
+		{ "com.isztld.oakmate.bookmarks",      to_s([self stringifyMarksOfType:OakDocumentBookmarkIdentifier]) },
+		{ "com.isztld.oakmate.selectionRange", to_s(_selection) },
+		{ "com.isztld.oakmate.visibleIndex",   _visibleIndex ? to_s(_visibleIndex) : NULL_STR },
+		{ "com.isztld.oakmate.crc32",          NULL_STR },
+		{ "com.isztld.oakmate.folded",         NULL_STR },
 	};
 
 	if(_buffer && OakNotEmptyString(_folded))
@@ -555,8 +554,8 @@ static void* kDocumentEditedObserverContext = &kDocumentEditedObserverContext;
 			crc32.process_bytes(bytes, len);
 		});
 
-		res["com.macromates.crc32"]  = text::format("%04x", crc32.checksum());
-		res["com.macromates.folded"] = to_s(_folded);
+		res["com.isztld.oakmate.crc32"]  = text::format("%04x", crc32.checksum());
+		res["com.isztld.oakmate.folded"] = to_s(_folded);
 	}
 
 	return res;
@@ -641,16 +640,16 @@ static void* kDocumentEditedObserverContext = &kDocumentEditedObserverContext;
 
 		auto attr = [self extendedAttributeds];
 
-		attr["com.macromates.backup.path"]           = to_s(_path);
-		attr["com.macromates.backup.identifier"]     = to_s(_identifier);
-		attr["com.macromates.backup.file-type"]      = to_s(_fileType);
-		attr["com.macromates.backup.encoding"]       = to_s(_diskEncoding);
-		attr["com.macromates.backup.newlines"]       = to_s(_diskNewlines);
-		attr["com.macromates.backup.untitled-count"] = _path || _customName ? NULL_STR : std::to_string(_untitledCount);
-		attr["com.macromates.backup.custom-name"]    = to_s(_customName);
-		attr["com.macromates.backup.modified"]       = self.isDocumentEdited ? "YES" : NULL_STR;
-		attr["com.macromates.backup.tab-size"]       = std::to_string(self.tabSize);
-		attr["com.macromates.backup.soft-tabs"]      = self.softTabs ? "YES" : NULL_STR;
+		attr["com.isztld.oakmate.backup.path"]           = to_s(_path);
+		attr["com.isztld.oakmate.backup.identifier"]     = to_s(_identifier);
+		attr["com.isztld.oakmate.backup.file-type"]      = to_s(_fileType);
+		attr["com.isztld.oakmate.backup.encoding"]       = to_s(_diskEncoding);
+		attr["com.isztld.oakmate.backup.newlines"]       = to_s(_diskNewlines);
+		attr["com.isztld.oakmate.backup.untitled-count"] = _path || _customName ? NULL_STR : std::to_string(_untitledCount);
+		attr["com.isztld.oakmate.backup.custom-name"]    = to_s(_customName);
+		attr["com.isztld.oakmate.backup.modified"]       = self.isDocumentEdited ? "YES" : NULL_STR;
+		attr["com.isztld.oakmate.backup.tab-size"]       = std::to_string(self.tabSize);
+		attr["com.isztld.oakmate.backup.soft-tabs"]      = self.softTabs ? "YES" : NULL_STR;
 
 		path::set_attributes(temp, attr);
 
@@ -842,20 +841,20 @@ static void* kDocumentEditedObserverContext = &kDocumentEditedObserverContext;
 	if(_path)
 		document::marks.move_to_buffer(to_s(_path), *_buffer);
 
-	auto folded = attributes.find("com.macromates.folded");
+	auto folded = attributes.find("com.isztld.oakmate.folded");
 	if(folded != attributes.end())
 	{
-		auto crc32 = attributes.find("com.macromates.crc32");
+		auto crc32 = attributes.find("com.isztld.oakmate.crc32");
 		if(crc32 != attributes.end() && crc32->second == text::format("%04x", content->crc32()))
 			_folded = to_ns(folded->second);
 	}
 
 	if(!_selection)
 	{
-		auto sel = attributes.find("com.macromates.selectionRange");
+		auto sel = attributes.find("com.isztld.oakmate.selectionRange");
 		_selection = sel != attributes.end() ? to_ns(sel->second) : nil;
 
-		auto idx = attributes.find("com.macromates.visibleIndex");
+		auto idx = attributes.find("com.isztld.oakmate.visibleIndex");
 		if(idx != attributes.end())
 		{
 			size_t index = SIZE_T_MAX, carry = 0;
