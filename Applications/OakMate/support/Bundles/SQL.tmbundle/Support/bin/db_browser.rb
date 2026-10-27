@@ -1,12 +1,11 @@
-#!/usr/bin/env ruby18
+#!/usr/bin/env ruby20
 # encoding: utf-8
 
 require 'optparse'
 require 'ostruct'
 require 'erb'
-require 'iconv'
 require File.dirname(__FILE__) + '/db_browser_lib'
-require ENV['TM_BUNDLE_SUPPORT'] + '/lib/json'
+require 'json'
 require 'cgi'
 require "#{ENV["TM_SUPPORT_PATH"]}/lib/web_preview" if ENV["TM_SUPPORT_PATH"]
 
@@ -137,11 +136,8 @@ end
 
 def format(content, type)
   return '' unless content
-  begin
-    Iconv.iconv('utf-8', 'utf-8', content)
-  rescue Exception => e
-    content = content.unpack('C*').map { |ch| ch < 128 ? ch : ?? }.pack('C*')
-  end
+  content = content.to_s.dup.force_encoding('UTF-8')
+  content = content.unpack('C*').map { |ch| ch < 128 ? ch : 63 }.pack('C*') unless content.valid_encoding?
   if type == :number
     content
   else

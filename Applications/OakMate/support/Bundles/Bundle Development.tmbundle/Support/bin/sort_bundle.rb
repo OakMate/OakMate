@@ -1,8 +1,8 @@
-#!/usr/bin/env ruby18 -wKU
+#!/usr/bin/env ruby20
 
 $: << '/Applications/TextMate.app/Contents/SharedSupport/Support/lib/'
-$: << '/Library/Application Support/TextMate/Support/lib/'
-$: << '~/Library/Application Support/TextMate/Support/lib/'
+$: << '/Library/Application Support/OakMate/Support/lib/'
+$: << '~/Library/Application Support/OakMate/Support/lib/'
 require 'escape'
 require 'osx/plist'
 
@@ -16,7 +16,7 @@ end
 def get_item_uid(item, extension)
   separator_file = BundleDir + item + '/separator.' + extension
   uid = false
-  if File.exists?(separator_file)
+  if File.exist?(separator_file)
     uid = OSX::PropertyList::load(File.read(separator_file))['uuid']
   else
     uid = (0..5).map{(0..5).map{rand(15).to_s(16) }.to_s.upcase}.join('-')
@@ -41,7 +41,7 @@ end
 order = []
 # 'Templates' => 'tmTemplate', 
 {'Preferences' => 'tmPreferences', 'Syntaxes' => 'tmLanguage', 'Snippets' => 'tmSnippet', 'Commands' => 'tmCommand', 'DragCommands' => 'tmDragCommand', 'Macros' => 'tmMacro'}.each do |(item, extension)|
-  next unless File.exists?(BundleDir + item)
+  next unless File.exist?(BundleDir + item)
   puts item
   uuid = get_item_uid(item, extension)
   order.delete(uuid)
@@ -54,4 +54,4 @@ info['ordering'] = order
 File.open(BundleDir + 'info.plist', 'w') do |info_file|
   info_file << info.to_plist
 end
-`osascript -e 'tell app "TextMate" to reload bundles'`
+`osascript -e 'tell app id (system attribute "TM_APP_IDENTIFIER") to reload bundles'`

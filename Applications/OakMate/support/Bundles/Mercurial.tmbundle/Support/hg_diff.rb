@@ -1,4 +1,4 @@
-#!/usr/bin/env ruby18 -w
+#!/usr/bin/env ruby20
 # encoding: utf-8
 
 $LOAD_PATH << ENV['TM_SUPPORT_PATH'] + "/lib"

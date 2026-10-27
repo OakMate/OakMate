@@ -9,6 +9,8 @@ First release of OakMate, a continuation of TextMate 2.0.22.
 * Requires macOS 14 or later on Apple silicon.
 * New name, icon, and bundle identifier (`com.isztld.oakmate`). Settings live in `~/Library/Application Support/OakMate`.
 * The default bundles ship with the application. Bundles are no longer downloaded from or updated by the TextMate bundle server.
+* Bundle commands run with the system ruby (or ruby from Homebrew, or `TM_RUBY`) instead of downloading ruby 1.8. They work with ruby 2.6 through 4.0, including file names and text with non-ASCII characters.
+* File and folder choosers in bundle commands use the standard open panel instead of CocoaDialog.
 * Updates are released on GitHub and can be installed from OakMate → Check for Updates….
 * Quick Look previews and thumbnails with syntax highlighting.
 * HTML output uses WKWebView.
@@ -1388,7 +1390,7 @@ If there is some feature you would like to add to TextMate but need a little gui
 	1123 København K
 	Denmark
 
-We can fit 20-25 people so please let us know in advance if you wish to attend, either using the [facebook event][] or by emailing [Allan Odgaard](mailto:hackathon@textmate.org?subject=TextMate%20Hackathon) (me).
+We can fit 20-25 people so please let us know in advance if you wish to attend, either using the [facebook event][] or by emailing Allan Odgaard (me).
 
 We also welcome people who just want to drop by and say hello, share a pizza, or have some other project they want to hack on, in the company of fellow Mac/TextMate devotees.
 

@@ -1,4 +1,3 @@
-require "#{ENV['TM_SUPPORT_PATH']}/private/track_usage.rb"
 
 module TextMate
 	module Markdown
@@ -15,7 +14,7 @@ module TextMate
 
 			return str if filters.empty?
 
-			IO.popen(filters.join('|'), 'r+') do |io|
+			::IO.popen(filters.join('|'), 'r+') do |io|
 				Thread.new { io << str; io.close_write }
 				io.read
 			end

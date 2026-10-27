@@ -1,4 +1,4 @@
-#!/usr/bin/env ruby18
+#!/usr/bin/env ruby20
 
 require 'set'
 require "zlib"
@@ -9,9 +9,9 @@ def find_include_lines(io)
   io.each_line do |line|
     if in_synopsis then
       case line
-      when /^\.In (\S+)$/:              res << $1
-      when /^\.\w+ #include <(\S+)>$/:  res << $1
-      when /^\.Sh /:                    break
+      when /^\.In (\S+)$/ then              res << $1
+      when /^\.\w+ #include <(\S+)>$/ then  res << $1
+      when /^\.Sh / then                    break
       end
     elsif line =~ /^\.Sh SYNOPSIS/
       in_synopsis = true

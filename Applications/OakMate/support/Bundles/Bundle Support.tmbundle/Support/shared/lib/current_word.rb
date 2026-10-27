@@ -13,7 +13,6 @@
 #   /(.*):/  wouldn't match 'color' in ` color: `, but /:(.*)/ would.
 #   It's reversed you see
 # 
-require "#{ENV['TM_SUPPORT_PATH']}/private/track_usage.rb"
 
 module Word
   def self.current_word(pat='a-zA-Z0-9', direction=:both)

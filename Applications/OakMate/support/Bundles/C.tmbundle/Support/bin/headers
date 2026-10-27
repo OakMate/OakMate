@@ -1,4 +1,4 @@
-#!/usr/bin/env ruby18 -wKU
+#!/usr/bin/env ruby20
 # == Synopsis
 #
 # headers: find include headers
@@ -21,7 +21,6 @@
 #    this is used when searching the user domain
 
 require 'getoptlong'
-require 'rdoc/usage'
 require 'pathname'
 require 'set'
 
@@ -42,7 +41,7 @@ def compiler(scope = ENV['TM_SCOPE'])
 end
 
 def compiler_search_path(domain = :system)
-  res = IO.popen(compiler) { |io| io.read }
+  res = ::IO.popen(compiler) { |io| io.read }
   if res =~ /#{USR_HEAD}(.*)#{SYS_HEAD}(.*)#{FOOTER}/m
     list = case domain
       when :system  then $2
@@ -51,8 +50,8 @@ def compiler_search_path(domain = :system)
     end
 
     res = [ ]
-    list.grep(/^ (\S*)( \(framework directory\)$)?/) do
-      next unless File.exists? $1
+    list.lines.grep(/^ (\S*)( \(framework directory\)$)?/) do
+      next unless File.exist? $1
       res << { :path => $1, :framework => ($2 ? true : false) }
     end
     res
@@ -133,7 +132,7 @@ def find_header_with_prefix(prefix, dirs)
         else
           Dir["{,*.framework/Frameworks/}#{prefix}*.framework/Headers"].map do |path|
             if path =~ /(?:.*\.framework\/Frameworks\/)?(.*)\.framework\/Headers/
-              if File.exists? "#{path}/#$1.h"
+              if File.exist? "#{path}/#$1.h"
                 paths << [ "#$1/#$1.h" ]
               else
                 paths << Dir["#{path}/[A-Za-z]*.h"]
@@ -163,7 +162,7 @@ basedir       = nil
 
 opts.each do |opt, arg|
   case opt
-    when '--help'    then RDoc::usage
+    when '--help'    then puts File.read(__FILE__)[/^# == Synopsis.*?(?=^[^#])/m].gsub(/^# ?/, ''); exit
     when '--search'  then full_search = arg
     when '--prefix'  then prefix_search = arg
     when '--domain'  then domain = arg.to_sym

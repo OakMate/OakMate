@@ -359,7 +359,7 @@ module TextMate
       begin
         TextMate::UI.request_file do | file |
           print <<-"EOT"
-#{cstart}#tminclude "#{file}"#{cend}
+#{cstart}#tminclude "#{file.first}"#{cend}
 #{cstart}end tminclude#{cend}
 EOT
         end

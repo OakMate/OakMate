@@ -1,12 +1,15 @@
 #!/bin/sh
 
-# This script ensures that scripts are run with the predictable system supplied
-# version of ruby rather than a user-installed future version. It also allows
-# future customization of the version of ruby or it's environment.
+# Runs bundle items with a modern ruby (2.6 or later). The first one found is
+# used: $TM_RUBY, the system ruby, or ruby installed with Homebrew.
+#
+# Strings default to UTF-8 regardless of the user’s locale.
 
-for ruby in /System/Library/Frameworks/Ruby.framework/Versions/2.*/usr/bin/ruby; do
-   [ -e $ruby ] && exec $ruby "$@"
+for ruby in "$TM_RUBY" /usr/bin/ruby /opt/homebrew/opt/ruby/bin/ruby /usr/local/opt/ruby/bin/ruby; do
+	if [ -n "$ruby" ] && [ -x "$ruby" ]; then
+		exec "$ruby" -EUTF-8 "$@"
+	fi
 done
 
-"$DIALOG" alert --title "Unable to Run Command" --body "Unsupported system support files, please contact support." --button1 "OK" &>/dev/null
+"$DIALOG" alert --title "Unable to Run Command" --body "This command requires ruby. Install it with Homebrew (brew install ruby) or set TM_RUBY to the ruby you want to use." --button1 "OK" >/dev/null 2>&1
 exit 200

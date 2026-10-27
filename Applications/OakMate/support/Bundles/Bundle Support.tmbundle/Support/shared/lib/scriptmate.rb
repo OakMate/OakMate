@@ -1,6 +1,5 @@
 # encoding: utf-8
 
-require "#{ENV['TM_SUPPORT_PATH']}/private/track_usage.rb"
 require "#{ENV['TM_SUPPORT_PATH']}/lib/escape.rb"
 require "#{ENV['TM_SUPPORT_PATH']}/lib/web_preview.rb"
 require "#{ENV['TM_SUPPORT_PATH']}/lib/io.rb"
@@ -9,7 +8,6 @@ require "#{ENV['TM_SUPPORT_PATH']}/lib/tm/tempfile.rb"
 require 'cgi'
 require 'fcntl'
 
-$KCODE = 'u' if (RUBY_VERSION.to_f < 1.9)
 
 $SCRIPTMATE_VERSION = "$Revision$"
 
@@ -29,7 +27,7 @@ def my_popen3(*cmd) # returns [stdin, stdout, strerr, pid]
     STDERR.reopen(pe[1])
 
     tm_interactive_input = "#{ENV['TM_SUPPORT_PATH']}/lib/tm_interactive_input.dylib"
-    if (File.exists? tm_interactive_input) 
+    if (File.exist? tm_interactive_input) 
       dil = ENV['DYLD_INSERT_LIBRARIES']
       ENV['DYLD_INSERT_LIBRARIES'] = (dil) ? "#{tm_interactive_input}:#{dil}" : tm_interactive_input unless (dil =~ /#{tm_interactive_input}/)
       ENV['DYLD_FORCE_FLAT_NAMESPACE'] = "1"

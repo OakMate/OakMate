@@ -493,7 +493,7 @@ class Mysql
       @sqlstate = "00000"
 
       # Error packet
-      if data[0] == ?\xff
+      if data.getbyte(0) == 0xff
         f, errno, marker, @sqlstate, message = data.unpack("Cvaa5a*")
         unless marker == "#"
           f, errno, message = data.unpack("Cva*")    # Version 4.0 Error

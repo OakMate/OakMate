@@ -1,19 +1,20 @@
+require 'stringio'
 
 module StreamProgressMethods
   extend self
   
   def each_line_from_stream(stream, &block)
-    line = ""
+    line = String.new
     f = File.open("#{ENV['TMPDIR']}/output", "wb")
     stream.each_byte do |char|
       f.putc(char)
-      char = [char].pack('c')
+      char = [char].pack('C')
       line << char
       next unless char=="\n" || char=="\r"
-      yield line
-      line = ""
+      yield line.force_encoding('UTF-8')
+      line = String.new
     end
-    yield line
+    yield line.force_encoding('UTF-8')
     stream
   end
   protected  

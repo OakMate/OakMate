@@ -1,4 +1,4 @@
-#!/usr/bin/env ruby18
+#!/usr/bin/env ruby20
 
 require 'optparse'
 require "#{ENV['TM_SUPPORT_PATH']}/lib/ui"

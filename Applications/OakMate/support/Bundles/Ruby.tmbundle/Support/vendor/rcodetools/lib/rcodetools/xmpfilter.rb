@@ -1,4 +1,4 @@
-#!/usr/bin/env ruby18
+#!/usr/bin/env ruby20
 # Copyright (c) 2005-2008 Mauricio Fernandez <mfp@acm.org> http://eigenclass.org
 #                         rubikitch <rubikitch@ruby-lang.org>
 # Use and distribution subject to the terms of the Ruby license.

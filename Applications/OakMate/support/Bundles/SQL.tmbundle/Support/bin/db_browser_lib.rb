@@ -3,6 +3,7 @@ $: << ENV['TM_BUNDLE_SUPPORT'] + '/lib/' << ENV['TM_BUNDLE_SUPPORT'] + '/lib/con
 
 require 'ostruct'
 require ENV['TM_SUPPORT_PATH'] + '/lib/osx/keychain'
+require ENV['TM_SUPPORT_PATH'] + '/lib/osx/plist'
 require ENV['TM_SUPPORT_PATH'] + '/lib/ui'
 require ENV['TM_SUPPORT_PATH'] + '/lib/exit_codes'
 

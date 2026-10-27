@@ -1,4 +1,4 @@
-#!/usr/bin/env ruby18
+#!/usr/bin/env ruby20
 #
 # ReIndent v0.1
 # By Sune Foldager <cryo at cyanite.org>

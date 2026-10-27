@@ -1,8 +1,13 @@
-require "#{ENV['TM_SUPPORT_PATH']}/private/track_usage.rb"
 
-# escape text to make it useable in a shell script as one “word” (string)
+# escape text to make it useable in a shell script as one “word” (string).
+# Non-ASCII characters are left as is. Arrays are joined (as in ruby 1.8).
 def e_sh(str)
-	str.to_s.gsub(/(?=[^a-zA-Z0-9_.\/\-\x7F-\xFF\n])/n, '\\').gsub(/\n/, "'\n'").sub(/^$/, "''")
+	str = str.is_a?(Array) ? str.join : str.to_s
+	if str.valid_encoding?
+		str.gsub(/(?=[^a-zA-Z0-9_.\/\-\n[:^ascii:]])/, '\\').gsub(/\n/, "'\n'").sub(/^$/, "''")
+	else
+		str.b.gsub(/(?=[^a-zA-Z0-9_.\/\-\x7F-\xFF\n])/n, '\\').gsub(/\n/n, "'\n'").sub(/^$/n, "''")
+	end
 end
 
 # escape text for use in a TextMate snippet
@@ -22,9 +27,9 @@ end
 
 # URL escape a string but preserve slashes (idea being we have a file system path that we want to use with file://)
 def e_url(str)
-  str.gsub(/([^a-zA-Z0-9\/_.-]+)/n) do
-    '%' + $1.unpack('H2' * $1.size).join('%').upcase
-  end
+  str.to_s.b.gsub(/([^a-zA-Z0-9\/_.-]+)/n) do
+    '%' + $1.unpack('H2' * $1.bytesize).join('%').upcase
+  end.force_encoding('UTF-8')
 end
 
 # Make string suitable for display as HTML, preserve spaces. Set :no_newline_after_br => true

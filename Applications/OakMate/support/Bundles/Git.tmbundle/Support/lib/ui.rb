@@ -12,7 +12,7 @@ class << TextMate::UI
   
   def request_directory(title = "Select a directory", options = {})
     options[:initial_directory] ||= ENV['TM_PROJECT_DIRECTORY'] || ENV['TM_FILEPATH']
-    result = `CocoaDialog fileselect --select-only-directories --with-directory "#{options[:initial_directory]}" --title "#{title}"`
-    result.empty? ? nil : result.strip
+    result = request_file(:prompt => title, :directory => options[:initial_directory], :only_directories => true)
+    result && result.first
   end
 end

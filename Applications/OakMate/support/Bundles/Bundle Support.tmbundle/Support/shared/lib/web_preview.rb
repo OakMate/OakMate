@@ -1,4 +1,3 @@
-require "#{ENV['TM_SUPPORT_PATH']}/private/track_usage.rb"
 require "#{ENV['TM_SUPPORT_PATH']}/lib/tm/htmloutput.rb"
 
 def html_head(options = { })

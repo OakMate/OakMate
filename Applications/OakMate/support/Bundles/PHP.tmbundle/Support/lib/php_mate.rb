@@ -15,7 +15,7 @@ class PhpScript < UserScript
   end
   def executable; @hashbang || ENV['TM_PHP'] || 'php' end
   def version_string
-    path = ENV['PATH'].split(':').find { |e| File.exists? File.join(e, executable) }
+    path = ENV['PATH'].split(':').find { |e| File.exist? File.join(e, executable) }
     php_path = File.join(path.to_s, executable)
     res = %x{ #{executable} -v }.split[0..2].join %{ }
     res + " (#{php_path})"

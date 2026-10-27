@@ -1,11 +1,11 @@
-#!/usr/bin/env ruby18 -w
+#!/usr/bin/env ruby20
 
 require "yaml"
 require "find"
 
 $: << '/Applications/TextMate.app/Contents/SharedSupport/Support/lib/'
-$: << '/Library/Application Support/TextMate/Support/lib/'
-$: << '~/Library/Application Support/TextMate/Support/lib/'
+$: << '/Library/Application Support/OakMate/Support/lib/'
+$: << '~/Library/Application Support/OakMate/Support/lib/'
 require "osx/plist"
 
 $legal_scopes, allowed_globals =

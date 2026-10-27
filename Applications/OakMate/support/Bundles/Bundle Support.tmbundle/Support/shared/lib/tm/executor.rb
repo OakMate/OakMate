@@ -44,7 +44,6 @@
 #   :create_error_pipe Tells Executor to create a pipe which the child process can use to write raw HTML to.
 #     The default is “false”. The file descriptor can be obtained via the TM_ERROR_FD environment variable
 
-require "#{ENV['TM_SUPPORT_PATH']}/private/track_usage.rb"
 require "#{ENV['TM_SUPPORT_PATH']}/lib/tm/process.rb"
 require "#{ENV['TM_SUPPORT_PATH']}/lib/tm/htmloutput.rb"
 require "#{ENV['TM_SUPPORT_PATH']}/lib/tm/require_cmd.rb"
@@ -53,7 +52,6 @@ require "#{ENV['TM_SUPPORT_PATH']}/lib/exit_codes.rb"
 require "#{ENV['TM_SUPPORT_PATH']}/lib/io.rb"
 require 'pathname'
 
-$KCODE = 'u' if RUBY_VERSION < "1.9"
 
 $stdout.sync = true
 
@@ -86,7 +84,7 @@ module TextMate
 
         options.merge! args.pop if args.last.is_a? Hash
 
-        if File.exists?(args[-1]) and options[:use_hashbang] == true
+        if File.exist?(args[-1]) and options[:use_hashbang] == true
           args[0] = parse_hashbang(args[-1]) || args[0]
         end
 
@@ -128,7 +126,7 @@ module TextMate
 
           io << "<!-- » #{args[0,args.length-1].join(" ")} #{ENV["TM_DISPLAYNAME"]} -->"
 
-          if options.has_key?(:bootstrap) and File.exists?(options[:bootstrap])
+          if options.has_key?(:bootstrap) and File.exist?(options[:bootstrap])
             raise "Bootstrap script is not executable." unless File.executable?(options[:bootstrap])
             args[0,0] = options[:bootstrap] # add the bootstrap script to the front of args
           end
@@ -176,7 +174,7 @@ module TextMate
           else
             filepath = "#{proj_dir}/#{proj_master}"
           end
-          unless File.exists?(filepath)
+          unless File.exist?(filepath)
             TextMate::HTMLOutput.show(:title => "Bad TM_PROJECT_MASTER!", :sub_title => "") do |io|
               io << "<h2 class=\"warning\">The file suggested by <code>TM_PROJECT_MASTER</code> does not exist.</h2>\n"
               io << "<p>The file “<code>#{filepath}</code>” named by the environment variable <code>TM_PROJECT_MASTER</code> could not be found.  Please unset or correct TM_PROJECT_MASTER.</p>"

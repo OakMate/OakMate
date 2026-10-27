@@ -1,4 +1,3 @@
-require "#{ENV['TM_SUPPORT_PATH']}/private/track_usage.rb"
 #
 # String helpers for build command tokenization.
 #
@@ -11,9 +10,7 @@ class String
 		out_token = ""
 		state = :normal
 		
-		self.slice(@happy_token_offset...self.length).each_byte do |byte|
-			
-			char = byte.chr
+		self.slice(@happy_token_offset...self.length).each_char do |char|
 			
 			@happy_token_offset += 1
 			
@@ -68,16 +65,8 @@ class String
 	
 	# insert escape sequences where needed
 	def quote_filename_for_shell
-		outname = ""
-		self.each_byte do |byte|	
-			char = byte.chr
-			case char
-				when /[^\w_\-\+=\/\x7F-\xFF]/
-					outname += "\\"
-			end
-			outname += char
-		end
-		outname
+		# Escape ASCII characters other than [\w\-+=/]; non-ASCII characters are left alone
+		self.gsub(/[^\w\-+=\/[:^ascii:]]/) { |char| "\\" + char }
 	end
 		
 end

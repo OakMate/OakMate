@@ -42,7 +42,7 @@ class Ref
 	end
 
 	def exists?
-		File.exists?(url.split('#').first)
+		File.exist?(url.split('#').first)
 	end
 
 	# Test if we are referring to documentation about the same

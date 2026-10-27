@@ -123,7 +123,7 @@ RTF_DOC
     lines.each do | line |
       line_sans_markup = line.gsub(/<[^>]*>/, '').gsub(/&[^;]+;/i, '.')
       while (index = line_sans_markup.index("\t"))
-        tab = line_sans_markup[0..index].jlength - 1
+        tab = line_sans_markup[0..index].length - 1
         padding = " " * ((tab / width + 1) * width - tab)
         line_sans_markup.sub!("\t", padding)
         line.sub!("\t", padding)

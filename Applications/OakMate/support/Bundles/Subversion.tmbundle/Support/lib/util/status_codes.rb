@@ -37,7 +37,7 @@ module Subversion
     end
     
     def self.status(code)
-      @@status_code_mapping.index(code)
+      @@status_code_mapping.key(code)
     end
     
     def self.code(status)

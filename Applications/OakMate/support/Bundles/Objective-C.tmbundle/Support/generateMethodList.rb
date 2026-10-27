@@ -1,4 +1,4 @@
-#!/usr/bin/env ruby18
+#!/usr/bin/env ruby20
 # run with find /System/Library/Frameworks/*.framework -name \*.h -print0 | ruby generateMethodList.rb
 translate = {"Message" => "Me",
 "AddressBook" => "AB",

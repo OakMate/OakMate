@@ -130,7 +130,7 @@ class ApplicationController
       __binding__.send(:eval, __options__[:locals].keys * ", " + ", = *__v__")
     end
     
-    __erb__ = ERBStdout.new(___template___, nil, "-", "@output_buffer")
+    __erb__ = ERBStdout.new(___template___, trim_mode: "-", eoutvar: "@output_buffer")
     __erb__.filename = __template_path__
     __erb__.run(__binding__)
   end

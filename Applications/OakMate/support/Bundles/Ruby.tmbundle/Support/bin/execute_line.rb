@@ -1,4 +1,4 @@
-#!/usr/bin/env ruby18
+#!/usr/bin/env ruby20
 # encoding: utf-8
 
 # be smart, dont print something if we already have..

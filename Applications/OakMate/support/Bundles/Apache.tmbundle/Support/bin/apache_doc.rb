@@ -1,4 +1,4 @@
-#!/usr/bin/env ruby18
+#!/usr/bin/env ruby20
 # encoding: utf-8
 
 SUPPORT = ENV['TM_SUPPORT_PATH']
@@ -32,8 +32,8 @@ if apache_manual_uri =~ /^http:\/\//
 		httpd_running = Net::HTTP.get_response(URI.parse( apache_manual_uri ))
 		
 		apache_manual_uri = case httpd_running
-			when Net::HTTPSuccess     : apache_manual_uri
-			when Net::HTTPRedirection : apache_manual_uri
+			when Net::HTTPSuccess then apache_manual_uri
+			when Net::HTTPRedirection then apache_manual_uri
 			else file_manual
 		end
 

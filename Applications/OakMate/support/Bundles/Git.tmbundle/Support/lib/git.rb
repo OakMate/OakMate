@@ -50,7 +50,7 @@ module SCM
     end
 
     def command_str(*args)
-      str = %{unset DISPLAY && cd "#{path}" && #{e_sh git} #{args.map{ |arg| e_sh(arg) } * ' '}}
+      str = %{unset DISPLAY && cd "#{path}" && #{e_sh git} #{args.flatten.map{ |arg| e_sh(arg) } * ' '}}
       logger.error(str) if debug_mode
       str
     end
@@ -70,7 +70,7 @@ module SCM
     # Run a command with POPEN
     def popen_command(*args)
       cmd = command_str(*args)
-      IO.popen("#{cmd} 2>&1", "r")
+      ::IO.popen("#{cmd} 2>&1", "r")
     end
 
     # Return the full working path to "git"
@@ -171,7 +171,7 @@ module SCM
     end
 
     def list_files(dir, options = {})
-      options[:exclude_file] ||= File.exists?(excl_file = git_dir(dir) + '/info/exclude') ? excl_file : nil
+      options[:exclude_file] ||= File.exist?(excl_file = git_dir(dir) + '/info/exclude') ? excl_file : nil
       options[:type] ||= nil
       params = []
       params << "-#{options[:type]}" if options[:type]

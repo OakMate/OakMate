@@ -1,4 +1,4 @@
-#!/usr/bin/env ruby18
+#!/usr/bin/env ruby20
 require ENV['TM_SUPPORT_PATH'] + "/lib/exit_codes"
 require "#{ENV['TM_SUPPORT_PATH']}/lib/escape"
 require "zlib"
@@ -381,7 +381,7 @@ class ObjCFallbackCompletion
       files = [["#{e_sh ENV['TM_BUNDLE_SUPPORT']}/CocoaClassesWithAncestry.txt.gz",false,false, :classes]]
       files += [["#{e_sh ENV['TM_BUNDLE_SUPPORT']}/CocoaTypes.txt.gz", true, false, :constant]] if ENV['TM_SCOPE'].include?("meta.scope.interface.objc")
       userClasses = ["#{ENV['TM_PROJECT_DIRECTORY']}/.classes.TM_Completions.txt.gz", false,false,:constant]
-      files += [userClasses] if File.exists? userClasses[0]
+      files += [userClasses] if File.exist? userClasses[0]
       if ENV['TM_SCOPE'].include?("meta.function.objc")
         star = true
         files += [[ "#{e_sh ENV['TM_BUNDLE_SUPPORT']}/CocoaTypes.txt.gz",true,false, :constant]]
@@ -616,14 +616,14 @@ class ObjCMethodCompletion
     if types == :classes
       userClasses = "#{ENV['TM_PROJECT_DIRECTORY']}/.classes.TM_Completions.txt.gz"
       fileNames = ["#{ENV['TM_BUNDLE_SUPPORT']}/CocoaClassesWithAncestry.txt.gz"]
-      fileNames += [userClasses] if File.exists? userClasses
+      fileNames += [userClasses] if File.exist? userClasses
     elsif types == :functions
       fileNames = "#{ENV['TM_BUNDLE_SUPPORT']}/CocoaFunctions.txt.gz"
     elsif types == :methods
       fileNames = ["#{ENV['TM_BUNDLE_SUPPORT']}/CocoaMethods.txt.gz"]
       userMethods = "#{ENV['TM_PROJECT_DIRECTORY']}/.methods.TM_Completions.txt.gz"
 
-      fileNames += [userMethods] if File.exists? userMethods
+      fileNames += [userMethods] if File.exist? userMethods
     elsif types == :constants
       fileNames = "#{ENV['TM_BUNDLE_SUPPORT']}/CocoaConstants.txt.gz"
     elsif types == :anonymous
@@ -778,7 +778,7 @@ class ObjCMethodCompletion
       typeName = h[var].match(/[A-Za-z0-1]*/)[0]
       obType = :instanceMethod
       list = list_from_shell_command(typeName, obType)
-      if list.nil? && File.exists?(userClasses = "#{ENV['TM_PROJECT_DIRECTORY']}/.classes.TM_Completions.txt.gz")
+      if list.nil? && File.exist?(userClasses = "#{ENV['TM_PROJECT_DIRECTORY']}/.classes.TM_Completions.txt.gz")
         candidates = %x{ zgrep ^#{e_sh h[var] + "[[:space:]]" } #{e_sh userClasses} }.split("\n")
         unless candidates.empty?
           list = Set.new

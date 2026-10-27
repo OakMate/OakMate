@@ -1,4 +1,4 @@
-#!/usr/bin/env ruby18
+#!/usr/bin/env ruby20
 
 require File.dirname(__FILE__) + '/../lib/subversion'
 

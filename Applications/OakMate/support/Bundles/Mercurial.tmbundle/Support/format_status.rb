@@ -48,7 +48,7 @@ def shorten_path(path)
 	end
 end
 
-rescan_project = %Q|osascript &>/dev/null -e 'tell app "SystemUIServer" to activate' -e 'tell app "TextMate" to activate'|
+rescan_project = %Q|osascript &>/dev/null -e 'tell app "SystemUIServer" to activate' -e 'tell app id (system attribute "TM_APP_IDENTIFIER") to activate'|
 hg = ENV['TM_HG'] || 'hg'
 hg = `which hg`.chomp unless hg[0] == ?/
 
@@ -178,7 +178,7 @@ js_functions = <<ENDJS #javascript
 						#{ %{cmd += "export   TM_HG_DIFF_CMD=#{ e_sh_js ENV['TM_HG_DIFF_CMD']   };";} if ENV['TM_HG_DIFF_CMD']   }
 						#{ %{cmd += "export   TM_HG_FROM_STATUS=true;";}   }
 						
-						cmd += 'ruby18 -- #{e_sh_js ENV['TM_BUNDLE_SUPPORT']}/hg_commit.rb'
+						cmd += 'ruby20 -- #{e_sh_js ENV['TM_BUNDLE_SUPPORT']}/hg_commit.rb'
 						commit_result = TextMate.system(cmd, hg_commit_output);
 					};
 					hg_commit_output = function(task){

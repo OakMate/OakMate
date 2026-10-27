@@ -15,7 +15,6 @@
 
 require 'erb'
 require 'cgi'
-require "#{ENV['TM_SUPPORT_PATH']}/private/track_usage.rb"
 require "#{ENV['TM_SUPPORT_PATH']}/lib/escape.rb"
 
 HTMLOUTPUT_TEMPLATE = <<-HTML
@@ -89,7 +88,7 @@ module TextMate
 
         support_path = ENV['TM_SUPPORT_PATH']
 
-        ERB.new(HTMLOUTPUT_TEMPLATE, 0, '%-').result(binding)
+        ERB.new(HTMLOUTPUT_TEMPLATE, trim_mode: '%-').result(binding)
       end
 
       def footer
@@ -104,7 +103,7 @@ module TextMate
 
         paths = ENV['TM_THEME_PATH'].to_s.split(/:/)
         paths << "#{ENV['TM_BUNDLE_SUPPORT']}/css" if ENV.has_key? 'TM_BUNDLE_SUPPORT'
-        paths << "#{ENV['HOME']}/Library/Application Support/TextMate/Themes/Webpreview"
+        paths << "#{ENV['HOME']}/Library/Application Support/OakMate/Themes/Webpreview"
 
         paths.each do |path|
           Dir.foreach(path) do |file|
@@ -120,7 +119,7 @@ module TextMate
               res[:print] << { :name => name, :class => file, :path => "#{path}/#{file}" }
             end
 
-          end if File.exists? path
+          end if File.exist? path
         end
 
         res

@@ -6,7 +6,7 @@
 # you are of course free to modify this.
 
 # Needed to easily convert date
-require 'parsedate' 
+require 'time'
 require "#{ENV['TM_SUPPORT_PATH']}/lib/web_preview.rb"
 # require "/Library/Application Support/TextMate/Bundles/Mercurial.tmbundle/Support/web_preview.rb"
 
@@ -58,8 +58,7 @@ module HGHelper
    # if format is nil it just gives you back the current date
    def formated_date( input, format=$date_format )
       if not format.nil? and not input.nil?
-         res = ParseDate.parsedate( input )
-         Time.local(*res).strftime( format )
+         Time.parse(input).strftime( format )
       else
          input
       end

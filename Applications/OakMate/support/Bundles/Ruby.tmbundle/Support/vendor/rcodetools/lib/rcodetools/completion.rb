@@ -152,7 +152,7 @@ XXX
   class RuntimeDataError < RuntimeError; end
   class NewCodeError < Exception; end
   def runtime_data_with_class(code, lineno, column=nil)
-    newcode = code.to_a.enum_with_index.map{|line, i|
+    newcode = code.lines.each_with_index.map{|line, i|
       i+1==lineno ? prepare_line(line.chomp, column) : line
     }.join
     newcode << add_BEGIN if @ignore_NoMethodError
@@ -168,7 +168,7 @@ XXX
     begin
       dat = runtime_data.results[1][0]
       debugprint "dat = #{dat.inspect}"
-      [dat[0], dat[1..-1].to_s]
+      [dat[0], dat[1..-1].join]
     rescue
       raise RuntimeDataError, runtime_data.inspect
     end

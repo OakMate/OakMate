@@ -5,7 +5,7 @@
 	<key>beforeRunningCommand</key>
 	<string>nop</string>
 	<key>command</key>
-	<string>ruby18 &lt;&lt;-'RUBY'
+	<string>ruby20 &lt;&lt;-'RUBY'
 # Stores all the possible paths to the dropped file
 paths = []
 

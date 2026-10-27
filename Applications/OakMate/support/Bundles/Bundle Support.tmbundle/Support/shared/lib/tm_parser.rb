@@ -1,9 +1,8 @@
-require "#{ENV['TM_SUPPORT_PATH']}/private/track_usage.rb"
 
 module TextMate
 
 	def TextMate.url_esc (url)
-		url.gsub(/[^a-zA-Z0-9.-\/]/) { |m| sprintf("%%%02X", m[0]) }
+		url.gsub(/[^a-zA-Z0-9.\-\/]/) { |m| m.bytes.map { |b| sprintf("%%%02X", b) }.join }
 	end
 
 	def TextMate.html_esc (text)
@@ -17,7 +16,7 @@ module TextMate
 			if m = /^(.*?):(?:(\d+):)?\s*(.*?)$/.match(line) then
 				file, no, error = m[1..3]
 				file = File.expand_path(file, ENV['PWD'])
-				if File.exists?(file)
+				if File.exist?(file)
 					print "<a href='txmt://open?url=file://#{url_esc file}"
 					print "&line=#{no}" unless no.nil?
 					print "'>#{html_esc error}</a><br>"

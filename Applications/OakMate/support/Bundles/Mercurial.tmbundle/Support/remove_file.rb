@@ -1,4 +1,4 @@
-#!/usr/bin/env ruby18 -s
+#!/usr/bin/env ruby20 -s
 # encoding: utf-8
 
 abort "Wrong arguments: use -path=«file to remove»" if $path.nil?
@@ -9,7 +9,7 @@ display = $displayname || File.basename(path)
 
 res = %x{
   iconv -f utf-8 -t mac <<"AS"|osascript 2>/dev/console
-    tell app "TextMate" to display alert "Remove File?" ¬
+    tell app id (system attribute "TM_APP_IDENTIFIER") to display alert "Remove File?" ¬
       message "Do you really want to remove the file “#{display}” from your working copy?" ¬
       buttons { "Cancel", "Remove" } cancel button 1 as warning
     return button returned of result

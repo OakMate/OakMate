@@ -8,7 +8,7 @@ module Postgres::Conversion
   #
 
   def encode_bytea(str)
-    str.gsub(/[\000-\037\047\134\177-\377]/) {|b| "\\#{ b[0].to_s(8).rjust(3, '0') }" }
+    str.b.gsub(/[\000-\037\047\134\177-\377]/n) {|b| "\\#{ b.ord.to_s(8).rjust(3, '0') }" }
   end
 
   #

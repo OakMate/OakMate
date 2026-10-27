@@ -1,4 +1,4 @@
-#!/usr/bin/env ruby18 -w
+#!/usr/bin/env ruby20
 # encoding: utf-8
 
 # if we are not called directly from TM (e.g. JavaScript) the caller

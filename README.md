@@ -18,6 +18,8 @@ OakMate uses TextMate bundles. The `TM_*` environment variables, the `txmt://` U
 
 The default bundles are part of this repository (`Applications/OakMate/support/Bundles`, see `vendor/README.md` for their origins) and ship inside the application. OakMate does not download or update bundles. To add another bundle, double-click a `.tmbundle` or place it in `~/Library/Application Support/OakMate/Bundles`.
 
+Bundle commands written in Ruby run with the system ruby (`/usr/bin/ruby`), or with ruby from Homebrew if the system ruby is not installed. They work with ruby 2.6 through 4.0. Set `TM_RUBY` (e.g. in _Preferences_ → _Variables_) to use a different ruby. Commands of third-party bundles that ask for `ruby18` also run with this ruby.
+
 # Building
 
 ## Setup

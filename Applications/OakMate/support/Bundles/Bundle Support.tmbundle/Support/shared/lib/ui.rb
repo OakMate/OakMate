@@ -183,27 +183,15 @@ module TextMate
         request_string_core('Enter password:', 'RequestSecureString', options, &block)
       end
 
-      # show a standard open file dialog
+      # show a standard open file dialog. Returns (or yields) an array with the selected path.
+      # Options: :prompt (or :title), :directory, :only_directories
       def request_file(options = Hash.new,&block)
-        _options = default_options_for_cocoa_dialog(options)
-        _options["title"] = options[:title] || "Select File"
-        _options["informative-text"] = options[:prompt] || ""
-        _options["text"] = options[:default] || ""
-        _options["select-only-directories"] = "" if options[:only_directories]
-        _options["with-directory"] = options[:directory] if options[:directory]
-        cocoa_dialog("fileselect", _options,&block)
+        choose_paths(options, false, &block)
       end
 
       # show a standard open file dialog, allowing multiple selections
       def request_files(options = Hash.new,&block)
-        _options = default_options_for_cocoa_dialog(options)
-        _options["title"] = options[:title] || "Select File(s)"
-        _options["informative-text"] = options[:prompt] || ""
-        _options["text"] = options[:default] || ""
-        _options["select-only-directories"] = "" if options[:only_directories]
-        _options["with-directory"] = options[:directory] if options[:directory]
-        _options["select-multiple"] = ""
-        cocoa_dialog("fileselect", _options,&block)
+        choose_paths(options, true, &block)
       end
 
       # Request an item from a list of items
@@ -280,7 +268,7 @@ module TextMate
 
             # this is a workaround for a presumed Leopard bug, see log entry for revision 8566 for more info
             if animate = start_parameters['progressAnimate']
-              open("|\"$DIALOG\" -t#{@dialog_token}", "w") { |io| io << { 'progressAnimate' => animate }.to_plist }
+              ::IO.popen("\"$DIALOG\" -t#{@dialog_token}", "w") { |io| io << { 'progressAnimate' => animate }.to_plist }
             end
           end
 
@@ -327,7 +315,7 @@ module TextMate
       private
 
       def run_dialog(command, *parms)
-        open("|\"$DIALOG\" #{command} #{parms.shelljoin}") { |io| Plist.parse_xml(io) }
+        ::IO.popen("\"$DIALOG\" #{command} #{parms.shelljoin}") { |io| Plist.parse_xml(io) }
       end
 
       def run_modal_dialog(*params)
@@ -355,24 +343,37 @@ module TextMate
         end
       end
 
-      def cocoa_dialog(type, options)
-        str = ""
-        options.each_pair do |key, value|
-          unless value.nil?
-            str << " --#{key.shellescape} "
-            str << Array(value).shelljoin
-          end
-        end
-        result = %x{"$TM_SUPPORT_PATH/bin/CocoaDialog.app/Contents/MacOS/CocoaDialog" 2>/dev/console #{type.shellescape} #{str} --float}
-        result = result.to_a.map{|line| line.chomp}
-        if (type == "fileselect")
-          if result.length == 0
-            return_value = options['button2'] # simulate cancel
-          end
-        else
-          return_value, result = *result
-        end
-        if return_value == options["button2"] then
+      CHOOSE_PATHS_SCRIPT = <<-'APPLESCRIPT'
+        on run {appID, kind, thePrompt, theDirectory, multiple}
+          set theLocation to POSIX file theDirectory
+          tell application id appID
+            activate
+            if kind is "folder" then
+              set res to choose folder with prompt thePrompt default location theLocation multiple selections allowed (multiple is "1")
+            else
+              set res to choose file with prompt thePrompt default location theLocation multiple selections allowed (multiple is "1")
+            end if
+          end tell
+          if class of res is not list then set res to {res}
+          set out to ""
+          repeat with f in res
+            set out to out & POSIX path of f & linefeed
+          end repeat
+          return out
+        end run
+      APPLESCRIPT
+
+      # Show the standard open panel in front of the application running the command
+      def choose_paths(options, multiple)
+        app_id    = ENV['TM_APP_IDENTIFIER'] || 'com.isztld.oakmate'
+        kind      = options[:only_directories] ? 'folder' : 'file'
+        prompt    = (options[:prompt] || options[:title] || (options[:only_directories] ? 'Select Folder' : 'Select File')).to_s
+        directory = (options[:directory] || ENV['TM_PROJECT_DIRECTORY'] || ENV['TM_DIRECTORY'] || ENV['HOME']).to_s
+
+        output = ::IO.popen([ '/usr/bin/osascript', '-e', CHOOSE_PATHS_SCRIPT, app_id, kind, prompt, directory, multiple ? '1' : '0' ], err: File::NULL, &:read)
+        result = $?.success? ? output.lines.map { |line| line.chomp.sub(%r{(?<=.)/\z}, '') }.reject(&:empty?) : []
+
+        if result.empty?
           block_given? ? raise(SystemExit) : nil
         else
           block_given? ? yield(result) : result
@@ -383,12 +384,6 @@ module TextMate
         options = Hash.new
         options['button1'] = user_options[:button1] || "OK"
         options['button2'] = user_options[:button2] || "Cancel"
-        options
-      end
-
-      def default_options_for_cocoa_dialog(user_options = Hash.new)
-        options = default_buttons(user_options)
-        options["string-output"] = ""
         options
       end
 

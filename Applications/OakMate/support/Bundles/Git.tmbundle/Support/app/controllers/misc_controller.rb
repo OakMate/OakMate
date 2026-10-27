@@ -50,8 +50,8 @@ class MiscController < ApplicationController
 
       # After this point you are in a daemon process
       pid = fork do
-        STDOUT.reopen(open('/dev/null'))
-        STDERR.reopen(open('/dev/null'))
+        STDOUT.reopen(File.open('/dev/null', 'w'))
+        STDERR.reopen(File.open('/dev/null', 'w'))
         Thread.new do
           sleep 1.5
           %x{osascript -e 'tell app "#{app_name}" to activate'}

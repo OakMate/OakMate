@@ -1,10 +1,10 @@
-#!/usr/bin/env ruby18 -wKU
+#!/usr/bin/env ruby20
 
 require "find"
 
 $: << '/Applications/TextMate.app/Contents/SharedSupport/Support/lib/'
-$: << '/Library/Application Support/TextMate/Support/lib/'
-$: << '~/Library/Application Support/TextMate/Support/lib/'
+$: << '/Library/Application Support/OakMate/Support/lib/'
+$: << '~/Library/Application Support/OakMate/Support/lib/'
 require "osx/plist"
 
 ROOT_DIRS = if ARGV.empty?

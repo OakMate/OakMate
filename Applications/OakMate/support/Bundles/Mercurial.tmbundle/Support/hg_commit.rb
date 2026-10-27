@@ -94,7 +94,7 @@ begin
   mup.pre {
     STDOUT.flush
 
-    IO.popen("#{hg} commit #{commit_args}", "r+") do |pipe|
+    ::IO.popen("#{hg} commit #{commit_args}", "r+") do |pipe|
       pipe.each {|line| mup.text! line }
     end
   }
