@@ -87,6 +87,7 @@ BOOL HasDocumentWindow (NSArray* windows)
 @interface AppController () <OakUserDefaultsObserver>
 @property (nonatomic) BOOL didFinishLaunching;
 @property (nonatomic) BOOL keyWindowHasBackAndForwardActions;
+@property (nonatomic) BOOL uninstallOnTerminate;
 @end
 
 @implementation AppController
@@ -97,6 +98,7 @@ BOOL HasDocumentWindow (NSArray* windows)
 			.submenu = {
 				{ @"About OakMate",         @selector(orderFrontAboutPanel:)               },
 				{ @"Check for Updates…",    @selector(checkForUpdates:)                    },
+				{ @"Uninstall OakMate…",    @selector(uninstall:)                          },
 				{ /* -------- */ },
 				{ @"Preferences…",          @selector(showPreferences:),            @","   },
 				{ /* -------- */ },
@@ -626,6 +628,86 @@ BOOL HasDocumentWindow (NSArray* windows)
 - (IBAction)checkForUpdates:(id)sender
 {
 	[SoftwareUpdate.sharedInstance checkForUpdates:sender];
+}
+
+- (IBAction)uninstall:(id)sender
+{
+	NSAlert* alert        = [[NSAlert alloc] init];
+	alert.messageText     = @"Uninstall OakMate?";
+	alert.informativeText = @"OakMate will quit and move itself, its settings, caches, session, and the bundles you have installed to the Trash. Your documents are not affected.";
+	[alert addButtons:@"Uninstall", @"Cancel", nil];
+	alert.buttons.firstObject.hasDestructiveAction = YES;
+	if([alert runModal] != NSAlertFirstButtonReturn)
+		return;
+
+	// If the user cancels quitting (e.g. to keep unsaved changes) terminate: returns and nothing is removed
+	self.uninstallOnTerminate = YES;
+	[NSApp terminate:self];
+	self.uninstallOnTerminate = NO;
+}
+
+- (void)applicationWillTerminate:(NSNotification*)aNotification
+{
+	if(!self.uninstallOnTerminate)
+		return;
+
+	NSString* bundleIdentifier = NSBundle.mainBundle.bundleIdentifier;
+	NSString* library          = [NSHomeDirectory() stringByAppendingPathComponent:@"Library"];
+
+	NSMutableArray* paths = [NSMutableArray arrayWithObjects:
+		NSBundle.mainBundle.bundlePath,
+		[library stringByAppendingPathComponent:@"Application Support/OakMate"],
+		[library stringByAppendingFormat:@"/Caches/%@", bundleIdentifier],
+		[library stringByAppendingFormat:@"/HTTPStorages/%@", bundleIdentifier],
+		[library stringByAppendingFormat:@"/HTTPStorages/%@.binarycookies", bundleIdentifier],
+		[library stringByAppendingFormat:@"/WebKit/%@", bundleIdentifier],
+		[library stringByAppendingFormat:@"/Saved Application State/%@.savedState", bundleIdentifier],
+		[library stringByAppendingFormat:@"/Preferences/%@.plist", bundleIdentifier],
+		nil];
+
+	for(NSString* extension in @[ @"QuickLookPreview", @"QuickLookThumbnail" ])
+	{
+		[paths addObject:[library stringByAppendingFormat:@"/Application Scripts/%@.%@", bundleIdentifier, extension]];
+		[paths addObject:[library stringByAppendingFormat:@"/Containers/%@.%@", bundleIdentifier, extension]];
+	}
+
+	NSString* helpCache = [library stringByAppendingPathComponent:@"Caches/com.apple.helpd/Generated"];
+	NSString* helpBook  = [NSBundle.mainBundle objectForInfoDictionaryKey:@"CFBundleHelpBookName"];
+	for(NSString* name in [NSFileManager.defaultManager contentsOfDirectoryAtPath:helpCache error:nullptr])
+	{
+		if(helpBook && [name hasPrefix:[helpBook stringByAppendingString:@"*"]])
+			[paths addObject:[helpCache stringByAppendingPathComponent:name]];
+	}
+
+	for(int name : { _CS_DARWIN_USER_CACHE_DIR, _CS_DARWIN_USER_TEMP_DIR })
+	{
+		char buf[PATH_MAX];
+		if(confstr(name, buf, sizeof(buf)) > 0)
+			[paths addObject:[[NSString stringWithUTF8String:buf] stringByAppendingPathComponent:bundleIdentifier]];
+	}
+
+	if(NSString* matePath = [NSUserDefaults.standardUserDefaults stringForKey:kUserDefaultsMateInstallPathKey])
+		[paths addObject:matePath];
+
+	// Wait for OakMate to exit so that nothing is written after the files have been removed, then move the files to the trash and drop the preferences cached by cfprefsd
+	NSString* script = @(
+		"pid=$1 identifier=$2; shift 2\n"
+		"while kill -0 \"$pid\" 2>/dev/null; do sleep 0.2; done\n"
+		"/usr/bin/osascript -l JavaScript -e 'function run (paths) { for(const path of paths) $.NSFileManager.defaultManager.trashItemAtURLResultingItemURLError($.NSURL.fileURLWithPath(path), null, null) }' \"$@\"\n"
+		"/usr/bin/defaults delete \"$identifier\" 2>/dev/null\n"
+	);
+
+	NSMutableArray* existingPaths = [NSMutableArray array];
+	for(NSString* path in paths)
+	{
+		if([NSFileManager.defaultManager attributesOfItemAtPath:path error:nullptr])
+			[existingPaths addObject:path];
+	}
+
+	NSTask* task = [[NSTask alloc] init];
+	task.executableURL = [NSURL fileURLWithPath:@"/bin/sh"];
+	task.arguments     = [@[ @"-c", script, @"sh", [NSString stringWithFormat:@"%d", getpid()], bundleIdentifier ] arrayByAddingObjectsFromArray:existingPaths];
+	[task launchAndReturnError:nullptr];
 }
 
 - (IBAction)orderFrontAboutPanel:(id)sender
