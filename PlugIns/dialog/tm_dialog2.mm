@@ -4,42 +4,19 @@
 //
 
 #import "Dialog2.h"
+#import <ipc/ipc.h>
 
-static double const AppVersion = 2.0;
+static double const AppVersion = 2.1;
 
-id connect ()
+static void pipe_or_exit (int fds[2])
 {
-	NSString* portName = kDialogServerConnectionName;
-	if(char const* var = getenv("DIALOG_PORT_NAME"))
-		portName = @(var);
-
-	id proxy = [NSConnection rootProxyForConnectionWithRegisteredName:portName host:nil];
-	[proxy setProtocolForProxy:@protocol(DialogServerProtocol)];
-	return proxy;
-}
-
-char const* create_pipe (char const* name)
-{
-	char* filename;
-	asprintf(&filename, "%s/dialog_fifo_%d_%s", getenv("TMPDIR") ?: "/tmp", getpid(), name);
-	int res = mkfifo(filename, 0666);
-	if((res == -1) && (errno != EEXIST))
+	if(pipe(fds) == -1)
 	{
-		perror("Error creating the named pipe");
+		perror("tm_dialog2: pipe");
 		exit(EX_OSERR);
-   }
-	return filename;
-}
-
-int open_pipe (char const* name, int oflag)
-{
-	int fd = open(name, oflag);
-	if(fd == -1)
-	{
-		perror("Error opening the named pipe");
-		exit(EX_IOERR);
 	}
-	return fd;
+	fcntl(fds[0], F_SETFD, FD_CLOEXEC);
+	fcntl(fds[1], F_SETFD, FD_CLOEXEC);
 }
 
 int main (int argc, char const* argv[])
@@ -50,57 +27,59 @@ int main (int argc, char const* argv[])
 		return EX_OK;
 	}
 
-	// If the argument list starts with a switch then assume it’s meant for trunk dialog
-	// and pass it off
-	if(argc > 1 && *argv[1] == '-')
-		execv(getenv("DIALOG_1"), (char* const*)argv);
+	char const* socketPath = getenv(kDialogSocketEnvironmentVariable.UTF8String);
+	if(!socketPath)
+	{
+		fprintf(stderr, "%s: %s is not set. Run this tool from a TextMate command.\n", getprogname(), kDialogSocketEnvironmentVariable.UTF8String);
+		return EX_UNAVAILABLE;
+	}
 
-	@autoreleasepool{
-		id<DialogServerProtocol> proxy = connect();
-		if(!proxy)
-		{
-			fprintf(stderr, "error reaching server\n");
-			exit(EX_UNAVAILABLE);
-		}
+	int connection = ipc::connect(socketPath);
+	if(connection == -1)
+	{
+		fprintf(stderr, "%s: error reaching TextMate: %s\n", getprogname(), strerror(errno));
+		return EX_UNAVAILABLE;
+	}
 
-		char const* stdinName  = create_pipe("stdin");
-		char const* stdoutName = create_pipe("stdout");
-		char const* stderrName = create_pipe("stderr");
-
+	@autoreleasepool {
 		NSMutableArray* args = [NSMutableArray array];
 		for(size_t i = 0; i < argc; ++i)
 			[args addObject:@(argv[i])];
 
-		NSDictionary* dict = @{
-			@"stdin":       @(stdinName),
-			@"stdout":      @(stdoutName),
-			@"stderr":      @(stderrName),
-			@"cwd":         @(getcwd(NULL, 0)),
-			@"environment": [[NSProcessInfo processInfo] environment],
-			@"arguments":   args,
-		};
+		char* cwd = getcwd(nullptr, 0);
+		NSData* data = [NSPropertyListSerialization dataWithPropertyList:@{
+			kDialogArgumentsKey:        args,
+			kDialogEnvironmentKey:      NSProcessInfo.processInfo.environment,
+			kDialogWorkingDirectoryKey: cwd ? @(cwd) : @"/",
+		} format:NSPropertyListBinaryFormat_v1_0 options:0 error:nil];
+		free(cwd);
 
-		[proxy connectFromClientWithOptions:dict];
+		int input[2], output[2], error[2];
+		pipe_or_exit(input);
+		pipe_or_exit(output);
+		pipe_or_exit(error);
 
-		int inputFd  = open_pipe(stdinName, O_WRONLY);
-		int outputFd = open_pipe(stdoutName, O_RDONLY);
-		int errorFd = open_pipe(stderrName, O_RDONLY);
-
-		std::map<int, int> fdMap;
-		fdMap[STDIN_FILENO] = inputFd;
-		fdMap[outputFd]     = STDOUT_FILENO;
-		fdMap[errorFd]      = STDERR_FILENO;
-
-		if(isatty(STDIN_FILENO) != 0)
+		if(!ipc::send(connection, std::string((char const*)data.bytes, data.length), { input[0], output[1], error[1] }))
 		{
-			fdMap.erase(fdMap.find(STDIN_FILENO));
-			close(inputFd);
+			fprintf(stderr, "%s: error sending request to TextMate: %s\n", getprogname(), strerror(errno));
+			return EX_UNAVAILABLE;
 		}
 
+		close(input[0]);
+		close(output[1]);
+		close(error[1]);
+
+		// Relay our input until TextMate closes its end of the output pipes
+		std::map<int, int> fdMap = { { output[0], STDOUT_FILENO }, { error[0], STDERR_FILENO } };
+		if(isatty(STDIN_FILENO))
+				close(input[1]);
+		else	fdMap.emplace(STDIN_FILENO, input[1]);
+
+		signal(SIGPIPE, SIG_IGN);
 		while(fdMap.size() > 1 || (fdMap.size() == 1 && fdMap.find(STDIN_FILENO) == fdMap.end()))
 		{
-			fd_set readfds, writefds;
-			FD_ZERO(&readfds); FD_ZERO(&writefds);
+			fd_set readfds;
+			FD_ZERO(&readfds);
 
 			int fdCount = 0;
 			for(auto const& pair : fdMap)
@@ -109,11 +88,12 @@ int main (int argc, char const* argv[])
 				fdCount = std::max(fdCount, pair.first + 1);
 			}
 
-			int i = select(fdCount, &readfds, &writefds, NULL, NULL);
-			if(i == -1)
+			if(select(fdCount, &readfds, nullptr, nullptr, nullptr) == -1)
 			{
-				perror("Error from select");
-				continue;
+				if(errno == EINTR)
+					continue;
+				perror("tm_dialog2: select");
+				break;
 			}
 
 			std::vector<int> toRemove;
@@ -121,29 +101,24 @@ int main (int argc, char const* argv[])
 			{
 				if(FD_ISSET(pair.first, &readfds))
 				{
-					char buf[1024];
+					char buf[4096];
 					ssize_t len = read(pair.first, buf, sizeof(buf));
-
-					if(len == 0)
-							toRemove.push_back(pair.first); // we can’t remove as long as we need the iterator for the ++
-					else	write(pair.second, buf, len);
+					if(len <= 0 || write(pair.second, buf, len) != len)
+						toRemove.push_back(pair.first);
 				}
 			}
 
-			for(int key : toRemove)
+			for(int fd : toRemove)
 			{
-				if(fdMap[key] == inputFd)
-					close(inputFd);
-				fdMap.erase(key);
+				if(fd == STDIN_FILENO)
+					close(input[1]);
+				fdMap.erase(fd);
 			}
 		}
 
-		close(outputFd);
-		close(errorFd);
-		unlink(stdinName);
-		unlink(stdoutName);
-		unlink(stderrName);
+		std::string exitStatus;
+		if(ipc::receive(connection, exitStatus))
+			return atoi(exitStatus.c_str());
 	}
-
 	return EX_OK;
 }

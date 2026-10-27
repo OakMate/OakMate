@@ -1,10 +1,12 @@
 target "tm_dialog2" {
+	require    ipc
 	sources    tm_dialog2.mm
 	executable "${target}"
 	frameworks Foundation
 }
 
 target "Dialog2" {
+	require ipc
 	add LN_FLAGS "-bundle"
 
 	prefix "${target}.tmplugin/Contents"

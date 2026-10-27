@@ -36,7 +36,7 @@ static NSMutableDictionary* Commands = nil;
 	NSError* error = nil;
 	if(NSData* data = [NSPropertyListSerialization  dataWithPropertyList:aPlist format:NSPropertyListXMLFormat_v1_0 options:0 error:&error])
 	{
-		[aFileHandle writeData:data];
+		[aFileHandle writeData:data error:nil];
 	}
 	else
 	{

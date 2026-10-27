@@ -28,7 +28,7 @@ target "${dirname}" {
 	files about/*            "Resources/About"
 	files Info.plist         "."
 	copy  support/*          "SharedSupport"
-	copy  @Dialog @Dialog2   "PlugIns"
+	copy  @Dialog2           "PlugIns"
 	copy  @TextMateQLPreview @TextMateQLThumbnail "PlugIns"
 
 	sources src/*.{cc,mm}

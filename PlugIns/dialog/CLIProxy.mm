@@ -7,32 +7,41 @@
 
 #import "CLIProxy.h"
 #import "TMDCommand.h"
+#import "Dialog2.h"
+#import <ipc/ipc.h>
 
 @interface CLIProxy ()
 {
 	NSArray* _arguments;
 	NSDictionary* _parameters;
+	int _connection;
 }
 @end
 
 @implementation CLIProxy
-+ (instancetype)proxyWithOptions:(NSDictionary*)options;
-{
-	return [[CLIProxy alloc] initWithOptions:options];
-}
-
-- (instancetype)initWithOptions:(NSDictionary*)options
+- (instancetype)initWithOptions:(NSDictionary*)options inputFileDescriptor:(int)inputFd outputFileDescriptor:(int)outputFd errorFileDescriptor:(int)errorFd connection:(int)connection
 {
 	if(self = [super init])
 	{
-		_inputHandle      = [NSFileHandle fileHandleForReadingAtPath:[options objectForKey:@"stdin"]];
-		_outputHandle     = [NSFileHandle fileHandleForWritingAtPath:[options objectForKey:@"stdout"]];
-		_errorHandle      = [NSFileHandle fileHandleForWritingAtPath:[options objectForKey:@"stderr"]];
-		_arguments        = [options objectForKey:@"arguments"];
-		_environment      = [options objectForKey:@"environment"];
-		_workingDirectory = [options objectForKey:@"cwd"];
+		_inputHandle      = [[NSFileHandle alloc] initWithFileDescriptor:inputFd closeOnDealloc:YES];
+		_outputHandle     = [[NSFileHandle alloc] initWithFileDescriptor:outputFd closeOnDealloc:YES];
+		_errorHandle      = [[NSFileHandle alloc] initWithFileDescriptor:errorFd closeOnDealloc:YES];
+		_arguments        = options[kDialogArgumentsKey];
+		_environment      = options[kDialogEnvironmentKey];
+		_workingDirectory = options[kDialogWorkingDirectoryKey];
+		_connection       = connection;
+
+		// Writing to a client which has quit should fail rather than raise SIGPIPE
+		for(int fd : { outputFd, errorFd })
+			fcntl(fd, F_SETNOSIGPIPE, 1);
 	}
 	return self;
+}
+
+- (void)dealloc
+{
+	ipc::send(_connection, std::to_string(_exitStatus));
+	close(_connection);
 }
 
 - (NSDictionary*)parameters
@@ -88,12 +97,12 @@
 // ===================
 - (void)writeStringToOutput:(NSString*)aString;
 {
-	[self.outputHandle writeData:[aString dataUsingEncoding:NSUTF8StringEncoding]];
+	[self.outputHandle writeData:[aString dataUsingEncoding:NSUTF8StringEncoding] error:nil];
 }
 
 - (void)writeStringToError:(NSString*)aString;
 {
-	[self.errorHandle writeData:[aString dataUsingEncoding:NSUTF8StringEncoding]];
+	[self.errorHandle writeData:[aString dataUsingEncoding:NSUTF8StringEncoding] error:nil];
 }
 
 - (id)readPropertyListFromInput;

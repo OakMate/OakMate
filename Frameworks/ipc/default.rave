@@ -1,0 +1,5 @@
+target "${dirname}" {
+	headers src/ipc.h
+	sources src/*.cc
+	tests tests/*.cc
+}

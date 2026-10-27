@@ -1,61 +1,8 @@
 #include <CommitWindow/CommitWindow.h>
+#include <ipc/ipc.h>
 #include <oak/oak.h>
 
-static double const AppVersion = 1.1;
-
-@interface OakCommitWindowClient : NSObject <OakCommitWindowClientProtocol>
-@property (nonatomic) NSString*     portName;
-@property (nonatomic) NSConnection* connection;
-@property (nonatomic) NSInteger     returnCode;
-@end
-
-@implementation OakCommitWindowClient
-- (id)init
-{
-	if(self = [super init])
-	{
-		_portName   = [NSString stringWithFormat:@"com.macromates.commit-window-client.%d", getpid()];
-		_connection = [NSConnection new];
-
-		[_connection setRootObject:self];
-		if([_connection registerName:_portName] == NO)
-		{
-			fprintf(stderr, "%s: failed vending object as ‘%s’\n", getprogname(), [_portName UTF8String]);
-			return nil;
-		}
-	}
-	return self;
-}
-
-- (void)connectFromServerWithOptions:(NSDictionary*)someOptions
-{
-	if(NSString* err = someOptions[kOakCommitWindowStandardError])
-		fprintf(stderr, "%s", [err UTF8String]);
-
-	if(NSString* out = someOptions[kOakCommitWindowStandardOutput])
-	{
-		fprintf(stdout, "%s", [out UTF8String]);
-
-		if([someOptions[kOakCommitWindowContinue] boolValue])
-			fprintf(stdout, "TM_SCM_COMMIT_CONTINUE=1\n");
-	}
-
-	_returnCode = [someOptions[kOakCommitWindowReturnCode] intValue];
-
-	// Tear down the connection in next run loop iteration.
-	// This should make us run long enough to allow the sender to get a reply.
-	[self performSelector:@selector(setConnection:) withObject:nil afterDelay:0];
-
-	// Prior to 10.9 the above does not cause runMode:beforeDate: to return,
-	// so for the benefit of 10.7 and 10.8 users, we explicitly call exit()
-	[self performSelector:@selector(terminate:) withObject:nil afterDelay:0];
-}
-
-- (void)terminate:(id)sender
-{
-	exit(self.returnCode);
-}
-@end
+static double const AppVersion = 1.2;
 
 int main (int argc, char* argv[])
 {
@@ -65,35 +12,56 @@ int main (int argc, char* argv[])
 		return EX_OK;
 	}
 
-	@autoreleasepool {
-		if(OakCommitWindowClient* client = [[OakCommitWindowClient alloc] init])
-		{
-			NSMutableArray* arg = [NSMutableArray array];
-			for(size_t i = 0; i < argc; ++i)
-				[arg addObject:@(argv[i])];
-
-			NSDictionary* plist = @{
-				kOakCommitWindowClientPortName: client.portName,
-				kOakCommitWindowArguments:      arg,
-				kOakCommitWindowEnvironment:    [[NSProcessInfo processInfo] environment],
-			};
-
-			NSString* serviceName = [NSString stringWithFormat:@"%@.CommitWindow.%@", NSProcessInfo.processInfo.environment[@"TM_APP_IDENTIFIER"], NSProcessInfo.processInfo.environment[@"TM_PID"]];
-			if(id proxy = [NSConnection rootProxyForConnectionWithRegisteredName:serviceName host:nil])
-			{
-				[proxy setProtocolForProxy:@protocol(OakCommitWindowServerProtocol)];
-				[proxy connectFromClientWithOptions:plist];
-
-				while(client.connection)
-					[[NSRunLoop currentRunLoop] runMode:NSDefaultRunLoopMode beforeDate:[NSDate distantFuture]];
-
-				return client.returnCode;
-			}
-			else
-			{
-				fprintf(stderr, "%s: failed connecting to ‘%s’\n", getprogname(), serviceName.UTF8String);
-			}
-		}
+	char const* appIdentifier = getenv("TM_APP_IDENTIFIER");
+	char const* appPid        = getenv("TM_PID");
+	if(!appIdentifier || !appPid)
+	{
+		fprintf(stderr, "%s: TM_APP_IDENTIFIER and TM_PID must be set. Run this tool from a TextMate command.\n", getprogname());
+		return EX_UNAVAILABLE;
 	}
-	return EX_OK;
+
+	std::string const socketPath = ipc::socket_path(OakCommitWindowSocketName(appIdentifier, appPid));
+	int connection = ipc::connect(socketPath);
+	if(connection == -1)
+	{
+		fprintf(stderr, "%s: failed connecting to ‘%s’: %s\n", getprogname(), socketPath.c_str(), strerror(errno));
+		return EX_UNAVAILABLE;
+	}
+
+	@autoreleasepool {
+		NSMutableArray* args = [NSMutableArray array];
+		for(size_t i = 0; i < argc; ++i)
+			[args addObject:@(argv[i])];
+
+		NSData* request = [NSPropertyListSerialization dataWithPropertyList:@{
+			kOakCommitWindowArguments:   args,
+			kOakCommitWindowEnvironment: NSProcessInfo.processInfo.environment,
+		} format:NSPropertyListBinaryFormat_v1_0 options:0 error:nil];
+
+		std::string message;
+		if(!ipc::send(connection, std::string((char const*)request.bytes, request.length)) || !ipc::receive(connection, message))
+		{
+			fprintf(stderr, "%s: no reply from TextMate\n", getprogname());
+			return EX_UNAVAILABLE;
+		}
+
+		NSDictionary* reply = [NSPropertyListSerialization propertyListWithData:[NSData dataWithBytes:message.data() length:message.size()] options:NSPropertyListImmutable format:nil error:nil];
+		if(![reply isKindOfClass:[NSDictionary class]])
+		{
+			fprintf(stderr, "%s: malformed reply from TextMate\n", getprogname());
+			return EX_PROTOCOL;
+		}
+
+		if(NSString* err = reply[kOakCommitWindowStandardError])
+			fprintf(stderr, "%s", err.UTF8String);
+
+		if(NSString* out = reply[kOakCommitWindowStandardOutput])
+		{
+			fprintf(stdout, "%s", out.UTF8String);
+			if([reply[kOakCommitWindowContinue] boolValue])
+				fprintf(stdout, "TM_SCM_COMMIT_CONTINUE=1\n");
+		}
+
+		return [reply[kOakCommitWindowReturnCode] intValue];
+	}
 }

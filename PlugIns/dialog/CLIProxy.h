@@ -12,9 +12,10 @@
 @property (nonatomic, readonly) NSDictionary* parameters;
 @property (nonatomic, readonly) NSDictionary* environment;
 @property (nonatomic, readonly) NSString* workingDirectory;
+@property (nonatomic) int exitStatus; // Sent to the client when the proxy is released
 
-+ (instancetype)proxyWithOptions:(NSDictionary*)options;
-- (instancetype)initWithOptions:(NSDictionary*)options;
+// Takes ownership of the file descriptors and the connection
+- (instancetype)initWithOptions:(NSDictionary*)options inputFileDescriptor:(int)inputFd outputFileDescriptor:(int)outputFd errorFileDescriptor:(int)errorFd connection:(int)connection;
 
 - (void)writeStringToOutput:(NSString*)aString;
 - (void)writeStringToError:(NSString*)aString;

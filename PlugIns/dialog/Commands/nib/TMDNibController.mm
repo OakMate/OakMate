@@ -174,6 +174,8 @@ static NSInteger NibTokenCount = 0;
 	[model removeObjectForKey:@"controller"];
 
 	NSDictionary* res = @{ @"model": model, @"eventInfo": eventInfo };
+	if(_dialog1Results)
+		res = [self dialog1ResultForEvent:eventInfo model:model];
 
 	for(NSFileHandle* fileHandle in clientFileHandles)
 		[TMDCommand writePropertyList:res toFileHandle:fileHandle];
@@ -185,6 +187,35 @@ static NSInteger NibTokenCount = 0;
 		[NSApp stopModal];
 		runningModal = NO;
 	}
+
+	if(_tearDownAfterReturn)
+	{
+		[_window orderOut:self];
+		[self tearDown];
+	}
+}
+
+// Dialog 1 stored button clicks in the model and returned the arguments of
+// returnArgument: as the result of asynchronous windows.
+- (NSDictionary*)dialog1ResultForEvent:(NSDictionary*)eventInfo model:(NSMutableDictionary*)model
+{
+	NSString* type = eventInfo[@"type"];
+	if([type isEqualToString:@"buttonClick"])
+	{
+		if(id title = eventInfo[@"title"])
+			model[@"returnButton"] = self.parameters[@"returnButton"] = title;
+		if(id tag = eventInfo[@"tag"])
+			model[@"returnCode"] = self.parameters[@"returnCode"] = tag;
+	}
+	else if([type isEqualToString:@"bindingAction"])
+	{
+		NSMutableDictionary* arguments = [eventInfo mutableCopy];
+		[arguments removeObjectForKey:@"type"];
+		if(_dialog1Async)
+			return arguments;
+		model[@"result"] = arguments;
+	}
+	return model;
 }
 
 // ================================================
