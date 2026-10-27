@@ -2,6 +2,7 @@
 #define OAK_SERVER_H_Q8M693GB
 
 #include <oak/oak.h>
+#include <mutex>
 
 namespace oak
 {
@@ -14,6 +15,7 @@ namespace oak
 		void send_request (size_t clientKey, ARG const request);
 
 	private:
+		std::mutex mutex; // Clients may be on different threads (each request is answered on the run loop that sent it)
 		size_t next_client_key = 0;
 		std::map<size_t, T*> client_to_callback;
 	};
@@ -25,6 +27,7 @@ namespace oak
 	template <typename T, typename ARG, typename RESULT>
 	size_t server_t<T, ARG, RESULT>::register_client (T* callback)
 	{
+		std::lock_guard<std::mutex> lock(mutex);
 		client_to_callback.emplace(next_client_key, callback);
 		return next_client_key++;
 	}
@@ -32,6 +35,7 @@ namespace oak
 	template <typename T, typename ARG, typename RESULT>
 	void server_t<T, ARG, RESULT>::unregister_client (size_t clientKey)
 	{
+		std::lock_guard<std::mutex> lock(mutex);
 		client_to_callback.erase(client_to_callback.find(clientKey));
 	}
 
@@ -42,12 +46,16 @@ namespace oak
 		dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
 			RESULT const result = T::handle_request(request);
 			CFRunLoopPerformBlock(runLoop, kCFRunLoopCommonModes, ^{
-				typename std::map<size_t, T*>::iterator client = client_to_callback.find(clientKey);
-				if(client != client_to_callback.end())
+				T* obj = nullptr;
 				{
-					T* obj = client->second;
-					obj->handle_reply(result);
+					std::lock_guard<std::mutex> lock(mutex);
+					typename std::map<size_t, T*>::iterator client = client_to_callback.find(clientKey);
+					if(client != client_to_callback.end())
+						obj = client->second;
 				}
+
+				if(obj)
+					obj->handle_reply(result);
 			});
 			CFRunLoopWakeUp(runLoop);
 		});
