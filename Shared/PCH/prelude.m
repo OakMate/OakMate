@@ -13,6 +13,5 @@
 #import <WebKit/WebKit.h>
 #import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
 
-#include "oak/sdk-compat.h"
 
 #endif /* end of include guard: PRELUDE_M_PCH_KZLXVFRT */

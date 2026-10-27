@@ -146,25 +146,17 @@
 		}
 	};
 
-	if(@available(macos 10.15, *))
+	if(window && window.isVisible)
 	{
-		if(window && window.isVisible)
-		{
-			[NSAnimationContext runAnimationGroup:^(NSAnimationContext* context) {
-				context.allowsImplicitAnimation = YES;
-				context.duration                = 0.2;
-				animationBody(NO);
-			} completionHandler:animationCompletion];
-		}
-		else
-		{
+		[NSAnimationContext runAnimationGroup:^(NSAnimationContext* context) {
+			context.allowsImplicitAnimation = YES;
+			context.duration                = 0.2;
 			animationBody(NO);
-			animationCompletion();
-		}
+		} completionHandler:animationCompletion];
 	}
 	else
 	{
-		animationBody(YES);
+		animationBody(NO);
 		animationCompletion();
 	}
 }

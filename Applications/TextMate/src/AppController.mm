@@ -484,6 +484,8 @@ BOOL HasDocumentWindow (NSArray* windows)
 
 - (void)applicationWillFinishLaunching:(NSNotification*)aNotification
 {
+	[CrashReporter sharedInstance]; // Become delegate for user notifications before launch finishes
+
 	if(NSMenu* menu = [self mainMenu])
 		NSApp.mainMenu = menu;
 
@@ -586,8 +588,7 @@ BOOL HasDocumentWindow (NSArray* windows)
 {
 	NSWindow.allowsAutomaticWindowTabbing = NO;
 
-	if([NSApp respondsToSelector:@selector(setAutomaticCustomizeTouchBarMenuItemEnabled)]) // MAC_OS_X_VERSION_10_12_1
-		NSApp.automaticCustomizeTouchBarMenuItemEnabled = YES;
+	NSApp.automaticCustomizeTouchBarMenuItemEnabled = YES;
 
 	if(!HasDocumentWindow([NSApp orderedWindows]))
 	{
@@ -609,7 +610,6 @@ BOOL HasDocumentWindow (NSArray* windows)
 	[TerminalPreferences updateMateIfRequired];
 	[AboutWindowController showChangesIfUpdated];
 
-	[CrashReporter.sharedInstance applicationDidFinishLaunching:aNotification];
 	[CrashReporter.sharedInstance postNewCrashReportsToURLString:[NSString stringWithFormat:@"%s/crashes", REST_API]];
 
 	[OakCommitWindowServer sharedInstance]; // Setup server

@@ -336,8 +336,7 @@ static NSMutableDictionary* SharedChoosers;
 		_footerView = [[NSVisualEffectView alloc] initWithFrame:NSZeroRect];
 		_footerView.blendingMode = NSVisualEffectBlendingModeWithinWindow;
 		_footerView.material     = NSVisualEffectMaterialTitlebar;
-		if(@available(macos 10.14, *))
-			_footerView.material = NSVisualEffectMaterialHeaderView;
+		_footerView.material = NSVisualEffectMaterialHeaderView;
 
 		NSView* contentView = self.window.contentView;
 		contentView.wantsLayer = YES;

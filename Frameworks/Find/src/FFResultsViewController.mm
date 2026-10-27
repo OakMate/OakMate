@@ -317,11 +317,8 @@ static FFResultNode* PreviousNode (FFResultNode* node)
 		_outlineView.rowHeight                          = std::max(lineHeight, 14.0);
 		_outlineView.columnAutoresizingStyle            = NSTableViewNoColumnAutoresizing;
 
-		if(@available(macos 11.0, *))
-		{
-			_outlineView.style = NSTableViewStylePlain;
-			_outlineView.floatsGroupRows = NO;
-		}
+		_outlineView.style = NSTableViewStylePlain;
+		_outlineView.floatsGroupRows = NO;
 
 		NSTableColumn* tableColumn = [[NSTableColumn alloc] initWithIdentifier:@"checkbox"];
 		tableColumn.width = 50;

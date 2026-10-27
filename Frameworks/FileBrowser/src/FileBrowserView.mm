@@ -26,11 +26,8 @@
 		_outlineView.focusRingType            = NSFocusRingTypeNone;
 		_outlineView.headerView               = nil;
 
-		if(@available(macos 11.0, *))
-		{
-			_outlineView.style = NSTableViewStylePlain;
-			_outlineView.floatsGroupRows = NO;
-		}
+		_outlineView.style = NSTableViewStylePlain;
+		_outlineView.floatsGroupRows = NO;
 
 		[_outlineView setDraggingSourceOperationMask:NSDragOperationLink|NSDragOperationMove|NSDragOperationCopy forLocal:YES];
 		[_outlineView setDraggingSourceOperationMask:NSDragOperationEvery forLocal:NO];

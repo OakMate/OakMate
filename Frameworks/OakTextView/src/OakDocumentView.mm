@@ -333,23 +333,7 @@ static NSString* const kFoldingsColumnIdentifier  = @"foldings";
 		[textScrollView setBackgroundColor:[NSColor colorWithCGColor:theme->background(to_s(self.document.fileType))]];
 		[textScrollView setScrollerKnobStyle:theme->is_dark() ? NSScrollerKnobStyleLight : NSScrollerKnobStyleDark];
 
-		if(@available(macOS 10.14, *))
-		{
-			[_textView setIbeamCursor:NSCursor.IBeamCursor];
-		}
-		else
-		{
-			if(theme->is_dark())
-			{
-				NSImage* whiteIBeamImage = [NSImage imageNamed:@"IBeam white" inSameBundleAsClass:[self class]];		
-				[whiteIBeamImage setSize:NSCursor.IBeamCursor.image.size];
-				[_textView setIbeamCursor:[[NSCursor alloc] initWithImage:whiteIBeamImage hotSpot:NSMakePoint(4, 9)]];
-			}
-			else
-			{
-				[_textView setIbeamCursor:NSCursor.IBeamCursor];
-			}
-		}
+		[_textView setIbeamCursor:NSCursor.IBeamCursor];
 
 		[self updateGutterViewFont:self]; // trigger update of gutter view’s line number font
 		auto const& styles = theme->gutter_styles();

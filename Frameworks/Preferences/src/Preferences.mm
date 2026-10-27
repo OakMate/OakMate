@@ -117,10 +117,7 @@ static NSString* const kMASPreferencesSelectedViewKey = @"MASPreferences Selecte
 		window.delegate           = self;
 		window.hidesOnDeactivate  = NO;
 		window.toolbar            = toolbar;
-		if(@available(macos 11.0, *))
-		{
-			window.toolbarStyle = NSWindowToolbarStylePreference;
-		}
+		window.toolbarStyle = NSWindowToolbarStylePreference;
 	}
 	return self;
 }

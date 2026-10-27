@@ -155,8 +155,7 @@
 	[theTableView setDoubleAction:@selector(didDoubleClickRow:)];
 	[theTableView setTarget:self];
 
-	if(@available(macos 11.0, *))
-		theTableView.style = NSTableViewStylePlain;
+	theTableView.style = NSTableViewStylePlain;
 
 	NSTableColumn* column = [[NSTableColumn alloc] initWithIdentifier:@"display"];
 	[theTableView addTableColumn:column];
@@ -165,23 +164,17 @@
 	[theTableView setDelegate:self];
 	[scrollView setDocumentView:theTableView];
 
-	if(@available(macos 10.14, *))
-	{
-		theTableView.backgroundColor = NSColor.clearColor;
-		scrollView.drawsBackground   = NO;
+	theTableView.backgroundColor = NSColor.clearColor;
+	scrollView.drawsBackground   = NO;
 
-		NSVisualEffectView* effectView = [[NSVisualEffectView alloc] initWithFrame:NSZeroRect];
-		effectView.material         = NSVisualEffectMaterialMenu;
-		effectView.blendingMode     = NSVisualEffectBlendingModeBehindWindow;
-		effectView.autoresizingMask = NSViewWidthSizable|NSViewHeightSizable;
-		[effectView addSubview:scrollView positioned:NSWindowBelow relativeTo:nil];
+	NSVisualEffectView* effectView = [[NSVisualEffectView alloc] initWithFrame:NSZeroRect];
+	effectView.material         = NSVisualEffectMaterialMenu;
+	effectView.blendingMode     = NSVisualEffectBlendingModeBehindWindow;
+	effectView.autoresizingMask = NSViewWidthSizable|NSViewHeightSizable;
+	[effectView addSubview:scrollView positioned:NSWindowBelow relativeTo:nil];
 
-		[self setContentView:effectView];
-	}
-	else
-	{
-		[self setContentView:scrollView];
-	}
+	[self setContentView:effectView];
+
 }
 
 //- (void)tableView:(NSTableView*)aTableView willDisplayCell:(id)aCell forTableColumn:(NSTableColumn*)aTableColumn row:(NSInteger)rowIndex {
