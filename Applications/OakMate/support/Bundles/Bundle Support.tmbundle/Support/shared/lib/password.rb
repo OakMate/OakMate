@@ -26,7 +26,7 @@ module TextMate
       STDERR.reopen(wr)
       STDOUT.reopen('/dev/null', 'r')
       rd.close; wr.close
-      exec(['/usr/bin/security', TextMate.app_path + "/Contents/MacOS/TextMate"], 'find-internet-password', '-g', '-a', user, '-s', host, '-r', proto)
+      exec(['/usr/bin/security', File.join(TextMate.app_path, 'Contents/MacOS', TextMate.app_name)], 'find-internet-password', '-g', '-a', user, '-s', host, '-r', proto)
     end
 
     action = block.call($1) if rd.gets =~ /^password: "(.*)"$/
@@ -37,7 +37,7 @@ module TextMate
 
       action = block.call(res)
       if action == :accept_pw then
-        %x{security add-internet-password -a "#{user}" -s "#{host}" -r "#{proto}" -p "#{path}" -w "#{res}"}
+        system('/usr/bin/security', 'add-internet-password', '-a', user, '-s', host, '-r', proto, '-p', path, '-w', res)
       end
     end
 
