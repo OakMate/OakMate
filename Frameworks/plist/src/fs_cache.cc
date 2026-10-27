@@ -35,45 +35,45 @@ namespace plist
 		{
 			for(auto const& pair : plist)
 			{
-				if(plist::dictionary_t const* node = boost::get<plist::dictionary_t>(&pair.second))
+				if(plist::dictionary_t const* node = std::get_if<plist::dictionary_t>(&pair.second))
 				{
 					entry_t entry(pair.first);
 					for(auto const& pair : *node)
 					{
-						if(pair.first == "content" && boost::get<plist::dictionary_t>(&pair.second))
+						if(pair.first == "content" && std::get_if<plist::dictionary_t>(&pair.second))
 						{
 							entry.set_type(entry_type_t::file);
-							entry.set_content(boost::get<plist::dictionary_t>(pair.second));
+							entry.set_content(std::get<plist::dictionary_t>(pair.second));
 						}
-						else if(pair.first == "link" && boost::get<std::string>(&pair.second))
+						else if(pair.first == "link" && std::get_if<std::string>(&pair.second))
 						{
 							entry.set_type(entry_type_t::link);
-							entry.set_link(boost::get<std::string>(pair.second));
+							entry.set_link(std::get<std::string>(pair.second));
 						}
-						else if(pair.first == "missing" && boost::get<bool>(&pair.second) && boost::get<bool>(pair.second))
+						else if(pair.first == "missing" && std::get_if<bool>(&pair.second) && std::get<bool>(pair.second))
 						{
 							entry.set_type(entry_type_t::missing);
 						}
-						else if(pair.first == "entries" && boost::get<plist::array_t>(&pair.second))
+						else if(pair.first == "entries" && std::get_if<plist::array_t>(&pair.second))
 						{
 							std::vector<std::string> v;
-							for(auto path : boost::get<plist::array_t>(pair.second))
-								v.push_back(boost::get<std::string>(path));
+							for(auto path : std::get<plist::array_t>(pair.second))
+								v.push_back(std::get<std::string>(path));
 
 							entry.set_type(entry_type_t::directory);
 							entry.set_entries(v);
 						}
-						else if(pair.first == "glob" && boost::get<std::string>(&pair.second))
+						else if(pair.first == "glob" && std::get_if<std::string>(&pair.second))
 						{
-							entry.set_glob_string(boost::get<std::string>(pair.second));
+							entry.set_glob_string(std::get<std::string>(pair.second));
 						}
-						else if(pair.first == "modified" && boost::get<oak::date_t>(&pair.second))
+						else if(pair.first == "modified" && std::get_if<oak::date_t>(&pair.second))
 						{
-							entry.set_modified(boost::get<oak::date_t>(pair.second).time_value());
+							entry.set_modified(std::get<oak::date_t>(pair.second).time_value());
 						}
-						else if(pair.first == "eventId" && boost::get<uint64_t>(&pair.second))
+						else if(pair.first == "eventId" && std::get_if<uint64_t>(&pair.second))
 						{
-							entry.set_event_id(boost::get<uint64_t>(pair.second));
+							entry.set_event_id(std::get<uint64_t>(pair.second));
 						}
 					}
 
@@ -226,7 +226,7 @@ namespace plist
 				{
 					auto dst = content[j++];
 					dst.setKey(src.first);
-					if(std::string const* str = boost::get<std::string>(&src.second))
+					if(std::string const* str = std::get_if<std::string>(&src.second))
 					{
 						dst.setValue(str->c_str());
 					}

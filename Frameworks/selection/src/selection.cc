@@ -53,13 +53,13 @@ namespace ng
 		bundles::item_ptr match;
 		plist::any_t value = bundles::value_for_setting("characterClass", buffer.scope(index), &match);
 		if(match)
-			return boost::get<std::string>(value);
+			return std::get<std::string>(value);
 		else if(text::is_word_char(buffer[index]))
 			return kCharacterClassWord;
 		else
 		{
 			value = bundles::value_for_setting("wordCharacters", buffer.scope(index), &match);
-			if(match && boost::get<std::string>(value).find(buffer[index]) != std::string::npos)
+			if(match && std::get<std::string>(value).find(buffer[index]) != std::string::npos)
 				return kCharacterClassWord;
 			else if(text::is_whitespace(buffer[index]))
 				return kCharacterClassSpace;
@@ -237,14 +237,14 @@ namespace ng
 	{
 		std::vector<std::pair<pattern_t, pattern_t>> res;
 		plist::any_t value = bundles::value_for_setting(key, scope);
-		if(plist::array_t const* array = boost::get<plist::array_t>(&value))
+		if(plist::array_t const* array = std::get_if<plist::array_t>(&value))
 		{
 			for(auto const& pair : *array)
 			{
-				if(plist::array_t const* value = boost::get<plist::array_t>(&pair))
+				if(plist::array_t const* value = std::get_if<plist::array_t>(&pair))
 				{
-					std::string const* a1 = value->size() == 2 ? boost::get<std::string>(&(*value)[0]) : nullptr;
-					std::string const* a2 = value->size() == 2 ? boost::get<std::string>(&(*value)[1]) : nullptr;
+					std::string const* a1 = value->size() == 2 ? std::get_if<std::string>(&(*value)[0]) : nullptr;
+					std::string const* a2 = value->size() == 2 ? std::get_if<std::string>(&(*value)[1]) : nullptr;
 					if(a1 && a2 && *a1 != *a2)
 						res.emplace_back(*a1, *a2);
 				}

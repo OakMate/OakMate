@@ -121,11 +121,11 @@ namespace document
 				return res;
 
 			plist::any_t const& plist = plist::parse(str);
-			if(plist::array_t const* array = boost::get<plist::array_t>(&plist))
+			if(plist::array_t const* array = std::get_if<plist::array_t>(&plist))
 			{
 				for(auto const& bm : *array)
 				{
-					if(std::string const* str = boost::get<std::string>(&bm))
+					if(std::string const* str = std::get_if<std::string>(&bm))
 						res.emplace(*str, std::string());
 				}
 			}
@@ -551,7 +551,7 @@ static void* kDocumentEditedObserverContext = &kDocumentEditedObserverContext;
 
 	if(_buffer && OakNotEmptyString(_folded))
 	{
-		boost::crc_32_type crc32;
+		oak::crc32_t crc32;
 		_buffer->visit_data([&crc32](char const* bytes, size_t offset, size_t len, bool*){
 			crc32.process_bytes(bytes, len);
 		});
@@ -1374,7 +1374,7 @@ static void* kDocumentEditedObserverContext = &kDocumentEditedObserverContext;
 	NSMutableArray<OakDocumentMatch*>* results = [NSMutableArray array];
 
 	__block find::find_t f(to_s(searchString), options | (self.isLoaded == NO && (options & find::regular_expression) ? find::filesize_limit : find::none));
-	__block boost::crc_32_type crc32;
+	__block oak::crc32_t crc32;
 	__block size_t total = 0;
 
 	[self enumerateByteRangesUsingBlock:^(char const* bytes, NSRange byteRange, BOOL* stop){
@@ -1416,7 +1416,7 @@ static void* kDocumentEditedObserverContext = &kDocumentEditedObserverContext;
 	}];
 
 	// Document has changed, should probably re-scan
-	boost::crc_32_type doubleCheck;
+	oak::crc32_t doubleCheck;
 	doubleCheck.process_bytes(text.data(), text.size());
 	if(crc32.checksum() != doubleCheck.checksum())
 		return nil;
@@ -1822,7 +1822,7 @@ static void* kDocumentEditedObserverContext = &kDocumentEditedObserverContext;
 
 	[self createBuffer];
 
-	boost::crc_32_type check;
+	oak::crc32_t check;
 	file::reader_t reader(to_s(_path));
 	while(io::bytes_ptr bytes = reader.next())
 	{

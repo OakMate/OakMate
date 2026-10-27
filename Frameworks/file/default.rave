@@ -3,4 +3,5 @@ target "${dirname}" {
 	headers src/{bytes,open,save,status,encoding,type,path_info,reader}.h
 	sources src/*.cc
 	tests tests/*.cc
+	libraries z
 }
