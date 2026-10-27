@@ -3,6 +3,9 @@
 #include <text/format.h>
 #include <io/io.h>
 #include <authorization/constants.h>
+#include <spawn.h>
+
+extern char** environ;
 
 static char const* const kPlistFormatString =
 	"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
@@ -43,12 +46,12 @@ static std::string plist_content ()
 
 static void launch_control (char const* command, std::string const& argument)
 {
-	pid_t pid = vfork();
-	if(pid == 0)
+	pid_t pid;
+	char* argv[] = { (char*)"/bin/launchctl", (char*)command, (char*)argument.c_str(), nullptr };
+	if(int rc = posix_spawn(&pid, argv[0], nullptr, nullptr, argv, environ))
 	{
-		execl("/bin/launchctl", "/bin/launchctl", command, argument.c_str(), nullptr);
-		perror("execl(\"/bin/launchctl\")");
-		_exit(EXIT_FAILURE);
+		fprintf(stderr, "posix_spawn(\"/bin/launchctl\"): %s\n", strerror(rc));
+		return;
 	}
 
 	int status = 0;

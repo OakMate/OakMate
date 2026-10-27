@@ -52,8 +52,8 @@ namespace license
 	{
 		std::vector<std::string> res;
 
-		CFTypeRef keys[] = { kSecMatchLimit,    kSecReturnRef,  kSecClass,                kSecAttrService,   kSecAttrDescription  };
-		CFTypeRef vals[] = { kSecMatchLimitAll, kCFBooleanTrue, kSecClassGenericPassword, CFSTR("TextMate"), CFSTR("license key") };
+		CFTypeRef keys[] = { kSecMatchLimit,    kSecReturnAttributes, kSecClass,                kSecAttrService,   kSecAttrDescription  };
+		CFTypeRef vals[] = { kSecMatchLimitAll, kCFBooleanTrue,       kSecClassGenericPassword, CFSTR("TextMate"), CFSTR("license key") };
 
 		if(CFDictionaryRef query = CFDictionaryCreate(kCFAllocatorDefault, keys, vals, sizeofA(keys), &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks))
 		{
@@ -64,24 +64,10 @@ namespace license
 			{
 				for(CFIndex i = 0; i < CFArrayGetCount(results); ++i)
 				{
-					if(SecKeychainItemRef item = (SecKeychainItemRef)CFArrayGetValueAtIndex(results, i))
-					{
-						UInt32 tag    = kSecAccountItemAttr;
-						UInt32 format = CSSM_DB_ATTRIBUTE_FORMAT_STRING;
-						SecKeychainAttributeInfo info = { 1, &tag, &format };
-
-						SecKeychainAttributeList* authAttrList = nullptr;
-						err = SecKeychainItemCopyAttributesAndData(item, &info, nullptr, &authAttrList, nullptr, nullptr);
-						if(err == noErr)
-						{
-							res.emplace_back((char const*)authAttrList->attr->data, ((char const*)authAttrList->attr->data) + authAttrList->attr->length);
-							SecKeychainItemFreeAttributesAndData(authAttrList, nullptr);
-						}
-						else
-						{
-							perror_keychain("SecKeychainItemCopyAttributesAndData", err);
-						}
-					}
+					CFDictionaryRef attributes = (CFDictionaryRef)CFArrayGetValueAtIndex(results, i);
+					CFStringRef account = attributes ? (CFStringRef)CFDictionaryGetValue(attributes, kSecAttrAccount) : nullptr;
+					if(account && CFGetTypeID(account) == CFStringGetTypeID())
+						res.emplace_back(cf::to_s(account));
 				}
 				CFRelease(results);
 			}

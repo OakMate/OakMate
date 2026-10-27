@@ -16,5 +16,5 @@ target "Dialog2" {
 	sources CLIProxy.mm Dialog2.mm OptionParser.mm TMDCommand.mm
 	sources Commands/**/*.mm
 	executable "MacOS/${target}"
-	frameworks Cocoa WebKit Quartz
+	frameworks Cocoa WebKit Quartz UniformTypeIdentifiers
 }

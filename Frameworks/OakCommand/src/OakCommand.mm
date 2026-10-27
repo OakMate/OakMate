@@ -19,6 +19,7 @@
 #import <OakSystem/process.h>
 #import <settings/settings.h>
 #import <BundleEditor/BundleEditor.h>
+#import <spawn.h>
 
 NSNotificationName const OakCommandDidTerminateNotification = @"OakCommandDidTerminateNotification";
 NSString* const OakCommandErrorDomain                       = @"com.macromates.TextMate.ErrorDomain";
@@ -66,41 +67,37 @@ static std::tuple<pid_t, int, int> my_fork (char const* cmd, int inputRead, std:
 	std::tie(outputRead, outputWrite) = io::create_pipe();
 	std::tie(errorRead,  errorWrite)  = io::create_pipe();
 
-	oak::c_array env(environment);
+	// Spawn with stdin/stdout/stderr set up, default signal handlers, a new process group, and all other descriptors closed
+	posix_spawn_file_actions_t fileActions;
+	posix_spawn_file_actions_init(&fileActions);
+	posix_spawn_file_actions_adddup2(&fileActions, inputRead,   STDIN_FILENO);
+	posix_spawn_file_actions_adddup2(&fileActions, outputWrite, STDOUT_FILENO);
+	posix_spawn_file_actions_adddup2(&fileActions, errorWrite,  STDERR_FILENO);
+	if(access(workingDir, X_OK) == 0)
+		posix_spawn_file_actions_addchdir_np(&fileActions, workingDir);
 
-	pid_t pid = vfork();
-	if(pid == 0)
+	sigset_t defaultSignals;
+	sigemptyset(&defaultSignals);
+	for(int sig : { SIGINT, SIGTERM, SIGPIPE, SIGUSR1 })
+		sigaddset(&defaultSignals, sig);
+
+	posix_spawnattr_t attributes;
+	posix_spawnattr_init(&attributes);
+	posix_spawnattr_setflags(&attributes, POSIX_SPAWN_SETSIGDEF|POSIX_SPAWN_SETPGROUP|POSIX_SPAWN_CLOEXEC_DEFAULT);
+	posix_spawnattr_setsigdefault(&attributes, &defaultSignals);
+	posix_spawnattr_setpgroup(&attributes, 0);
+
+	pid_t pid = -1;
+	char* argv[] = { (char*)cmd, NULL };
+	if(int rc = posix_spawn(&pid, cmd, &fileActions, &attributes, argv, oak::c_array(environment)))
 	{
-		int const signals[] = { SIGINT, SIGTERM, SIGPIPE, SIGUSR1 };
-		for(int sig : signals) signal(sig, SIG_DFL);
-
-		int const oldOutErr[] = { STDIN_FILENO, STDOUT_FILENO, STDERR_FILENO };
-		int const newOutErr[] = { inputRead, outputWrite, errorWrite };
-
-		for(int fd = getdtablesize(); --fd > STDERR_FILENO; )
-		{
-			int flags = fcntl(fd, F_GETFD);
-			if((flags == -1 && errno == EBADF) || (flags & FD_CLOEXEC) == FD_CLOEXEC)
-				continue;
-
-			if(close(fd) == -1)
-			{
-				perror("close");
-				_exit(EXIT_FAILURE);
-			}
-		}
-
-		for(int fd : oldOutErr) close(fd);
-		for(int fd : newOutErr) dup(fd);
-
-		setpgid(0, getpid());
-		chdir(workingDir);
-
-		char* argv[] = { (char*)cmd, NULL };
-		execve(argv[0], argv, env);
-		perror("execve");
-		_exit(EXIT_FAILURE);
+		errno = rc;
+		perror("OakCommand: posix_spawn");
+		pid = -1;
 	}
+
+	posix_spawnattr_destroy(&attributes);
+	posix_spawn_file_actions_destroy(&fileActions);
 
 	int const fds[] = { outputWrite, errorWrite };
 	for(int fd : fds) close(fd);

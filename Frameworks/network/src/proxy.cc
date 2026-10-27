@@ -9,14 +9,14 @@ static proxy_settings_t user_pw_settings (CFStringRef server, CFNumberRef portNu
 	std::string user = NULL_STR, pw = NULL_STR;
 
 	CFTypeRef keys[] = {
-		kSecMatchLimit, kSecReturnRef,
+		kSecMatchLimit, kSecReturnAttributes, kSecReturnData,
 		kSecClass,
 		kSecAttrProtocol,
 		kSecAttrPort,
 		kSecAttrServer
 	};
 	CFTypeRef vals[] = {
-		kSecMatchLimitAll, kCFBooleanTrue,
+		kSecMatchLimitOne, kCFBooleanTrue, kCFBooleanTrue,
 		kSecClassInternetPassword,
 		kSecAttrProtocolHTTPProxy,
 		portNumber,
@@ -24,33 +24,18 @@ static proxy_settings_t user_pw_settings (CFStringRef server, CFNumberRef portNu
 	};
 	CFDictionaryRef query = CFDictionaryCreate(kCFAllocatorDefault, keys, vals, sizeofA(keys), nullptr, nullptr);
 
-	CFArrayRef results = nullptr;
-	OSStatus err = SecItemCopyMatching(query, (CFTypeRef*)&results);
+	CFDictionaryRef result = nullptr;
+	OSStatus err = SecItemCopyMatching(query, (CFTypeRef*)&result);
 	if(err == errSecSuccess)
 	{
-		CFIndex numResults = CFArrayGetCount(results);
-		for(CFIndex i = 0; user == NULL_STR && i < numResults; ++i)
+		CFStringRef account = (CFStringRef)CFDictionaryGetValue(result, kSecAttrAccount);
+		CFDataRef password  = (CFDataRef)CFDictionaryGetValue(result, kSecValueData);
+		if(account && CFGetTypeID(account) == CFStringGetTypeID())
 		{
-			SecKeychainItemRef item = (SecKeychainItemRef)CFArrayGetValueAtIndex(results, i);
-
-			UInt32 tag    = kSecAccountItemAttr;
-			UInt32 format = CSSM_DB_ATTRIBUTE_FORMAT_STRING;
-			SecKeychainAttributeInfo info = { 1, &tag, &format };
-
-			void* data = nullptr;
-			UInt32 dataLen = 0;
-
-			SecKeychainAttributeList* authAttrList = nullptr;
-			if(SecKeychainItemCopyAttributesAndData(item, &info, nullptr, &authAttrList, &dataLen, &data) == noErr)
-			{
-				ASSERT(authAttrList->count == 1 && authAttrList->attr->tag == kSecAccountItemAttr);
-				user = std::string((char const*)authAttrList->attr->data, ((char const*)authAttrList->attr->data) + authAttrList->attr->length);
-				pw   = std::string((char const*)data, ((char const*)data) + dataLen);
-				SecKeychainItemFreeAttributesAndData(authAttrList, data);
-			}
+			user = cf::to_s(account);
+			pw   = password && CFGetTypeID(password) == CFDataGetTypeID() ? std::string((char const*)CFDataGetBytePtr(password), CFDataGetLength(password)) : "";
 		}
-
-		CFRelease(results);
+		CFRelease(result);
 	}
 	else if(err != errSecItemNotFound)
 	{

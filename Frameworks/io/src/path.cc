@@ -848,7 +848,14 @@ namespace path
 			}
 			else
 			{
-				mktemp(&str[0]);
+				// Only a unique name is wanted, callers create the file or folder themselves
+				static char const kAlphabet[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+				size_t const suffix = str.size() - 6;
+				struct stat buf;
+				do {
+					for(size_t i = suffix; i < str.size(); ++i)
+						str[i] = kAlphabet[arc4random_uniform(sizeof(kAlphabet) - 1)];
+				} while(lstat(str.c_str(), &buf) == 0);
 			}
 		}
 		return str;

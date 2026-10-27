@@ -56,7 +56,16 @@
 			fprintf(stderr, "no single string or plist array passed as value for option '--allowedFileTypes'\n");
 
 		if(types)
-			[savePanel setAllowedFileTypes:types];
+		{
+			// Types can be given as file extensions or uniform type identifiers
+			NSMutableArray<UTType*>* contentTypes = [NSMutableArray array];
+			for(NSString* type in types)
+			{
+				if(UTType* contentType = [UTType typeWithIdentifier:type] ?: [UTType typeWithFilenameExtension:type])
+					[contentTypes addObject:contentType];
+			}
+			savePanel.allowedContentTypes = contentTypes;
+		}
 	}
 
 	if(args[@"allowsOtherFileTypes"])

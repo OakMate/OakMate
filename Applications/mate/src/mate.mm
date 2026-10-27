@@ -5,6 +5,9 @@
 #include <text/parse.h>
 #include <io/path.h>
 #include <plist/uuid.h>
+#import <spawn.h>
+
+extern char** environ;
 
 static char const* const AppVersion = "2.13.3";
 
@@ -101,14 +104,13 @@ static void install_auth_tool ()
 			exit(EX_UNAVAILABLE);
 		}
 
-		pid_t pid = vfork();
-		if(pid == 0)
+		pid_t pid;
+		char* argv[] = { (char*)arg0, (char*)"--install", nullptr };
+		if(int rc = posix_spawn(&pid, arg0, nullptr, nullptr, argv, environ))
 		{
-			execl(arg0, arg0, "--install", nullptr);
-			_exit(errno);
+			fprintf(stderr, "%s: %s\n", arg0, strerror(rc));
 		}
-
-		if(pid != -1)
+		else
 		{
 			int status = 0;
 			if(waitpid(pid, &status, 0) == pid && WIFEXITED(status) && WEXITSTATUS(status) != 0)
