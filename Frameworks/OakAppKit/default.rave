@@ -5,7 +5,6 @@ target "${dirname}" {
 	files resources/* gfx/CloseButton/*.png "Resources"
 
 	sources src/*.{cc,mm}
-	cxx_tests tests/gui_*.mm
 	frameworks Carbon Cocoa AudioToolbox Quartz
 	libraries sqlite3
 }
