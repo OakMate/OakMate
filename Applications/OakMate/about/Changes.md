@@ -2,6 +2,21 @@ Title: Release Notes
 
 # Changes
 
+## Unreleased (v2.1.0)
+
+First release of OakMate, a continuation of TextMate 2.0.22.
+
+* Requires macOS 14 or later on Apple silicon.
+* New name, icon, and bundle identifier (`com.isztld.oakmate`). Settings live in `~/Library/Application Support/OakMate`.
+* The default bundles ship with the application. Bundles are no longer downloaded from or updated by the TextMate bundle server.
+* Updates are released on GitHub and can be installed from OakMate → Check for Updates….
+* Quick Look previews and thumbnails with syntax highlighting.
+* HTML output uses WKWebView.
+* File system changes are tracked with a new FSEvents implementation.
+* Dialog and the commit window talk to OakMate over Unix domain sockets instead of Distributed Objects.
+* Downloads use HTTPS only. Registration, license keys, and crash reporting are removed.
+* Bundle commands explain when they are run outside a Git repository, and the color picker and password helper work with OakMate.
+
 ## 2021-04-16 (v2.0.22)
 
 * A few more tweaks to improve things on macOS 11 including dropping use of floating header rows in file browser (SCM Status) and search results, as these appear to cause problems on Big Sur.
