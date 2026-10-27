@@ -157,7 +157,8 @@ static NSString* SafeBasename (NSString* name)
 {
 	oak::uuid_t defaultBundle;
 
-	std::string const personalBundleName = format_string::expand("${TM_FULLNAME/^(\\S+).*$/$1/}’s Bundle", std::map<std::string, std::string>{ { "TM_FULLNAME", path::passwd_entry()->pw_gecos ?: "John Doe" } });
+	passwd* entry = path::passwd_entry();
+	std::string const personalBundleName = format_string::expand("${TM_FULLNAME/^(\\S+).*$/$1/}’s Bundle", std::map<std::string, std::string>{ { "TM_FULLNAME", entry && entry->pw_gecos ? entry->pw_gecos : "John Doe" } });
 	for(auto item : bundles::query(bundles::kFieldName, personalBundleName, scope::wildcard, bundles::kItemTypeBundle))
 		defaultBundle = item->uuid();
 

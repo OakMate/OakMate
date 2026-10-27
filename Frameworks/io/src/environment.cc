@@ -42,8 +42,6 @@ namespace oak
 			}
 		}
 
-		passwd* entry = path::passwd_entry();
-
 		int mib[2] = { CTL_USER, USER_CS_PATH };
 		size_t len = 0;
 		sysctl(mib, 2, nullptr, &len, nullptr, 0);
@@ -51,14 +49,19 @@ namespace oak
 		sysctl(mib, 2, &path[0], &len, nullptr, 0);
 		path.pop_back();
 
-		res.emplace("HOME",    entry->pw_dir);
+		res.emplace("HOME",    path::home());
 		res.emplace("PATH",    path);
 		res.emplace("TMPDIR",  path::temp());
-		res.emplace("LOGNAME", entry->pw_name);
-		res.emplace("USER",    entry->pw_name);
+
+		passwd* entry = path::passwd_entry();
+		if(entry && entry->pw_name)
+		{
+			res.emplace("LOGNAME", entry->pw_name);
+			res.emplace("USER",    entry->pw_name);
+		}
 
 		res.emplace("TM_APP_IDENTIFIER", cf::to_s(CFBundleGetIdentifier(CFBundleGetMainBundle())));
-		res.emplace("TM_FULLNAME",       entry->pw_gecos ?: "John Doe");
+		res.emplace("TM_FULLNAME",       entry && entry->pw_gecos ? entry->pw_gecos : "John Doe");
 		res.emplace("TM_PID",            std::to_string(getpid()));
 
 		return res;

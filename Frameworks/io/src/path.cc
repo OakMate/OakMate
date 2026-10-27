@@ -799,38 +799,25 @@ namespace path
 	passwd* passwd_entry ()
 	{
 		passwd* entry = getpwuid(getuid());
-		while(!entry || !entry->pw_dir || access(entry->pw_dir, R_OK) != 0) // Home folder might be missing <rdar://10261043>
+		while(!entry || !entry->pw_dir || access(entry->pw_dir, F_OK) != 0) // Home folder might be missing <rdar://10261043>
 		{
 			char* errStr = strerror(errno);
 			std::string message = text::format("Unable to obtain basic system information such as your home folder.\n\ngetpwuid(%d): %s", getuid(), errStr);
 
+			// Give up if the alert cannot be shown (e.g. when sandboxed) or user did not select “Retry”
 			CFOptionFlags responseFlags;
-			CFUserNotificationDisplayAlert(0 /* timeout */, kCFUserNotificationStopAlertLevel, nullptr /* iconURL */, nullptr /* soundURL */, nullptr /* localizationURL */, CFSTR("Missing User Database"), cf::wrap(message), CFSTR("Retry"), CFSTR("Show Radar Entry"), nil /* otherButtonTitle */, &responseFlags);
+			if(CFUserNotificationDisplayAlert(0 /* timeout */, kCFUserNotificationStopAlertLevel, nullptr /* iconURL */, nullptr /* soundURL */, nullptr /* localizationURL */, CFSTR("Missing User Database"), cf::wrap(message), CFSTR("Retry"), CFSTR("Cancel"), nil /* otherButtonTitle */, &responseFlags) != 0 || (responseFlags & 0x3) != kCFUserNotificationDefaultResponse)
+				break;
 
-			if((responseFlags & 0x3) == kCFUserNotificationDefaultResponse)
-			{
-				entry = getpwuid(getuid());
-			}
-			else if((responseFlags & 0x3) == kCFUserNotificationAlternateResponse)
-			{
-				if(CFURLRef url = CFURLCreateWithString(kCFAllocatorDefault, cf::wrap("https://openradar.appspot.com/10261043"), nullptr))
-				{
-					if(CFMutableArrayRef urls = CFArrayCreateMutable(kCFAllocatorDefault, 0, &kCFTypeArrayCallBacks))
-					{
-						CFArrayAppendValue(urls, url);
-						LSOpenURLsWithRole(urls, kLSRolesViewer, nullptr, nullptr, nullptr, 0);
-						CFRelease(urls);
-					}
-					CFRelease(url);
-				}
-			}
+			entry = getpwuid(getuid());
 		}
 		return entry;
 	}
 
 	std::string home ()
 	{
-		return passwd_entry()->pw_dir;
+		passwd* entry = passwd_entry();
+		return entry && entry->pw_dir ? entry->pw_dir : (getenv("HOME") ?: "/");
 	}
 
 	static std::string system_directory (int name, std::string const& file, std::string const& content)
