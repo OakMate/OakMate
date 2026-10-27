@@ -110,17 +110,21 @@ namespace io
 		__block std::string output, error;
 		__block bool success = false;
 
+		// The blocks below wait on the child process. A private queue always gets
+		// a thread, whereas work on a global queue can be starved when its threads
+		// are busy (e.g. waiting for the result of this function).
+		static dispatch_queue_t queue = dispatch_queue_create("com.isztld.oakmate.exec", DISPATCH_QUEUE_CONCURRENT);
 		dispatch_group_t group = dispatch_group_create();
 
-		dispatch_group_async(group, dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+		dispatch_group_async(group, queue, ^{
 			exhaust_fd(process.out, &output);
 		});
 
-		dispatch_group_async(group, dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+		dispatch_group_async(group, queue, ^{
 			exhaust_fd(process.err, &error);
 		});
 
-		dispatch_group_async(group, dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+		dispatch_group_async(group, queue, ^{
 			int status = 0;
 			if(waitpid(process.pid, &status, 0) != process.pid)
 				perror("io::vexec: waitpid");

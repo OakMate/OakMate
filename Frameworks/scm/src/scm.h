@@ -48,7 +48,7 @@ namespace scm
 	std::string root_for_path (std::string const& path);
 	bool scm_enabled_for_path (std::string const& path);
 	info_ptr info (std::string path);
-	void wait_for_status (info_ptr info);
+	bool wait_for_status (info_ptr info, CFTimeInterval timeout = 60); // Returns false on timeout
 
 } /* scm */
 

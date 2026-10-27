@@ -23,7 +23,7 @@ void test_basic_status ()
 
 	if(auto info = scm::info(jail.path(wcName)))
 	{
-		wait_for_status(info);
+		OAK_ASSERT(wait_for_status(info));
 
 		std::string expectedBranch = text::format("file://%s/%s", jailPath.c_str(), repoName.c_str());
 

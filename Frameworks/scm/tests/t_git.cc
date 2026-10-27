@@ -15,7 +15,8 @@ struct setup_t
 		{
 			if(info = scm::info(jail.path()))
 			{
-				wait_for_status(info);
+				if(!wait_for_status(info))
+					OAK_FAIL("timeout waiting for SCM status of: " + jail.path());
 			}
 			else
 			{

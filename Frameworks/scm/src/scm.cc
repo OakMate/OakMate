@@ -401,20 +401,35 @@ namespace scm
 		return res;
 	}
 
-	void wait_for_status (info_ptr info)
+	bool wait_for_status (info_ptr info, CFTimeInterval timeout)
 	{
-		__block bool shouldWait = true;
+		// The callback can run on another thread (file system events are handled
+		// on the main queue), and CFRunLoopStop() is lost if this thread is not
+		// inside the run loop at that moment, so check with a short interval.
+		auto shouldWait = std::make_shared<std::atomic<bool>>(true);
 		CFRunLoopRef runLoop = CFRunLoopGetCurrent();
 
 		info->push_callback(^(scm::info_t const& unused){
-			shouldWait = false;
+			*shouldWait = false;
 			CFRunLoopStop(runLoop);
 		});
 
-		while(shouldWait)
-			CFRunLoopRun();
+		// Without a source the run loop of a dispatch worker thread returns
+		// immediately, and the busy loop can starve the threads that the
+		// status update needs (to run git).
+		CFRunLoopSourceContext context = { };
+		CFRunLoopSourceRef idleSource = CFRunLoopSourceCreate(kCFAllocatorDefault, 0, &context);
+		CFRunLoopAddSource(runLoop, idleSource, kCFRunLoopDefaultMode);
+
+		CFAbsoluteTime const deadline = CFAbsoluteTimeGetCurrent() + timeout;
+		while(*shouldWait && CFAbsoluteTimeGetCurrent() < deadline)
+			CFRunLoopRunInMode(kCFRunLoopDefaultMode, 0.1, false);
+
+		CFRunLoopRemoveSource(runLoop, idleSource, kCFRunLoopDefaultMode);
+		CFRelease(idleSource);
 
 		info->pop_callback();
+		return !*shouldWait;
 	}
 
 } /* scm */
