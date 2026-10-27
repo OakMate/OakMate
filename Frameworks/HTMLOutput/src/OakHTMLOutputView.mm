@@ -1,7 +1,7 @@
 #import "OakHTMLOutputView.h"
 #import "browser/HOStatusBar.h"
 #import "helpers/HOJSBridge.h"
-#import "helpers/add_to_buffer.h"
+#import <text/utf8.h>
 #import <OakFoundation/OakFoundation.h>
 #import <OakFoundation/NSString Additions.h>
 #import <OakAppKit/NSAlert Additions.h>

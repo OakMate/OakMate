@@ -44,11 +44,9 @@ static double calculate_rank (std::string const& lhs, std::string const& rhs, st
 {
 	size_t const n = lhs.size();
 	size_t const m = rhs.size();
-	size_t matrix[n][m], first[n], last[n];
-	bool capitals[m];
-	bzero(matrix, sizeof(matrix));
-	std::fill_n(&first[0], n, m);
-	std::fill_n(&last[0],  n, 0);
+	std::vector<size_t> storage(n * m, 0), first(n, m), last(n, 0);
+	std::vector<bool> capitals(m);
+	auto matrix = [&storage, m](size_t i, size_t j) -> size_t& { return storage[i * m + j]; };
 
 	bool at_bow = true;
 	for(size_t j = 0; j < m; ++j)
@@ -65,7 +63,7 @@ static double calculate_rank (std::string const& lhs, std::string const& rhs, st
 		{
 			if(tolower(lhs[i]) == tolower(rhs[j]))
 			{
-				matrix[i][j] = i == 0 || j == 0 ? 1 : matrix[i-1][j-1] + 1;
+				matrix(i, j) = i == 0 || j == 0 ? 1 : matrix(i-1, j-1) + 1;
 				first[i]     = std::min(j, first[i]);
 				last[i]      = std::max(j+1, last[i]);
 			}
@@ -77,7 +75,7 @@ static double calculate_rank (std::string const& lhs, std::string const& rhs, st
 		size_t bound = last[i]-1;
 		if(bound < last[i-1])
 		{
-			while(first[i-1] < bound && matrix[i-1][bound-1] == 0)
+			while(first[i-1] < bound && matrix(i-1, bound-1) == 0)
 				--bound;
 			last[i-1] = bound;
 		}
@@ -87,8 +85,8 @@ static double calculate_rank (std::string const& lhs, std::string const& rhs, st
 	{
 		for(size_t j = first[i]; j < last[i]; ++j)
 		{
-			if(matrix[i][j] && matrix[i-1][j-1])
-				matrix[i-1][j-1] = matrix[i][j];
+			if(matrix(i, j) && matrix(i-1, j-1))
+				matrix(i-1, j-1) = matrix(i, j);
 		}
 	}
 
@@ -96,8 +94,8 @@ static double calculate_rank (std::string const& lhs, std::string const& rhs, st
 	{
 		for(size_t j = first[i]; j < last[i]; ++j)
 		{
-			if(matrix[i][j] > 1 && i+1 < n && j+1 < m)
-				matrix[i+1][j+1] = matrix[i][j] - 1;
+			if(matrix(i, j) > 1 && i+1 < n && j+1 < m)
+				matrix(i+1, j+1) = matrix(i, j) - 1;
 		}
 	}
 
@@ -116,20 +114,20 @@ static double calculate_rank (std::string const& lhs, std::string const& rhs, st
 		size_t bestJLength = 0;
 		for(size_t j = first[i]; j < last[i]; ++j)
 		{
-			if(matrix[i][j] && capitals[j])
+			if(matrix(i, j) && capitals[j])
 			{
 				bestJIndex = j;
-				bestJLength = matrix[i][j];
+				bestJLength = matrix(i, j);
 
 				for(size_t k = j; k < j + bestJLength; ++k)
 					capitalsTouched += capitals[k] ? 1 : 0;
 
 				break;
 			}
-			else if(bestJLength < matrix[i][j])
+			else if(bestJLength < matrix(i, j))
 			{
 				bestJIndex = j;
-				bestJLength = matrix[i][j];
+				bestJLength = matrix(i, j);
 			}
 		}
 
@@ -152,7 +150,7 @@ static double calculate_rank (std::string const& lhs, std::string const& rhs, st
 
 				for(size_t j = first[i]; j < last[i] && !foundCapital; ++j)
 				{
-					if(matrix[i][j] && capitals[j])
+					if(matrix(i, j) && capitals[j])
 						foundCapital = true;
 				}
 			}

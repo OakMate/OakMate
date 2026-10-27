@@ -326,7 +326,7 @@ static NSUInteger const kOakSourceIndexFavorites      = 1;
 	for(FavoritesItem* item in [items objectsAtIndexes:anIndexSet])
 	{
 		if(NSString* link = item.link)
-			[NSFileManager.defaultManager trashItemAtURL:[NSURL fileURLWithPath:item.link] resultingItemURL:nil error:nil];
+			[NSFileManager.defaultManager trashItemAtURL:[NSURL fileURLWithPath:link] resultingItemURL:nil error:nil];
 		else if(NSString* path = item.path)
 			[[self sharedProjectStateDB] removeObjectForKey:path];
 	}

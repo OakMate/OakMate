@@ -55,11 +55,11 @@ static int setup_socket ()
 	int fd = socket(AF_UNIX, SOCK_STREAM, 0);
 	struct sockaddr_un addr = { 0, AF_UNIX, kAuthSocketPath };
 	addr.sun_len = SUN_LEN(&addr);
-	int rc = bind(fd, (sockaddr*)&addr, sizeof(addr));
+	if(bind(fd, (sockaddr*)&addr, sizeof(addr)) == -1)
+		perror("bind");
 	chmod(kAuthSocketPath, S_IRWXU|S_IRWXG|S_IRWXO);
-	assert(rc != -1);
-	rc = listen(fd, SOMAXCONN);
-	assert(rc != -1);
+	if(listen(fd, SOMAXCONN) == -1)
+		perror("listen");
 
 	return fd;
 }

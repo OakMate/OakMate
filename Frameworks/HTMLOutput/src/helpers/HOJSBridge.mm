@@ -282,6 +282,29 @@ static NSString* const kBridgePrompt = @"x-txmt-bridge";
 // = Synchronous calls (via window.prompt()) =
 // ================================================
 
+- (void)offerToStopCommand:(HOJSShellCommand*)command named:(NSString*)shellCommand isFinished:(BOOL(^)())isFinished stopHandler:(void(^)())stopHandler
+{
+	dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 15 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+		if(isFinished())
+			return;
+
+		NSAlert* alert        = [[NSAlert alloc] init];
+		alert.messageText     = @"JavaScript Warning";
+		alert.informativeText = [NSString stringWithFormat:@"The command ‘%@’ has been running for 15 seconds. Would you like to stop it?\n\nTo avoid this warning, the bundle command should use the asynchronous version of TextMate.system().", shellCommand];
+		[alert addButtons:@"Stop Command", @"Cancel", nil];
+
+		if([alert runModal] == NSAlertFirstButtonReturn) // "Stop Command"
+		{
+			[command cancel];
+			stopHandler();
+		}
+		else
+		{
+			[self offerToStopCommand:command named:shellCommand isFinished:isFinished stopHandler:stopHandler];
+		}
+	});
+}
+
 - (BOOL)handlePrompt:(NSString*)prompt defaultText:(NSString*)defaultText frame:(WKFrameInfo*)frame completionHandler:(void(^)(NSString*))completionHandler
 {
 	if(![prompt isEqualToString:kBridgePrompt])
@@ -305,29 +328,10 @@ static NSString* const kBridgePrompt = @"x-txmt-bridge";
 	}];
 
 	// JavaScript is blocked until the command finishes, so periodically offer to stop it
-	__block void(^checkCommand)() = ^{
-		if(!didFinish)
-		{
-			NSAlert* alert        = [[NSAlert alloc] init];
-			alert.messageText     = @"JavaScript Warning";
-			alert.informativeText = [NSString stringWithFormat:@"The command ‘%@’ has been running for 15 seconds. Would you like to stop it?\n\nTo avoid this warning, the bundle command should use the asynchronous version of TextMate.system().", shellCommand];
-			[alert addButtons:@"Stop Command", @"Cancel", nil];
-
-			if([alert runModal] == NSAlertFirstButtonReturn) // "Stop Command"
-			{
-				[command cancel];
-				if(auto fn = std::exchange(handler, nil))
-					fn(nil);
-			}
-			else if(!didFinish)
-			{
-				dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 15 * NSEC_PER_SEC), dispatch_get_main_queue(), checkCommand);
-				return;
-			}
-		}
-		checkCommand = nil; // Break retain cycle
-	};
-	dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 15 * NSEC_PER_SEC), dispatch_get_main_queue(), checkCommand);
+	[self offerToStopCommand:command named:shellCommand isFinished:^{ return didFinish; } stopHandler:^{
+		if(auto fn = std::exchange(handler, nil))
+			fn(nil);
+	}];
 
 	return YES;
 }
