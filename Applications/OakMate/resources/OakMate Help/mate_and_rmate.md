@@ -17,7 +17,7 @@ In this article will discuss:
 
 Once you have OakMate, you need to make sure you refresh the command-line `mate` application.  This allows you to take advantage of its new features.
 
-The installer of this command-line utility has moved in OakMate.  You can now find it in the _TextMate_ menu under _Preferences…_ in the _Terminal_ pane.
+The installer of this command-line utility has moved in OakMate.  You can now find it in the _OakMate_ menu under _Preferences…_ in the _Terminal_ pane.
 
 <figure>
 <img src="images/terminal_preferences.png" alt="The Terminal Preferences pane">
@@ -151,7 +151,7 @@ Let me show you how to get `rmate` installed on a server you want edit from remo
 
 ### Installing rmate
 
-First, we need to copy `rmate` up to your server.  You can find a link to the script in the _Preferences…_ dialog of the _TextMate_ menu, under the _Terminal_ pane.  Click that link to open the script, then finish the install with these steps:
+First, we need to copy `rmate` up to your server.  You can find a link to the script in the _Preferences…_ dialog of the _OakMate_ menu, under the _Terminal_ pane.  Click that link to open the script, then finish the install with these steps:
 
 1. Open a Terminal and type `scp` followed by a space
 2. Drag the `rmate` icon out of the window title bar and drop it into your Terminal to fill in the path to the script
@@ -163,7 +163,7 @@ Your final command should look something like:
 
 If you don't have SSH setup to automatically log you into the server, you may also need to provide the proper authentication options.  If your user doesn't have permission to copy directly into a the directory you want to install into, you may need to upload the script to your user's home directory, SSH into the remote, and move it into place using `sudo`.  Alternately, you could place it in `~/bin` and ensure that directory is in your path.
 
-Back on your own machine, you need to make sure OakMate is ready for the incoming connections.  Be sure Accept `rmate` connections is checked in the _Terminal_ pane of _Preferences…_ in the _TextMate_ menu.  You can leave "Access for" on "local clients" though, because I'll show you a secure trick for bridging the two computers.
+Back on your own machine, you need to make sure OakMate is ready for the incoming connections.  Be sure Accept `rmate` connections is checked in the _Terminal_ pane of _Preferences…_ in the _OakMate_ menu.  You can leave "Access for" on "local clients" though, because I'll show you a secure trick for bridging the two computers.
 
 <figure>
 <img src="images/terminal_preferences.png" alt="The Terminal Preferences pane">

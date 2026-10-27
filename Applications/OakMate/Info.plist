@@ -3173,7 +3173,7 @@
 				<string>com.apple.property-list</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>TextMate Snippet</string>
+			<string>OakMate Snippet</string>
 			<key>UTTypeIdentifier</key>
 			<string>com.isztld.oakmate.snippet</string>
 			<key>UTTypeTagSpecification</key>
@@ -3190,7 +3190,7 @@
 				<string>com.apple.property-list</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>TextMate Macro</string>
+			<string>OakMate Macro</string>
 			<key>UTTypeIdentifier</key>
 			<string>com.isztld.oakmate.macro</string>
 			<key>UTTypeTagSpecification</key>
@@ -3207,7 +3207,7 @@
 				<string>com.apple.property-list</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>TextMate Language Grammar</string>
+			<string>OakMate Language Grammar</string>
 			<key>UTTypeIdentifier</key>
 			<string>com.isztld.oakmate.language</string>
 			<key>UTTypeTagSpecification</key>
@@ -3224,7 +3224,7 @@
 				<string>com.apple.property-list</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>TextMate Preferences</string>
+			<string>OakMate Preferences</string>
 			<key>UTTypeIdentifier</key>
 			<string>com.isztld.oakmate.preferences</string>
 			<key>UTTypeTagSpecification</key>
@@ -3241,7 +3241,7 @@
 				<string>com.apple.property-list</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>TextMate Command</string>
+			<string>OakMate Command</string>
 			<key>UTTypeIdentifier</key>
 			<string>com.isztld.oakmate.command</string>
 			<key>UTTypeTagSpecification</key>
@@ -3258,7 +3258,7 @@
 				<string>com.apple.property-list</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>TextMate Drag Command</string>
+			<string>OakMate Drag Command</string>
 			<key>UTTypeIdentifier</key>
 			<string>com.isztld.oakmate.drag-command</string>
 			<key>UTTypeTagSpecification</key>
@@ -3275,7 +3275,7 @@
 				<string>com.apple.property-list</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>TextMate Theme</string>
+			<string>OakMate Theme</string>
 			<key>UTTypeIdentifier</key>
 			<string>com.isztld.oakmate.theme</string>
 			<key>UTTypeTagSpecification</key>
@@ -3293,7 +3293,7 @@
 				<string>public.text</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>TextMate release notes</string>
+			<string>OakMate release notes</string>
 			<key>UTTypeIdentifier</key>
 			<string>com.isztld.oakmate.release-notes</string>
 			<key>UTTypeTagSpecification</key>
@@ -3310,7 +3310,7 @@
 				<string>com.apple.package</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>TextMate Bundle</string>
+			<string>OakMate Bundle</string>
 			<key>UTTypeIdentifier</key>
 			<string>com.isztld.oakmate.bundle</string>
 			<key>UTTypeTagSpecification</key>
@@ -3328,7 +3328,7 @@
 				<string>com.apple.package</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>TextMate PlugIn</string>
+			<string>OakMate PlugIn</string>
 			<key>UTTypeIdentifier</key>
 			<string>com.isztld.oakmate.plugin</string>
 			<key>UTTypeTagSpecification</key>

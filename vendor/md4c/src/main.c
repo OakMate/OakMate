@@ -1,5 +1,5 @@
 // md2html: Convert Markdown read from stdin to HTML written to stdout.
-// Used by bin/gen_html when building TextMate’s About and Help pages.
+// Used by bin/gen_html when building OakMate’s About and Help pages.
 
 #include "md4c-html.h"
 #include <stdio.h>
