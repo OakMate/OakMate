@@ -1,0 +1,26 @@
+#!/bin/bash
+# Usage: sign_nested «identity» «application»
+#
+# Signs the executables inside the application’s SharedSupport folder (e.g.
+# tools shipped with bundles) so that the application can be notarized. The
+# application itself is signed afterwards by the caller. Nothing is done for
+# ad-hoc signing (identity ‘-’).
+set -e
+
+identity="$1"
+app="$2"
+dir="$app/Contents/SharedSupport"
+
+[ "$identity" = "-" ] && exit 0
+[ -d "$dir" ] || exit 0
+
+sign () { xcrun codesign --force --options runtime --timestamp --sign "$identity" "$1"; }
+
+# Mach-O files first, then the bundles containing them, deepest first
+find "$dir" -type f -print0 | while IFS= read -r -d '' file; do
+	if file -b "$file" | grep -q '^Mach-O'; then sign "$file"; fi
+done
+
+find "$dir" -depth -type d \( -name '*.framework' -o -name '*.app' -o -name '*.bundle' -o -name '*.xpc' \) -print0 | while IFS= read -r -d '' bundle; do
+	if [ -f "$bundle/Contents/Info.plist" -o -f "$bundle/Resources/Info.plist" ]; then sign "$bundle"; fi
+done

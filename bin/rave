@@ -1101,9 +1101,9 @@ module Target
           out:          signature,
           identity:     target[:variables]['CS_IDENTITY'] || '-',
           flags:        target[:variables]['CS_FLAGS'],
-          command:      'xcrun codesign --sign "$identity" $flags $in && touch $out',
+          command:      "#{__dir__}/sign_nested \"$identity\" $in && xcrun codesign --sign \"$identity\" $flags $in && touch $out",
           description:  'Sign ‘${in}’…',
-          dependencies: dependencies + (target.dig(:inference, 'CS_FLAGS') || []),
+          dependencies: dependencies + [ "#{__dir__}/sign_nested" ] + (target.dig(:inference, 'CS_FLAGS') || []),
         }
 
         rules << {

@@ -1,0 +1,134 @@
+# Builds, signs, notarizes, and publishes OakMate when a version tag is pushed.
+#
+# The tag must match the newest entry in Applications/OakMate/about/Changes.md,
+# e.g. ‘## 2026-11-01 (v2.1.0)’ is released by pushing the tag ‘v2.1.0’.
+#
+# Required repository secrets (Settings → Secrets and variables → Actions):
+#
+#   DEVELOPER_ID_CERTIFICATE_P12       Base64 encoded .p12 with the “Developer ID Application” certificate and its private key
+#   DEVELOPER_ID_CERTIFICATE_PASSWORD  Password of the .p12 file
+#   NOTARIZATION_APPLE_ID              Apple ID used for notarization
+#   NOTARIZATION_PASSWORD              App-specific password for that Apple ID (appleid.apple.com)
+#   NOTARIZATION_TEAM_ID               Team ID of the developer account (10 characters)
+
+name: Release
+
+on:
+  push:
+    tags: [ 'v*' ]
+
+permissions:
+  contents: write  # Create the GitHub release
+
+jobs:
+  release:
+    runs-on: macos-26
+    environment: release
+
+    env:
+      KEYCHAIN: ${{ runner.temp }}/signing.keychain-db
+      BUILD_DIR: ${{ runner.temp }}/build
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # The Contributions page is generated from the commit history
+
+    - name: Check version
+      id: version
+      run: |
+        changes=Applications/OakMate/about/Changes.md
+        heading=$(grep -m1 '^## .* (v.*)$' "$changes")
+        version=$(sed 's/.*(v\(.*\))/\1/' <<< "$heading")
+        if [[ "v$version" != "$GITHUB_REF_NAME" ]]; then
+          echo "::error::Tag $GITHUB_REF_NAME does not match the newest version in $changes ($version)"
+          exit 1
+        fi
+        if [[ "$heading" != "## "[0-9][0-9][0-9][0-9]-* ]]; then
+          echo "::error::Set the release date in $changes: $heading"
+          exit 1
+        fi
+        echo "version=$version" >> "$GITHUB_OUTPUT"
+        bin/extract_changes -v "$version" "$changes" | tail -n +2 > "$RUNNER_TEMP/notes.md"
+
+    - name: Select newest Xcode
+      run: sudo xcode-select -s "$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)" && xcodebuild -version
+
+    - name: Install ninja
+      run: brew install ninja
+
+    - name: Import signing certificate
+      env:
+        CERTIFICATE_P12: ${{ secrets.DEVELOPER_ID_CERTIFICATE_P12 }}
+        CERTIFICATE_PASSWORD: ${{ secrets.DEVELOPER_ID_CERTIFICATE_PASSWORD }}
+      run: |
+        keychain_password=$(uuidgen)
+        security create-keychain -p "$keychain_password" "$KEYCHAIN"
+        security set-keychain-settings -lut 21600 "$KEYCHAIN"
+        security unlock-keychain -p "$keychain_password" "$KEYCHAIN"
+
+        base64 --decode <<< "$CERTIFICATE_P12" > "$RUNNER_TEMP/certificate.p12"
+        security import "$RUNNER_TEMP/certificate.p12" -k "$KEYCHAIN" -P "$CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+        rm "$RUNNER_TEMP/certificate.p12"
+        security set-key-partition-list -S apple-tool:,apple: -s -k "$keychain_password" "$KEYCHAIN" > /dev/null
+        security list-keychains -d user -s "$KEYCHAIN" $(security list-keychains -d user | tr -d '"')
+
+        identity=$(security find-identity -v -p codesigning "$KEYCHAIN" | grep 'Developer ID Application' | head -1 | awk '{ print $2 }')
+        if [[ -z "$identity" ]]; then
+          echo "::error::No “Developer ID Application” identity found in the certificate"
+          exit 1
+        fi
+        printf 'set CS_IDENTITY "%s"\n' "$identity" > local.rave
+
+    - name: Build
+      run: |
+        mkdir -p "$BUILD_DIR"
+        builddir="$BUILD_DIR" ./configure
+        ninja OakMate
+        ninja test
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+
+    - name: Notarize
+      env:
+        APPLE_ID: ${{ secrets.NOTARIZATION_APPLE_ID }}
+        APPLE_PASSWORD: ${{ secrets.NOTARIZATION_PASSWORD }}
+        TEAM_ID: ${{ secrets.NOTARIZATION_TEAM_ID }}
+        VERSION: ${{ steps.version.outputs.version }}
+      run: |
+        app="$BUILD_DIR/release/Applications/OakMate/OakMate.app"
+        codesign --verify --deep --strict --verbose=2 "$app"
+
+        notarize () {
+          xcrun notarytool submit "$1" --apple-id "$APPLE_ID" --password "$APPLE_PASSWORD" --team-id "$TEAM_ID" --wait --output-format json > "$RUNNER_TEMP/notarization.json" || true
+          id=$(plutil -extract id raw "$RUNNER_TEMP/notarization.json")
+          xcrun notarytool log "$id" --apple-id "$APPLE_ID" --password "$APPLE_PASSWORD" --team-id "$TEAM_ID"
+          [[ $(plutil -extract status raw "$RUNNER_TEMP/notarization.json") == Accepted ]]
+        }
+
+        mkdir -p dist
+        ditto -c -k --keepParent "$app" "$RUNNER_TEMP/OakMate.zip"
+        notarize "$RUNNER_TEMP/OakMate.zip"
+        xcrun stapler staple "$app"
+        ditto -c -k --keepParent "$app" "dist/OakMate-$VERSION.zip"
+
+        identity=$(sed -n 's/set CS_IDENTITY "\(.*\)"/\1/p' local.rave)
+        mkdir "$RUNNER_TEMP/dmg"
+        ditto "$app" "$RUNNER_TEMP/dmg/OakMate.app"
+        ln -s /Applications "$RUNNER_TEMP/dmg/Applications"
+        hdiutil create -volname "OakMate $VERSION" -srcfolder "$RUNNER_TEMP/dmg" -fs APFS -format UDZO "dist/OakMate-$VERSION.dmg"
+        codesign --sign "$identity" --timestamp "dist/OakMate-$VERSION.dmg"
+        notarize "dist/OakMate-$VERSION.dmg"
+        xcrun stapler staple "dist/OakMate-$VERSION.dmg"
+
+        (cd dist && shasum -a 256 * > SHA256SUMS)
+
+    - name: Publish release
+      env:
+        GH_TOKEN: ${{ github.token }}
+        VERSION: ${{ steps.version.outputs.version }}
+      run: gh release create "$GITHUB_REF_NAME" dist/* --verify-tag --title "OakMate $VERSION" --notes-file "$RUNNER_TEMP/notes.md"
+
+    - name: Remove keychain
+      if: always()
+      run: security delete-keychain "$KEYCHAIN" || true

@@ -1,18 +1,32 @@
 name: CI
 
-on: [push, pull_request]
+on:
+  push:
+    branches: [ '**' ]
+  pull_request:
 
 jobs:
   build:
-    runs-on: macos-15
+    runs-on: macos-26
 
     steps:
     - uses: actions/checkout@v4
-    - name: Setup
+      with:
+        fetch-depth: 0  # The Contributions page is generated from the commit history
+
+    - name: Select newest Xcode
+      run: sudo xcode-select -s "$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)" && xcodebuild -version
+
+    - name: Install ninja
       run: brew install ninja
+
     - name: Configure
       run: ./configure
+
     - name: Build
       run: ninja OakMate
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+
     - name: Test
       run: ninja test
