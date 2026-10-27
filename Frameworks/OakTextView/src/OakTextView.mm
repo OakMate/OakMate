@@ -1180,14 +1180,14 @@ doScroll:
 {
 	if(!documentView || !self.theme)
 	{
-		NSEraseRect(aRect);
+		NSEraseRect(NSIntersectionRect(aRect, self.bounds));
 		return;
 	}
 
 	if(self.theme->is_transparent())
 	{
 		[NSColor.clearColor set];
-		NSRectFill(aRect);
+		NSRectFill(NSIntersectionRect(aRect, self.bounds));
 	}
 
 	CGContextRef context = NSGraphicsContext.currentContext.CGContext;

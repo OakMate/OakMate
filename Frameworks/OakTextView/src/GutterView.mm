@@ -309,17 +309,17 @@ static void DrawText (std::string const& text, CGRect const& rect, CGFloat basel
 - (void)drawRect:(NSRect)aRect
 {
 	[self.backgroundColor set];
-	NSRectFill(NSIntersectionRect(aRect, self.frame));
+	NSRectFill(NSIntersectionRect(aRect, self.bounds));
 
 	[self setupSelectionRects];
 
 	[self.selectionBackgroundColor set];
 	for(auto const& rect : backgroundRects)
-		NSRectFillUsingOperation(NSIntersectionRect(rect, NSIntersectionRect(aRect, self.frame)), NSCompositingOperationSourceOver);
+		NSRectFillUsingOperation(NSIntersectionRect(rect, NSIntersectionRect(aRect, self.bounds)), NSCompositingOperationSourceOver);
 
 	[self.selectionBorderColor set];
 	for(auto const& rect : borderRects)
-		NSRectFillUsingOperation(NSIntersectionRect(rect, NSIntersectionRect(aRect, self.frame)), NSCompositingOperationSourceOver);
+		NSRectFillUsingOperation(NSIntersectionRect(rect, NSIntersectionRect(aRect, self.bounds)), NSCompositingOperationSourceOver);
 
 	if(!self.antiAlias)
 		CGContextSetShouldAntialias(NSGraphicsContext.currentContext.CGContext, false);
