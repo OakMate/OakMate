@@ -3,11 +3,11 @@
 
 #include <oak/misc.h>
 
-// Local communication between TextMate and its command line tools.
+// Local communication between OakMate and its command line tools.
 //
 // A message is a length-prefixed blob sent over a Unix domain socket in the
 // user’s private temporary folder. File descriptors can be sent along with a
-// message, which lets a tool hand its pipes to TextMate. Only processes owned
+// message, which lets a tool hand its pipes to OakMate. Only processes owned
 // by the same user can connect.
 
 namespace ipc

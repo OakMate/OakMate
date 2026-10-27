@@ -3,7 +3,7 @@
 
 #import <Cocoa/Cocoa.h>
 
-// Syntax highlighted previews using the user’s theme and font (via TextMate’s preferences and bundle index)
+// Syntax highlighted previews using the user’s theme and font (via OakMate’s preferences and bundle index)
 NSAttributedString* TMQLCreatePreview (NSURL* url, NSColor** backgroundColor);
 
 // Small syntax highlighted string (using the Mac Classic theme) for thumbnails

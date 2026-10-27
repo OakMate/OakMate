@@ -12,7 +12,7 @@
 
 namespace oak
 {
-	// Minimal little-endian binary format used for TextMate’s cache files.
+	// Minimal little-endian binary format used for OakMate’s cache files.
 	// Files start with a 4 byte magic followed by a uint32 format version.
 
 	struct binary_writer_t

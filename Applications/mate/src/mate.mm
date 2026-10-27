@@ -17,7 +17,7 @@ static char const* socket_path ()
 	if(getenv("SUDO_UID"))
 		uid = atoi(getenv("SUDO_UID"));
 
-	static std::string const str = text::format("/tmp/textmate-%d.sock", uid);
+	static std::string const str = text::format("/tmp/oakmate-%d.sock", uid);
 	return str.c_str();
 }
 
@@ -59,10 +59,10 @@ static NSURL* find_app ()
 {
 	disable_sudo_helper_t helper;
 
-	if(NSURL* url = [NSWorkspace.sharedWorkspace URLForApplicationWithBundleIdentifier:@"com.macromates.TextMate"])
+	if(NSURL* url = [NSWorkspace.sharedWorkspace URLForApplicationWithBundleIdentifier:@"org.oakmate.OakMate"])
 		return url;
 
-	fprintf(stderr, "Can’t find TextMate.app\n");
+	fprintf(stderr, "Can’t find OakMate.app\n");
 	exit(EX_UNAVAILABLE);
 }
 
@@ -86,7 +86,7 @@ static void launch_app (bool disableUntitled)
 
 	if(error)
 	{
-		fprintf(stderr, "Can’t launch TextMate.app: %s\n", error.localizedDescription.UTF8String);
+		fprintf(stderr, "Can’t launch OakMate.app: %s\n", error.localizedDescription.UTF8String);
 		exit(EX_UNAVAILABLE);
 	}
 }
@@ -130,10 +130,10 @@ static void usage (FILE* io)
 		"       %1$s -c<mark> [-l<line>] [-u<identifier> | file ...]\n"
 		"\n"
 		"Options:\n"
-		" -w, --[no-]wait                 Wait for file to be closed by TextMate.\n"
+		" -w, --[no-]wait                 Wait for file to be closed by OakMate.\n"
 		" -l, --line <selection>          Setup <selection> after loading file.\n"
 		" -t, --type <filetype>           Treat file as having <filetype>.\n"
-		" -m, --name <name>               The display name shown in TextMate.\n"
+		" -m, --name <name>               The display name shown in OakMate.\n"
 		" -r, --[no-]recent               Add file to Open Recent menu.\n"
 		" -u, --uuid <identifier>         Reference already open document with\n"
 		"                                 <identifier>.\n"

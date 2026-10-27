@@ -62,7 +62,7 @@ static NSString* SafeBasename (NSString* name)
 {
 	if(self = [super init])
 	{
-		_installDirectory = [[NSSearchPathForDirectoriesInDomains(NSApplicationSupportDirectory, NSUserDomainMask, YES) firstObject] stringByAppendingPathComponent:@"TextMate/Managed"];
+		_installDirectory = [[NSSearchPathForDirectoriesInDomains(NSApplicationSupportDirectory, NSUserDomainMask, YES) firstObject] stringByAppendingPathComponent:@"OakMate/Managed"];
 		_localIndexPath   = [_installDirectory stringByAppendingPathComponent:@"LocalIndex.plist"];
 		_remoteIndexPath  = [_installDirectory stringByAppendingPathComponent:@"Cache/org.textmate.updates.default"];
 		_remoteIndexURL   = [NSURL URLWithString:@REST_API "/bundles"];
@@ -453,86 +453,13 @@ namespace
 	}
 }
 
-- (void)moveAvianBundles
-{
-	NSFileManager* fm = NSFileManager.defaultManager;
-
-	NSMutableArray* moves = [NSMutableArray array];
-	NSMutableString* moveDescription = [NSMutableString string];
-
-	for(NSString* path in NSSearchPathForDirectoriesInDomains(NSApplicationSupportDirectory, NSUserDomainMask|NSLocalDomainMask, YES))
-	{
-		for(NSString* dir in @[ @"", @"Pristine Copy" ])
-		{
-			NSString* textMateFolder = [NSString pathWithComponents:@[ path, @"TextMate", dir ]];
-			NSString* avianFolder    = [NSString pathWithComponents:@[ path, @"Avian", dir ]];
-			NSString* src = [avianFolder stringByAppendingPathComponent:@"Bundles"];
-			NSString* dst = [textMateFolder stringByAppendingPathComponent:@"Bundles"];
-
-			if([fm fileExistsAtPath:src] == NO)
-				continue;
-
-			if([fm fileExistsAtPath:dst] == YES)
-			{
-				[moves addObject:@[ dst, [dst stringByAppendingString:@"-1.x"] ]];
-				[moveDescription appendFormat:@"Rename “Bundles” at “%@” to “Bundles-1.x” (backup).\n", [textMateFolder stringByAbbreviatingWithTildeInPath]];
-			}
-
-			[moves addObject:@[ src, dst ]];
-			[moveDescription appendFormat:@"Move “Bundles” at “%@” to “%@”.\n", [avianFolder stringByAbbreviatingWithTildeInPath], [textMateFolder stringByAbbreviatingWithTildeInPath]];
-		}
-	}
-
-	if(moves.count == 0)
-		return;
-
-	NSAlert* alert = [[NSAlert alloc] init];
-	alert.alertStyle      = NSAlertStyleInformational;
-	alert.messageText     = @"Move Bundles?";
-	alert.informativeText = [NSString stringWithFormat:@"Bundles are no longer read from the “Avian” folder. Would you like to move the following items:\n\n%@", moveDescription];
-	[alert addButtonWithTitle:@"Move Bundles"];
-	[alert addButtonWithTitle:@"Cancel"];
-	if([alert runModal] != NSAlertFirstButtonReturn)
-		return;
-
-	for(NSArray* move in moves)
-	{
-		NSError* err;
-
-		NSString* dstFolder = [move.lastObject stringByDeletingLastPathComponent];
-		if([fm fileExistsAtPath:dstFolder] || [fm createDirectoryAtPath:dstFolder withIntermediateDirectories:YES attributes:nil error:&err])
-		{
-			if([fm moveItemAtPath:move.firstObject toPath:move.lastObject error:&err])
-				continue;
-		}
-
-		[[NSAlert alertWithError:err] runModal];
-		break;
-	}
-}
-
 - (void)loadBundlesIndex
 {
-	// LEGACY locations used by 2.0-beta.12.22 and earlier
-	[self moveAvianBundles];
-
 	for(auto path : bundles::locations())
 		bundlesPaths.push_back(path::join(path, "Bundles"));
-	bundlesIndexPath = path::join(path::home(), "Library/Caches/com.macromates.TextMate/BundlesIndex.binary");
+	bundlesIndexPath = path::join(path::home(), "Library/Caches/org.oakmate.OakMate/BundlesIndex.binary");
 	cache.set_content_filter(&prune_dictionary);
-
-	// LEGACY bundle index used prior to 2.0-alpha.9467
-	std::string const oldPath = path::join(path::home(), "Library/Caches/com.macromates.TextMate/BundlesIndex.plist");
-	if(access(oldPath.c_str(), R_OK) == 0)
-	{
-		cache.load(oldPath);
-		cache.save_binary(bundlesIndexPath);
-		unlink(oldPath.c_str());
-	}
-	else
-	{
-		cache.load_binary(bundlesIndexPath);
-	}
+	cache.load_binary(bundlesIndexPath);
 
 	_needsCreateBundlesIndex = YES;
 	[self createBundlesIndex:self];

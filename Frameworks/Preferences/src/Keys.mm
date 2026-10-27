@@ -28,7 +28,6 @@ static NSDictionary* default_settings ()
 		kUserDefaultsDisableRMateServerKey:      @NO,
 		kUserDefaultsRMateServerListenKey:       kRMateServerListenLocalhost,
 		kUserDefaultsRMateServerPortKey:         @"52698",
-		kUserDefaultsLicenseOwnerKey:            NSFullUserName(),
 		kUserDefaultsLineNumbersKey:             @YES,
 	};
 }
@@ -96,12 +95,6 @@ NSString* const kUserDefaultsRMateServerPortKey         = @"rmateServerPort";
 
 NSString* const kRMateServerListenLocalhost             = @"localhost";
 NSString* const kRMateServerListenRemote                = @"remote";
-
-// ================
-// = Registration =
-// ================
-
-NSString* const kUserDefaultsLicenseOwnerKey            = @"licenseOwnerName";
 
 // ==============
 // = Appearance =

@@ -937,7 +937,7 @@ static void* kOakCommitWindowIncludeItemObserverContext = &kOakCommitWindowInclu
 		}
 	}
 
-	// The main window is nil when TextMate is not active, so fall back to the frontmost project window
+	// The main window is nil when OakMate is not active, so fall back to the frontmost project window
 	if(!projectWindow)
 	{
 		for(NSWindow* window in [NSApp orderedWindows])

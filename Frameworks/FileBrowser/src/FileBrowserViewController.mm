@@ -329,12 +329,12 @@ static NSMutableIndexSet* MutableLongestCommonSubsequence (NSArray* lhs, NSArray
 			if(repository)
 			{
 				alert.messageText     = [NSString stringWithFormat:@"Version control is disabled for “%@”.", self.fileItem.localizedName];
-				alert.informativeText = @"For performance reasons TextMate will not monitor version control information for this folder.";
+				alert.informativeText = @"For performance reasons OakMate will not monitor version control information for this folder.";
 			}
 			else
 			{
 				alert.messageText     = [NSString stringWithFormat:@"Version control is not available for “%@”.", self.fileItem.localizedName];
-				alert.informativeText = @"You need to initialize the folder using your favorite version control system before TextMate can show you status.";
+				alert.informativeText = @"You need to initialize the folder using your favorite version control system before OakMate can show you status.";
 			}
 
 			[alert addButtonWithTitle:@"OK"];
@@ -398,7 +398,7 @@ static NSMutableIndexSet* MutableLongestCommonSubsequence (NSArray* lhs, NSArray
 - (void)openItems:(NSArray<FileItem*>*)items animate:(BOOL)animateFlag
 {
 	NSMutableArray<FileItem*>* itemsToOpen              = [NSMutableArray array];
-	NSMutableArray<FileItem*>* itemsToOpenInTextMate    = [NSMutableArray array];
+	NSMutableArray<FileItem*>* itemsToOpenInOakMate     = [NSMutableArray array];
 	NSMutableArray<FileItem*>* itemsToShowInFinder      = [NSMutableArray array];
 	NSMutableArray<FileItem*>* itemsToShowInFileBrowser = [NSMutableArray array];
 
@@ -418,7 +418,7 @@ static NSMutableIndexSet* MutableLongestCommonSubsequence (NSArray* lhs, NSArray
 		else if(item.isPackage || item.isLinkToPackage || item.URL.isFileURL && is_binary(item.URL.fileSystemRepresentation))
 			[itemsToOpen addObject:item];
 		else
-			[itemsToOpenInTextMate addObject:item];
+			[itemsToOpenInOakMate addObject:item];
 	}
 
 	if(itemsToShowInFileBrowser.count > 0)
@@ -426,7 +426,7 @@ static NSMutableIndexSet* MutableLongestCommonSubsequence (NSArray* lhs, NSArray
 
 	if(animateFlag && ![NSUserDefaults.standardUserDefaults boolForKey:kUserDefaultsFileBrowserOpenAnimationDisabled])
 	{
-		for(NSArray* items in @[ itemsToOpen, itemsToOpenInTextMate ])
+		for(NSArray* items in @[ itemsToOpen, itemsToOpenInOakMate ])
 		{
 			for(FileItem* item in items)
 				[OakZoomingIcon zoomIcon:[TMFileReference imageForURL:item.URL size:NSMakeSize(48, 48)] fromRect:[self imageRectOfItem:item]];
@@ -439,8 +439,8 @@ static NSMutableIndexSet* MutableLongestCommonSubsequence (NSArray* lhs, NSArray
 	for(FileItem* item in itemsToOpen)
 		[NSWorkspace.sharedWorkspace openURL:item.resolvedURL.filePathURL];
 
-	if(itemsToOpenInTextMate.count > 0)
-		[self.delegate fileBrowser:self openURLs:[itemsToOpenInTextMate valueForKeyPath:@"URL"]];
+	if(itemsToOpenInOakMate.count > 0)
+		[self.delegate fileBrowser:self openURLs:[itemsToOpenInOakMate valueForKeyPath:@"URL"]];
 }
 
 - (void)didSingleClickOutlineView:(id)sender

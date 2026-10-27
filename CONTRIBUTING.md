@@ -6,12 +6,10 @@ You can send pull requests via GitHub. Patches should:
 2. One commit should do exactly one thing.
 3. Commit messages should start with a summary line below 70 characters followed by a blank line, and then the reasoning/analysis for why the change was made (if appropriate).
 4. Commits that fix a bug in a previous commit should:
-    1. If existing commit is already upstream: Start with `fixup!` and then the summary line of the commit it fixes. If you are writing your commit message in TextMate then type `fix⇥` to get the prefix and a menu allowing you to pick the summary line from one of the last 15 commits. If you commit from a terminal you can use `git commit --fixup=«commit»`
+    1. If existing commit is already upstream: Start with `fixup!` and then the summary line of the commit it fixes. If you are writing your commit message in OakMate then type `fix⇥` to get the prefix and a menu allowing you to pick the summary line from one of the last 15 commits. If you commit from a terminal you can use `git commit --fixup=«commit»`
     2. If existing commit is a local commit: You should amend the existing commit! Either use `git commit --amend` or do a `fixup!` followed by `git rebase -i` (to merge in the fixup). I.e. do not send a pull request where some of the commits you want us to pull fixes bugs introduced in other commits you also want us to pull.
 5. Rebase your branch against the upstream’s master. We don’t want to pull redundant merge commits.
-6. **Be clear about what license applies to your patch:** The files within this repository are under the [GPL 3][] (or later) but (as the original creator) we are still allowed to create non-free derivatives. However, if patches are given to us under GPL then those cannot make it into any non-free derivatives we may later wish to create. So to make it easier for us (and avoid any legal issues) we prefer if patches are released as public domain.
-
-There is the [textmate][] mailing list and [#textmate][] IRC channel at [freenode.net][] where this project can be discussed.
+6. **License:** The files within this repository are under the [GPL 3][] (or later), and patches are accepted under the same license.
 
 ## GitHub Workflow
 
@@ -20,9 +18,9 @@ Developing patches should follow this workflow:
 ### Initial Setup
 
 1.	Fork on GitHub (click Fork button)
-2.	Clone to computer: `git clone git@github.com:«github account»/textmate.git`
-3.	cd into your repo: `cd textmate`
-4.	Set up remote upstream: `git remote add -f upstream git://github.com/textmate/textmate.git`
+2.	Clone to computer: `git clone git@github.com:«github account»/oakmate.git`
+3.	cd into your repo: `cd oakmate`
+4.	Set up remote upstream: `git remote add -f upstream «OakMate repository URL»`
 
 ### Adding a Feature
 
@@ -70,6 +68,3 @@ After this, re-apply your change and commit. If the change is non-trivial it is 
 	property of File’s Owner.
 
 [GPL 3]:          http://www.gnu.org/copyleft/gpl.html
-[textmate]:       http://lists.macromates.com/listinfo/textmate
-[#textmate]:      irc://irc.freenode.net/#textmate
-[freenode.net]:   http://freenode.net/

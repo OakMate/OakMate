@@ -5,7 +5,7 @@
 	<key>CFBundleExecutable</key>
 	<string>${TARGET_NAME}</string>
 	<key>CFBundleIdentifier</key>
-	<string>com.macromates.${TARGET_NAME}</string>
+	<string>org.oakmate.${TARGET_NAME}</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>

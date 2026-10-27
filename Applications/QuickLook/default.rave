@@ -1,13 +1,13 @@
-target "TextMateQLRender" {
+target "OakMateQLRender" {
 	require OakFoundation OakSystem buffer bundles cf file io ns plist scope settings theme
 	sources src/*.mm
 	frameworks AppKit OSAKit
 }
 
-target "TextMateQLPreview" {
-	require TextMateQLRender
+target "OakMateQLPreview" {
+	require OakMateQLRender
 
-	capture APP_VERSION "grep -om1 '^## .* (v.*)$' '${dir}/../TextMate/about/Changes.md'|sed 's/.*(v\\(.*\))/\\1/'"
+	capture APP_VERSION "grep -om1 '^## .* (v.*)$' '${dir}/../OakMate/about/Changes.md'|sed 's/.*(v\\(.*\))/\\1/'"
 
 	config "debug" {
 		add PLIST_FLAGS "-d'CS_GET_TASK_ALLOW=true'"
@@ -31,10 +31,10 @@ target "TextMateQLPreview" {
 	frameworks QuickLookUI UniformTypeIdentifiers
 }
 
-target "TextMateQLThumbnail" {
-	require TextMateQLRender
+target "OakMateQLThumbnail" {
+	require OakMateQLRender
 
-	capture APP_VERSION "grep -om1 '^## .* (v.*)$' '${dir}/../TextMate/about/Changes.md'|sed 's/.*(v\\(.*\))/\\1/'"
+	capture APP_VERSION "grep -om1 '^## .* (v.*)$' '${dir}/../OakMate/about/Changes.md'|sed 's/.*(v\\(.*\))/\\1/'"
 
 	config "debug" {
 		add PLIST_FLAGS "-d'CS_GET_TASK_ALLOW=true'"

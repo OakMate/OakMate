@@ -16,8 +16,8 @@ static void usage (FILE* io)
 		" Reads a property list and outputs ASCII version to stdout.\n"
 		" If no file is specified, stdin is used.\n"
 		"Options:\n"
-		" -a, --ascii     Parse TextMate’s ASCII property list variant.\n"
-		" -x, --extended  Output TextMate’s ASCII property list variant.\n"
+		" -a, --ascii     Parse OakMate’s ASCII property list variant.\n"
+		" -x, --extended  Output OakMate’s ASCII property list variant.\n"
 		" -h, --help      Show this information.\n"
 		" -v, --version   Print version information.\n"
 		"\n", getprogname(), AppVersion

@@ -659,6 +659,23 @@ class CompileAssetCatalog < Compiler
   end
 end
 
+class CompileAppIcon < Compiler
+  transforms '.icon' => '.icns'
+
+  # An Icon Composer icon becomes ‘Assets.car’ (used on macOS 26) and an ‘.icns’ file (used on earlier versions)
+  def transform(file, config, builddir)
+    name = File.basename(file, '.icon')
+    dir  = File.join(builddir, "_#{self.class}", File.dirname(file))
+    super.merge(
+      out:          [ File.join(dir, "#{name}.icns"), File.join(dir, 'Assets.car') ],
+      flags:        config['AC_FLAGS'],
+      command:      "xcrun actool --compile \"$(dirname $out)\" --app-icon #{name.shellescape} --output-partial-info-plist \"$(dirname $out)/partial.plist\" $flags $in >/dev/null",
+      description:  'App icon ‘${in}’…',
+      dependencies: Dir.glob("#{file}/**/*") + (config.dig(:inference, 'AC_FLAGS') || []),
+    )
+  end
+end
+
 class ConvertToUTF16 < Compiler
   transforms '.strings' => '.strings'
 
@@ -982,13 +999,15 @@ module Target
                   end
                 end
 
-                if File.directory?(file)
-                  queue << [
-                    File.join(dest, File.basename(file)),
-                    Dir.entries(file).reject { |path| path =~ /^\./ }.map { |entry| File.join(file, entry) }
-                  ]
-                else
-                  assets << [ file, File.join(dest, File.basename(file)).gsub(%r{(^|\G|(?<=/))\./|/\.$}, ''), [] ]
+                Array(file).each do |file|
+                  if File.directory?(file)
+                    queue << [
+                      File.join(dest, File.basename(file)),
+                      Dir.entries(file).reject { |path| path =~ /^\./ }.map { |entry| File.join(file, entry) }
+                    ]
+                  else
+                    assets << [ file, File.join(dest, File.basename(file)).gsub(%r{(^|\G|(?<=/))\./|/\.$}, ''), [] ]
+                  end
                 end
               end
             end

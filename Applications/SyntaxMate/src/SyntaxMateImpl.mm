@@ -9,7 +9,7 @@
 #import <file/type.h>
 #import <OakFoundation/NSString Additions.h>
 
-NSString* const SyntaxMateErrorDomain = @"com.macromates.SyntaxMate.Error";
+NSString* const SyntaxMateErrorDomain = @"org.oakmate.SyntaxMate.Error";
 
 @implementation SyntaxMateImpl
 
@@ -46,7 +46,7 @@ NSString* const SyntaxMateErrorDomain = @"com.macromates.SyntaxMate.Error";
 		return;
 	}
 	
-	// Highlight source code using TextMate engine
+	// Highlight source code using OakMate engine
 	NSError* error;
 	if(![SyntaxMateImpl addStylesToSourceCode:sourceCode withPath:path error:&error])
 	{

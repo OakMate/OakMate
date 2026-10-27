@@ -52,7 +52,7 @@ static void parse_status_output (scm::status_map_t& entries, std::string const& 
 		}
 		else if(line.size())
 		{
-			os_log_error(OS_LOG_DEFAULT, "TextMate/svn: Unexpected line: ‘%{public}s’", line.c_str());
+			os_log_error(OS_LOG_DEFAULT, "OakMate/svn: Unexpected line: ‘%{public}s’", line.c_str());
 		}
 	}
 }
@@ -82,7 +82,7 @@ namespace scm
 	{
 		svn_driver_t () : driver_t("svn", "%s/.svn", "svn")
 		{
-			if(CFBundleRef bundle = CFBundleGetBundleWithIdentifier(CFSTR("com.macromates.TextMate.scm")) ?: CFBundleGetMainBundle())
+			if(CFBundleRef bundle = CFBundleGetBundleWithIdentifier(CFSTR("org.oakmate.OakMate.scm")) ?: CFBundleGetMainBundle())
 			{
 				if(CFURLRef xsltURL = CFBundleCopyResourceURL(bundle, CFSTR("svn_status"), CFSTR("xslt"), nullptr))
 				{

@@ -175,7 +175,7 @@ static NSArray* const kObservedKeyPaths = @[ @"arrayController.arrangedObjects.p
 @implementation DocumentWindowController
 + (KVDB*)sharedProjectStateDB
 {
-	NSString* appSupport = [[NSSearchPathForDirectoriesInDomains(NSApplicationSupportDirectory, NSUserDomainMask, YES) objectAtIndex:0] stringByAppendingPathComponent:@"TextMate"];
+	NSString* appSupport = [[NSSearchPathForDirectoriesInDomains(NSApplicationSupportDirectory, NSUserDomainMask, YES) objectAtIndex:0] stringByAppendingPathComponent:@"OakMate"];
 	return [KVDB sharedDBUsingFile:@"RecentProjects.db" inDirectory:appSupport];
 }
 
@@ -2317,12 +2317,12 @@ static NSArray* const kObservedKeyPaths = @[ @"arrayController.arrangedObjects.p
 // = Touch Bar =
 // =============
 
-static NSTouchBarItemIdentifier kTouchBarCustomizationIdentifier = @"com.macromates.TextMate.touch-bar.customization-identifier";
-static NSTouchBarItemIdentifier kTouchBarTabNavigationIdentifier = @"com.macromates.TextMate.touch-bar.tab-navigation";
-static NSTouchBarItemIdentifier kTouchBarNewTabItemIdentifier    = @"com.macromates.TextMate.touch-bar.new-tab";
-static NSTouchBarItemIdentifier kTouchBarQuickOpenItemIdentifier = @"com.macromates.TextMate.touch-bar.quick-open";
-static NSTouchBarItemIdentifier kTouchBarFindItemIdentifier      = @"com.macromates.TextMate.touch-bar.find";
-static NSTouchBarItemIdentifier kTouchBarFavoritesItemIdentifier = @"com.macromates.TextMate.touch-bar.favorites";
+static NSTouchBarItemIdentifier kTouchBarCustomizationIdentifier = @"org.oakmate.OakMate.touch-bar.customization-identifier";
+static NSTouchBarItemIdentifier kTouchBarTabNavigationIdentifier = @"org.oakmate.OakMate.touch-bar.tab-navigation";
+static NSTouchBarItemIdentifier kTouchBarNewTabItemIdentifier    = @"org.oakmate.OakMate.touch-bar.new-tab";
+static NSTouchBarItemIdentifier kTouchBarQuickOpenItemIdentifier = @"org.oakmate.OakMate.touch-bar.quick-open";
+static NSTouchBarItemIdentifier kTouchBarFindItemIdentifier      = @"org.oakmate.OakMate.touch-bar.find";
+static NSTouchBarItemIdentifier kTouchBarFavoritesItemIdentifier = @"org.oakmate.OakMate.touch-bar.favorites";
 
 - (NSTouchBar*)makeTouchBar
 {
@@ -2688,7 +2688,7 @@ static NSUInteger DisableSessionSavingCount = 0;
 	[self showWindow:nil];
 	if(NSApp.isActive)
 	{
-		// If we call ‘mate -w’ in quick succession there is a chance that we have a pending “re-activate the terminal app” when this code is executed, which will make ‘isActive’ return ‘YES’ but shortly after, our application will become inactive. For this reason, we monitor the NSApplicationDidResignActiveNotification for 200 ms and re-activate TextMate if we see the notification.
+		// If we call ‘mate -w’ in quick succession there is a chance that we have a pending “re-activate the terminal app” when this code is executed, which will make ‘isActive’ return ‘YES’ but shortly after, our application will become inactive. For this reason, we monitor the NSApplicationDidResignActiveNotification for 200 ms and re-activate OakMate if we see the notification.
 
 		__weak __block id token = [NSNotificationCenter.defaultCenter addObserverForName:NSApplicationDidResignActiveNotification object:NSApp queue:nil usingBlock:^(NSNotification*){
 			[NSNotificationCenter.defaultCenter removeObserver:token];
@@ -2830,7 +2830,7 @@ static NSUInteger DisableSessionSavingCount = 0;
 	[controller bringToFront];
 	[controller openAndSelectDocument:controller.documents[controller.selectedTabIndex] activate:YES];
 
-	// If we launch TextMate with a document to open and there are also session to restore
+	// If we launch OakMate with a document to open and there are also session to restore
 	// then the document window ends up behind all the other windows, despite being active
 	// and the last window ordered front. Problem only seen on MAC_OS_X_VERSION_10_11.
 	// Running the next line somehow fixes the issue.

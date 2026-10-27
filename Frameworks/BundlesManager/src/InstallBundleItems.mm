@@ -113,11 +113,11 @@ void InstallBundleItems (NSArray* itemPaths)
 		{
 			NSAlert* alert        = [[NSAlert alloc] init];
 			alert.messageText     = [NSString stringWithFormat:@"Would you like to install the “%@” bundle?", [NSString stringWithCxxString:info.name]];
-			alert.informativeText = @"Installing a bundle adds new functionality to TextMate.";
+			alert.informativeText = @"Installing a bundle adds new functionality to OakMate.";
 			[alert addButtons:@"Install", @"Cancel", nil];
 			if([alert runModal] == NSAlertFirstButtonReturn) // "Install"
 			{
-				std::string const installDir = path::join(path::home(), "Library/Application Support/TextMate/Pristine Copy/Bundles");
+				std::string const installDir = path::join(path::home(), "Library/Application Support/OakMate/Pristine Copy/Bundles");
 				if(path::make_dir(installDir))
 				{
 					std::string const installPath = path::unique(path::join(installDir, path::name(info.path)));

@@ -26,7 +26,7 @@ namespace // encoding_list
 	{
 		std::vector<charset_t> res;
 
-		std::string path = path::join(path::home(), "Library/Application Support/TextMate/Charsets.plist");
+		std::string path = path::join(path::home(), "Library/Application Support/OakMate/Charsets.plist");
 		if(!path::exists(path))
 			path = to_s([[NSBundle bundleForClass:[OakEncodingPopUpButton class]] pathForResource:@"Charsets" ofType:@"plist"]);
 

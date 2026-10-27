@@ -309,7 +309,7 @@ namespace
 + (NSURL*)databaseURL
 {
 	NSError* error;
-	if(NSURL* appSupport = [[NSFileManager.defaultManager URLForDirectory:NSApplicationSupportDirectory inDomain:NSUserDomainMask appropriateForURL:nil create:YES error:&error] URLByAppendingPathComponent:@"TextMate"])
+	if(NSURL* appSupport = [[NSFileManager.defaultManager URLForDirectory:NSApplicationSupportDirectory inDomain:NSUserDomainMask appropriateForURL:nil create:YES error:&error] URLByAppendingPathComponent:@"OakMate"])
 	{
 		if([NSFileManager.defaultManager createDirectoryAtURL:appSupport withIntermediateDirectories:YES attributes:nil error:&error])
 			return [appSupport URLByAppendingPathComponent:@"PasteboardHistory.db"];
@@ -331,7 +331,7 @@ namespace
 		{
 			for(NSString* file in @[ @"ClipboardHistory.db", @"ClipboardHistory.db-shm", @"ClipboardHistory.db-wal" ])
 			{
-				NSURL* url = [[appSupport URLByAppendingPathComponent:@"TextMate"] URLByAppendingPathComponent:file];
+				NSURL* url = [[appSupport URLByAppendingPathComponent:@"OakMate"] URLByAppendingPathComponent:file];
 				if([NSFileManager.defaultManager fileExistsAtPath:url.path])
 				{
 					NSURL* res;

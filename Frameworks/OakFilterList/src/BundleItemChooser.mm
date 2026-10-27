@@ -879,7 +879,7 @@ static std::vector<bundles::item_ptr> relevant_items_in_scope (scope::context_t 
 			std::set<std::string> keysSeen;
 			for(auto const& path : KeyBindingLocations)
 			{
-				std::string displayPath = path::is_child(path, oak::application_t::path()) ? "TextMate.app ‣ " + path::name(path) : path::with_tilde(path);
+				std::string displayPath = path::is_child(path, oak::application_t::path()) ? "OakMate.app ‣ " + path::name(path) : path::with_tilde(path);
 				for(auto const& pair : plist::load(path))
 				{
 					std::string key = ns::normalize_event_string(pair.first);
@@ -919,7 +919,7 @@ static std::vector<bundles::item_ptr> relevant_items_in_scope (scope::context_t 
 			for(auto const& info : settings_info_for_path(to_s(self.path), self.searchAllScopes ? scope::wildcard : self.scope.right, to_s(self.directory)))
 			{
 				std::string const name = info.variable;
-				std::string const path = info.path == NULL_STR ? "TextMate.app ‣ Preferences" : (path::is_child(info.path, oak::application_t::path()) ? "TextMate.app ‣ " + path::name(info.path) : path::with_tilde(info.path)) + (info.section == NULL_STR ? "" : " ‣ " + info.section);
+				std::string const path = info.path == NULL_STR ? "OakMate.app ‣ Preferences" : (path::is_child(info.path, oak::application_t::path()) ? "OakMate.app ‣ " + path::name(info.path) : path::with_tilde(info.path)) + (info.section == NULL_STR ? "" : " ‣ " + info.section);
 
 				ActionItem* item = [[ActionItem alloc] init];
 				item.itemName = to_ns(name);

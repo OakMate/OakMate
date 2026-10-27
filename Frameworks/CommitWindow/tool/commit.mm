@@ -16,7 +16,7 @@ int main (int argc, char* argv[])
 	char const* appPid        = getenv("TM_PID");
 	if(!appIdentifier || !appPid)
 	{
-		fprintf(stderr, "%s: TM_APP_IDENTIFIER and TM_PID must be set. Run this tool from a TextMate command.\n", getprogname());
+		fprintf(stderr, "%s: TM_APP_IDENTIFIER and TM_PID must be set. Run this tool from an OakMate command.\n", getprogname());
 		return EX_UNAVAILABLE;
 	}
 
@@ -41,14 +41,14 @@ int main (int argc, char* argv[])
 		std::string message;
 		if(!ipc::send(connection, std::string((char const*)request.bytes, request.length)) || !ipc::receive(connection, message))
 		{
-			fprintf(stderr, "%s: no reply from TextMate\n", getprogname());
+			fprintf(stderr, "%s: no reply from OakMate\n", getprogname());
 			return EX_UNAVAILABLE;
 		}
 
 		NSDictionary* reply = [NSPropertyListSerialization propertyListWithData:[NSData dataWithBytes:message.data() length:message.size()] options:NSPropertyListImmutable format:nil error:nil];
 		if(![reply isKindOfClass:[NSDictionary class]])
 		{
-			fprintf(stderr, "%s: malformed reply from TextMate\n", getprogname());
+			fprintf(stderr, "%s: malformed reply from OakMate\n", getprogname());
 			return EX_PROTOCOL;
 		}
 

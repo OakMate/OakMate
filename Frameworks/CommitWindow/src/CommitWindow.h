@@ -10,7 +10,7 @@ static NSString* const kOakCommitWindowReturnCode           = @"returnCode";
 static NSString* const kOakCommitWindowContinue             = @"continue";
 
 #ifdef __cplusplus
-// Socket name for the TextMate process with the given bundle identifier and pid
+// Socket name for the OakMate process with the given bundle identifier and pid
 inline std::string OakCommitWindowSocketName (std::string const& bundleIdentifier, std::string const& pid)
 {
 	return bundleIdentifier + "." + pid + ".commit-window";

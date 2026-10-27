@@ -29,7 +29,7 @@ static void initialize_environment () {
 		settings_t::set_default_settings_path(defaultSettings);
 	}
 
-	settings_t::set_global_settings_path(path::join(path::home(), "Library/Application Support/TextMate/Global.tmProperties"));
+	settings_t::set_global_settings_path(path::join(path::home(), "Library/Application Support/OakMate/Global.tmProperties"));
 
 	std::map<std::string, std::string> env;
 	for(char** pair = environ; *pair; ++pair)

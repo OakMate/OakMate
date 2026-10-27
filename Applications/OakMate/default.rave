@@ -1,0 +1,37 @@
+target "${dirname}" {
+	require BundleEditor BundleMenu BundlesManager CommitWindow DocumentWindow Find HTMLOutputWindow MenuBuilder OakAppKit OakCommand OakFilterList OakFoundation OakSystem OakTextView Preferences authorization bundles cf command crash document io kvdb network ns plist regexp scm settings text theme
+
+	set HTML_HEADER     "${dir}/templates/header.html"
+	set HTML_FOOTER     "${dir}/templates/footer.html"
+
+	set     APP_CHANGES "${dir}/about/Changes.md"
+	capture APP_VERSION "grep -om1 '^## .* (v.*)$' '${APP_CHANGES}'|sed 's/.*(v\\(.*\))/\\1/'"
+
+	config "debug" {
+		add PLIST_FLAGS "-d'CS_GET_TASK_ALLOW=true'"
+	}
+
+	config "release" {
+		add PLIST_FLAGS "-d'CS_GET_TASK_ALLOW=false'"
+	}
+
+	expand CS_ENTITLEMENTS "${dir}/Entitlements.plist"
+
+	add PLIST_FLAGS "-dAPP_VERSION='${APP_VERSION}'"
+	add MD_FLAGS    "-h'${HTML_HEADER}' -f'${HTML_FOOTER}'"
+	add CS_FLAGS    "--entitlements '${CS_ENTITLEMENTS}'"
+
+	prefix "${target}.app/Contents"
+
+	files resources/* icon/*.icon @PrivilegedTool "Resources"
+	files @mate @tm_query    "MacOS"
+	files about/*            "Resources/About"
+	files Info.plist         "."
+	copy  support/*          "SharedSupport"
+	copy  @Dialog2           "PlugIns"
+	copy  @OakMateQLPreview @OakMateQLThumbnail "PlugIns"
+
+	sources src/*.{cc,mm}
+	executable "MacOS/${target}"
+	frameworks Cocoa
+}

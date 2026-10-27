@@ -167,7 +167,7 @@
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <textFieldCell key="cell" controlSize="mini" sendsActionOnEndEditing="YES" id="59">
                         <font key="font" metaFont="toolTip"/>
-                        <string key="title">If you wish to activate TextMate from an ssh session you can do so by copying the rmate script to the server you are logged into. The script will connect back to TextMate so you need to either allow access for remote clients (and setup your router to accept the specified port) or create an ssh tunnel. Use the help button in the corner for more information.</string>
+                        <string key="title">If you wish to activate OakMate from an ssh session you can do so by copying the rmate script to the server you are logged into. The script will connect back to OakMate so you need to either allow access for remote clients (and setup your router to accept the specified port) or create an ssh tunnel. Use the help button in the corner for more information.</string>
                         <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
                         <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                     </textFieldCell>
@@ -177,7 +177,7 @@
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <textFieldCell key="cell" controlSize="mini" selectable="YES" allowsUndo="NO" sendsActionOnEndEditing="YES" id="50">
                         <font key="font" metaFont="toolTip"/>
-                        <string key="title">To use TextMate as editor for subversion, git, and similar you need to install the mate shell command and add a line like the following to ~/.bashrc:
+                        <string key="title">To use OakMate as editor for subversion, git, and similar you need to install the mate shell command and add a line like the following to ~/.bashrc:
 
 	export EDITOR="${mate_path/^~/\$HOME/} -w"
 

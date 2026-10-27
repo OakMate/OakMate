@@ -22,7 +22,7 @@
 #import <spawn.h>
 
 NSNotificationName const OakCommandDidTerminateNotification = @"OakCommandDidTerminateNotification";
-NSString* const OakCommandErrorDomain                       = @"com.macromates.TextMate.ErrorDomain";
+NSString* const OakCommandErrorDomain                       = @"org.oakmate.OakMate.ErrorDomain";
 
 static NSString* const kOakFileHandleURLScheme = @"x-txmt-filehandle";
 
@@ -221,7 +221,7 @@ static pid_t run_command (dispatch_group_t rootGroup, std::string const& cmd, in
 		{
 			NSPipe* pipe = [NSPipe pipe];
 			_fileHandleForWritingHTML = pipe.fileHandleForWriting;
-			_queueForWritingHTML = dispatch_queue_create("org.textmate.write-html", DISPATCH_QUEUE_SERIAL);
+			_queueForWritingHTML = dispatch_queue_create("org.oakmate.write-html", DISPATCH_QUEUE_SERIAL);
 
 			static NSInteger UniqueKey = 0; // Make each URL unique to avoid caching
 

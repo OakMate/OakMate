@@ -57,12 +57,6 @@ extern NSString* const kUserDefaultsRMateServerPortKey;
 extern NSString* const kRMateServerListenLocalhost;
 extern NSString* const kRMateServerListenRemote;
 
-// ================
-// = Registration =
-// ================
-
-extern NSString* const kUserDefaultsLicenseOwnerKey;
-
 // ==============
 // = Appearance =
 // ==============

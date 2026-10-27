@@ -1,7 +1,7 @@
 Developer Documentation
 =======================
 
-TextMate is written in Objective-C++: the low-level data structures (mostly non-GUI specific code) are written in C++, the GUI part in Objective-C++ (the C++ part here coming from the need to use the low-level C++ data structures).
+OakMate is written in Objective-C++: the low-level data structures (mostly non-GUI specific code) are written in C++, the GUI part in Objective-C++ (the C++ part here coming from the need to use the low-level C++ data structures).
 
 ## Model
 
@@ -32,7 +32,7 @@ Also unlike the standard comparison object which takes 2 parameters (and models 
 * `it = tree.upper_bound(search, comp)`: then `it` is the first node for which `comp(search, it->offset, it->key) == -1` (i.e. the first node that is "more than" `search`)
 * `it = tree.find(search, comp)`: `it` is the node for which `comp(search, it->offset, it->key) == 0`, or `tree->end()` if no such node exists (i.e. the first node that is "equal" to `search`)
 
-`oak::basic_tree_t` is a very important data structure in TextMate as it is used in various places and contexts, including text storage, layout, to implement `ng::indexed_map_t` (see later), etc.
+`oak::basic_tree_t` is a very important data structure in OakMate as it is used in various places and contexts, including text storage, layout, to implement `ng::indexed_map_t` (see later), etc.
 
 ### `ng::detail::storage_t`
 This is a type used to store a (potentially big) sequence of bytes using chunks of memory stored in `oak::basic_tree_t`. Think of it as an efficient std::string :-). More specifically, inserting and deleting a string in a storage representing a string of length `N` is better than `O(N)`.
@@ -71,7 +71,7 @@ This data structure holds a `ng::buffer_t` and a viewport width and height and p
 ## GUI
 
 ### `OakTextView.framework`
-The `OakTextView.framework` contains the components you work most with when using TextMate:
+The `OakTextView.framework` contains the components you work most with when using OakMate:
 
 * `OakTextView`: the text view itself; it uses a `ng::buffer_t` together with `ng::layout_t` to display text, and among other things, implements input handling consistent with Cocoa's key bindings mechanism.
 * `GutterView`: the view left to the text view containing line numbers, folding marks etc.

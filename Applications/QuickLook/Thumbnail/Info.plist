@@ -5,13 +5,13 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>English</string>
 	<key>CFBundleDisplayName</key>
-	<string>TextMate</string>
+	<string>OakMate</string>
 	<key>CFBundleExecutable</key>
 	<string>${TARGET_NAME}</string>
 	<key>CFBundleName</key>
 	<string>${TARGET_NAME}</string>
 	<key>CFBundleIdentifier</key>
-	<string>com.macromates.TextMate.QuickLookThumbnail</string>
+	<string>org.oakmate.OakMate.QuickLookThumbnail</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundlePackageType</key>

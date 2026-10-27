@@ -30,14 +30,14 @@ int main (int argc, char const* argv[])
 	char const* socketPath = getenv(kDialogSocketEnvironmentVariable.UTF8String);
 	if(!socketPath)
 	{
-		fprintf(stderr, "%s: %s is not set. Run this tool from a TextMate command.\n", getprogname(), kDialogSocketEnvironmentVariable.UTF8String);
+		fprintf(stderr, "%s: %s is not set. Run this tool from an OakMate command.\n", getprogname(), kDialogSocketEnvironmentVariable.UTF8String);
 		return EX_UNAVAILABLE;
 	}
 
 	int connection = ipc::connect(socketPath);
 	if(connection == -1)
 	{
-		fprintf(stderr, "%s: error reaching TextMate: %s\n", getprogname(), strerror(errno));
+		fprintf(stderr, "%s: error reaching OakMate: %s\n", getprogname(), strerror(errno));
 		return EX_UNAVAILABLE;
 	}
 
@@ -61,7 +61,7 @@ int main (int argc, char const* argv[])
 
 		if(!ipc::send(connection, std::string((char const*)data.bytes, data.length), { input[0], output[1], error[1] }))
 		{
-			fprintf(stderr, "%s: error sending request to TextMate: %s\n", getprogname(), strerror(errno));
+			fprintf(stderr, "%s: error sending request to OakMate: %s\n", getprogname(), strerror(errno));
 			return EX_UNAVAILABLE;
 		}
 
@@ -69,7 +69,7 @@ int main (int argc, char const* argv[])
 		close(output[1]);
 		close(error[1]);
 
-		// Relay our input until TextMate closes its end of the output pipes
+		// Relay our input until OakMate closes its end of the output pipes
 		std::map<int, int> fdMap = { { output[0], STDOUT_FILENO }, { error[0], STDERR_FILENO } };
 		if(isatty(STDIN_FILENO))
 				close(input[1]);

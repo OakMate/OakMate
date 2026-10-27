@@ -5,7 +5,7 @@
 #import <ns/ns.h>
 
 NSURL* const kURLLocationComputer  = [[NSURL alloc] initWithString:@"computer:///"];
-NSURL* const kURLLocationFavorites = [[NSURL alloc] initFileURLWithPath:[NSHomeDirectory() stringByAppendingPathComponent:@"Library/Application Support/TextMate/Favorites"] isDirectory:YES];
+NSURL* const kURLLocationFavorites = [[NSURL alloc] initFileURLWithPath:[NSHomeDirectory() stringByAppendingPathComponent:@"Library/Application Support/OakMate/Favorites"] isDirectory:YES];
 
 @interface FileItem ()
 @property (nonatomic, readonly) BOOL alwaysShowFileExtension;

@@ -56,7 +56,7 @@ namespace fs
 		FSEventStreamContext context = { 0, new context_t{ _state }, &retain_context, &release_context, nullptr };
 		if(_stream = FSEventStreamCreate(kCFAllocatorDefault, &callback, &context, cf::wrap(paths), sinceEventId, latency, flags))
 		{
-			static dispatch_queue_t queue = dispatch_queue_create("org.textmate.fsevents", DISPATCH_QUEUE_SERIAL);
+			static dispatch_queue_t queue = dispatch_queue_create("org.oakmate.fsevents", DISPATCH_QUEUE_SERIAL);
 			FSEventStreamSetDispatchQueue(_stream, queue);
 			if(!FSEventStreamStart(_stream))
 			{

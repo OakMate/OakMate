@@ -13,6 +13,6 @@ jobs:
     - name: Configure
       run: ./configure
     - name: Build
-      run: ninja TextMate
+      run: ninja OakMate
     - name: Test
       run: ninja test

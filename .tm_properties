@@ -17,7 +17,7 @@ TM_CXX_FLAGS         = '$TM_CXX_FLAGS    -I"$CWD/Shared/include" ${TM_FRAMEWORK_
 TM_OBJCXX_FLAGS      = '$TM_OBJCXX_FLAGS -I"$CWD/Shared/include" ${TM_FRAMEWORK_INCLUDE}'
 
 TM_NINJA_FILE        = '${CWD}/build.ninja'
-TM_NINJA_TARGET      = 'TextMate/run'
+TM_NINJA_TARGET      = 'OakMate/run'
 
 TM_ISSUE_URL         = 'https://github.com/textmate/textmate/issues/%s'
 

@@ -1,26 +1,20 @@
-# TextMate
+# OakMate
 
-## Download
+OakMate is a fast, native text editor for macOS. It is a continuation of [TextMate 2][TextMate] and keeps working with TextMate bundles, themes, and `.tm_properties` files. The name pays tribute to the Oak frameworks that TextMate is built from.
 
-You can [download TextMate from here](https://macromates.com/download).
+OakMate is not affiliated with or endorsed by MacroMates.
 
-## Feedback
+## Coming from TextMate
 
-You can use [the TextMate mailing list](https://lists.macromates.com/listinfo/textmate) or [#textmate][] IRC channel on [freenode.net][] for questions, comments, and bug reports.
+The first time OakMate starts, it copies the settings, bundles, plug-ins, and history from TextMate. TextMate itself is left untouched and both applications can be installed side by side.
 
-You can also [contact MacroMates](https://macromates.com/support).
-
-Before you submit a bug report please read the [writing bug reports](https://github.com/textmate/textmate/wiki/writing-bug-reports) instructions.
-
-## Screenshot
-
-![textmate](https://raw.github.com/textmate/textmate/gh-pages/images/screenshot.png)
+Bundle commands keep working since the `TM_*` environment variables, the `txmt://` URL scheme, `mate`, and `rmate` are unchanged.
 
 # Building
 
 ## Setup
 
-TextMate builds on Apple silicon Macs running macOS 14 or later. You need:
+OakMate builds on Apple silicon Macs running macOS 14 or later. You need:
 
  * [Xcode][]            — the compiler and macOS SDK
  * [ninja][]            — build system similar to `make`
@@ -35,34 +29,33 @@ sudo port install ninja    # MacPorts
 Then clone the repository and run `./configure` followed by `ninja`, for example:
 
 ```sh
-git clone https://github.com/textmate/textmate.git
-cd textmate
-./configure && ninja TextMate/run
+cd oakmate
+./configure && ninja OakMate/run
 ```
 
-The `./configure` script checks that the tools can be found and then calls `bin/rave` to bootstrap a `build.ninja` file with default config set to `release` and default target set to `TextMate`.
+The `./configure` script checks that the tools can be found and then calls `bin/rave` to bootstrap a `build.ninja` file with default config set to `release` and default target set to `OakMate`.
 
 Machine-specific settings (extra compiler flags, code signing identity, etc.) can be placed in an optional `local.rave` file, which is not under version control.
 
-## Building from within TextMate
+## Building from within OakMate
 
 You should install the [Ninja][NinjaBundle] bundle which can be installed via _Preferences_ → _Bundles_.
 
-After this you can press ⌘B to build from within TextMate. In case you haven't already you also need to set up the `PATH` variable either in _Preferences_ → _Variables_ or `~/.tm_properties` so it can find `ninja` and related tools; an example could be `$PATH:/usr/local/bin`.
+After this you can press ⌘B to build from within OakMate. In case you haven't already you also need to set up the `PATH` variable either in _Preferences_ → _Variables_ or `~/.tm_properties` so it can find `ninja` and related tools; an example could be `$PATH:/usr/local/bin`.
 
-The default target (set in `.tm_properties`) is `TextMate/run`. This will relaunch TextMate but when called from within TextMate, a dialog will appear before the current instance is killed. As there is full session restore, it is safe to relaunch even with unsaved changes.
+The default target (set in `.tm_properties`) is `OakMate/run`. This will relaunch OakMate but when called from within OakMate, a dialog will appear before the current instance is killed. As there is full session restore, it is safe to relaunch even with unsaved changes.
 
 If the current file is a test file then the target to build is changed to build the library to which the test belongs (this is done by setting `TM_NINJA_TARGET` in the `.tm_properties` file found in the root of the source tree).
 
-Similarly, if the current file belongs to an application target (other than `TextMate.app`) then `TM_NINJA_TARGET` is set to build and run this application.
+Similarly, if the current file belongs to an application target (other than `OakMate.app`) then `TM_NINJA_TARGET` is set to build and run this application.
 
 ## Build Targets
 
-For the `TextMate.app` application there are two symbolic build targets:
+For the `OakMate.app` application there are two symbolic build targets:
 
 ```sh
-ninja TextMate      # Build and sign TextMate
-ninja TextMate/run  # Build, sign, and (re)launch TextMate
+ninja OakMate       # Build and sign OakMate
+ninja OakMate/run   # Build, sign, and (re)launch OakMate
 ```
 
 To build and run all unit tests:
@@ -78,18 +71,22 @@ To clean everything run:
 ninja -t clean
 ```
 
-Or simply delete `~/build/TextMate`.
+Or simply delete the build directory, `~/build/«name of the source folder»` by default.
 
 # Legal
 
-The source for TextMate is released under the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+OakMate is a modified version of TextMate, copyright MacroMates Ltd. and contributors. Like TextMate, the source is released under the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. See [LICENSE](LICENSE).
 
-TextMate is a trademark of Allan Odgaard.
+TextMate is a trademark of Allan Odgaard. OakMate does not use the TextMate name or artwork other than to describe where it comes from.
+
+## App Icon
+
+The icon is an [Icon Composer][] file, `Applications/OakMate/icon/OakMate.icon`, compiled by `actool` during the build. Its layers are generated by `Applications/OakMate/icon/leaf.py`.
 
 [Xcode]:         https://developer.apple.com/xcode/
 [ninja]:         https://ninja-build.org/
 [MacPorts]:      http://www.macports.org/
 [Homebrew]:      http://brew.sh/
 [NinjaBundle]:   https://github.com/textmate/ninja.tmbundle
-[#textmate]:     irc://irc.freenode.net/#textmate
-[freenode.net]:  http://freenode.net/
+[TextMate]:      https://github.com/textmate/textmate
+[Icon Composer]: https://developer.apple.com/icon-composer/

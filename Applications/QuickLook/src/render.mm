@@ -20,13 +20,13 @@ static void initialize ()
 {
 	static dispatch_once_t onceToken;
 	dispatch_once(&onceToken, ^{
-		// The extension is located in TextMate.app/Contents/PlugIns
+		// The extension is located in OakMate.app/Contents/PlugIns
 		NSString* appPath = NSBundle.mainBundle.bundlePath.stringByDeletingLastPathComponent.stringByDeletingLastPathComponent.stringByDeletingLastPathComponent;
 		oak::application_t::set_path(to_s(appPath));
 
 		// Load settings
 		settings_t::set_default_settings_path(oak::application_t::path("Contents/Resources/Default.tmProperties"));
-		settings_t::set_global_settings_path(path::join(path::home(), "Library/Application Support/TextMate/Global.tmProperties"));
+		settings_t::set_global_settings_path(path::join(path::home(), "Library/Application Support/OakMate/Global.tmProperties"));
 
 		// Load bundle index
 		std::vector<std::string> paths;
@@ -34,7 +34,7 @@ static void initialize ()
 			paths.push_back(path::join(path, "Bundles"));
 
 		plist::cache_t cache;
-		cache.load_binary(path::join(path::home(), "Library/Caches/com.macromates.TextMate/BundlesIndex.binary"));
+		cache.load_binary(path::join(path::home(), "Library/Caches/org.oakmate.OakMate/BundlesIndex.binary"));
 
 		auto index = create_bundle_index(paths, cache);
 		bundles::set_index(index.first, index.second);
@@ -137,7 +137,7 @@ NSAttributedString* TMQLCreatePreview (NSURL* url, NSColor** backgroundColor)
 	if(fileType == NULL_STR)
 		fileType = "text.plain";
 
-	NSUserDefaults* userDefaults = [[NSUserDefaults alloc] initWithSuiteName:@"com.macromates.TextMate"];
+	NSUserDefaults* userDefaults = [[NSUserDefaults alloc] initWithSuiteName:@"org.oakmate.OakMate"];
 	NSString* appearance = [userDefaults stringForKey:@"themeAppearance"];
 	BOOL darkMode = [appearance isEqualToString:@"dark"];
 	if(!darkMode && ![appearance isEqualToString:@"light"]) // If it is not ‘light’ then assume ‘auto’

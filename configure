@@ -16,6 +16,6 @@ done
 # ========================
 
 if [[ -d "$builddir" ]];
-	then bin/rave -crelease -tTextMate -b"$builddir"
-	else bin/rave -crelease -tTextMate
+	then bin/rave -crelease -tOakMate -b"$builddir"
+	else bin/rave -crelease -tOakMate
 fi

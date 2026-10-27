@@ -40,7 +40,7 @@ static proxy_settings_t user_pw_settings (CFStringRef server, CFNumberRef portNu
 	else if(err != errSecItemNotFound)
 	{
 		CFStringRef message = SecCopyErrorMessageString(err, nullptr);
-		os_log_error(OS_LOG_DEFAULT, "TextMate/proxy: SecItemCopyMatching() failed with error ‘%{public}@’", message);
+		os_log_error(OS_LOG_DEFAULT, "OakMate/proxy: SecItemCopyMatching() failed with error ‘%{public}@’", message);
 		CFRelease(message);
 	}
 
@@ -75,14 +75,14 @@ proxy_settings_t first_proxy_from_array (CFArrayRef proxies, CFURLRef targetURL)
 		CFDictionaryRef proxy = (CFDictionaryRef)CFArrayGetValueAtIndex(proxies, i);
 		if(!proxy || CFGetTypeID(proxy) != CFDictionaryGetTypeID())
 		{
-			os_log_error(OS_LOG_DEFAULT, "TextMate/proxy: Expected proxy info to be a CFDictionaryRef");
+			os_log_error(OS_LOG_DEFAULT, "OakMate/proxy: Expected proxy info to be a CFDictionaryRef");
 			continue;
 		}
 
 		CFStringRef type = (CFStringRef)CFDictionaryGetValue(proxy, kCFProxyTypeKey);
 		if(!type || CFGetTypeID(type) != CFStringGetTypeID())
 		{
-			os_log_error(OS_LOG_DEFAULT, "TextMate/proxy: Expected kCFProxyTypeKey to be a CFStringRef");
+			os_log_error(OS_LOG_DEFAULT, "OakMate/proxy: Expected kCFProxyTypeKey to be a CFStringRef");
 			continue;
 		}
 
@@ -116,7 +116,7 @@ proxy_settings_t first_proxy_from_array (CFArrayRef proxies, CFURLRef targetURL)
 				if(result.error)
 				{
 					CFStringRef str = CFErrorCopyDescription(result.error);
-					os_log_error(OS_LOG_DEFAULT, "TextMate/proxy: PAC error ‘%{public}@’ for ‘%{public}@’", str, CFURLGetString(pacURL));
+					os_log_error(OS_LOG_DEFAULT, "OakMate/proxy: PAC error ‘%{public}@’ for ‘%{public}@’", str, CFURLGetString(pacURL));
 					CFRelease(str);
 				}
 				else if(result.proxies)
@@ -125,7 +125,7 @@ proxy_settings_t first_proxy_from_array (CFArrayRef proxies, CFURLRef targetURL)
 				}
 				else
 				{
-					os_log_error(OS_LOG_DEFAULT, "TextMate/proxy: No proxies returned from ‘%{public}@’", CFURLGetString(pacURL));
+					os_log_error(OS_LOG_DEFAULT, "OakMate/proxy: No proxies returned from ‘%{public}@’", CFURLGetString(pacURL));
 				}
 
 				if(result.proxies)
@@ -141,7 +141,7 @@ proxy_settings_t first_proxy_from_array (CFArrayRef proxies, CFURLRef targetURL)
 			}
 			else
 			{
-				os_log_error(OS_LOG_DEFAULT, "TextMate/proxy: Expected kCFProxyAutoConfigurationURLKey to be a CFURLRef");
+				os_log_error(OS_LOG_DEFAULT, "OakMate/proxy: Expected kCFProxyAutoConfigurationURLKey to be a CFURLRef");
 			}
 		}
 		else if(CFEqual(type, kCFProxyTypeHTTP) || CFEqual(type, kCFProxyTypeHTTPS) || CFEqual(type, kCFProxyTypeSOCKS))
@@ -156,11 +156,11 @@ proxy_settings_t first_proxy_from_array (CFArrayRef proxies, CFURLRef targetURL)
 				return res;
 			}
 
-			os_log_error(OS_LOG_DEFAULT, "TextMate/proxy: Expected kCFProxyHostNameKey/kCFProxyPortNumberKey to be CFStringRef/CFNumberRef");
+			os_log_error(OS_LOG_DEFAULT, "OakMate/proxy: Expected kCFProxyHostNameKey/kCFProxyPortNumberKey to be CFStringRef/CFNumberRef");
 		}
 		else
 		{
-			os_log_error(OS_LOG_DEFAULT, "TextMate/proxy: Unknown proxy type: %{public}@", type);
+			os_log_error(OS_LOG_DEFAULT, "OakMate/proxy: Unknown proxy type: %{public}@", type);
 		}
 	}
 	return proxy_settings_t();
@@ -183,19 +183,19 @@ proxy_settings_t get_proxy_settings (std::string const& url)
 			}
 			else
 			{
-				os_log_error(OS_LOG_DEFAULT, "TextMate/proxy: NULL returned from CFNetworkCopyProxiesForURL(‘%{public}s’)", url.c_str());
+				os_log_error(OS_LOG_DEFAULT, "OakMate/proxy: NULL returned from CFNetworkCopyProxiesForURL(‘%{public}s’)", url.c_str());
 			}
 			CFRelease(proxySettings);
 		}
 		else
 		{
-			os_log_error(OS_LOG_DEFAULT, "TextMate/proxy: NULL returned from SCDynamicStoreCopyProxies()");
+			os_log_error(OS_LOG_DEFAULT, "OakMate/proxy: NULL returned from SCDynamicStoreCopyProxies()");
 		}
 		CFRelease(targetURL);
 	}
 	else
 	{
-		os_log_error(OS_LOG_DEFAULT, "TextMate/proxy: Unable to create CFURLRef from ‘%{public}s’", url.c_str());
+		os_log_error(OS_LOG_DEFAULT, "OakMate/proxy: Unable to create CFURLRef from ‘%{public}s’", url.c_str());
 	}
 
 	return res;

@@ -2,7 +2,7 @@
 //
 //   TextMate.system(command, handler)  Run a shell command, see below.
 //   TextMate.log(message)              Write a message to the system log.
-//   TextMate.open(path, options)       Open a file in TextMate. Options is a selection string or a line number.
+//   TextMate.open(path, options)       Open a file in OakMate. Options is a selection string or a line number.
 //   TextMate.isBusy                    Show the busy spinner in the status bar while true.
 //   TextMate.progress                  Value (0-1) of the progress indicator.
 //
@@ -87,7 +87,7 @@
 		set progress (v) { progress = Number(v) || 0; post("setProgress", { value: progress }); },
 	};
 
-	// Called by TextMate to deliver output from asynchronous commands
+	// Called by OakMate to deliver output from asynchronous commands
 	Object.defineProperty(TextMate, "_commandEvent", {
 		value: function (id, type, data) {
 			const cmd = commands.get(id);

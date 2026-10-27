@@ -139,7 +139,7 @@ static void version ()
 
 int main (int argc, char const* argv[])
 {
-	oak::application_t::set_support(path::join(path::home(), "Library/Application Support/TextMate"));
+	oak::application_t::set_support(path::join(path::home(), "Library/Application Support/OakMate"));
 	oak::application_t app(argc, argv);
 
 	static struct option const longopts[] = {

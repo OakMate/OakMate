@@ -27,7 +27,7 @@
 
 // Generated
 @property (nonatomic, readonly)                        BOOL hasUpdate;
-@property (nonatomic, getter = isCompatible, readonly) BOOL compatible; // Works with current version of TextMate
+@property (nonatomic, getter = isCompatible, readonly) BOOL compatible; // Works with current version of OakMate
 @end
 
 @interface BundleGrammar : NSObject
