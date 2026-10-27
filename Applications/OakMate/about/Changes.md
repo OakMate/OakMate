@@ -2,6 +2,14 @@ Title: Release Notes
 
 # Changes
 
+## 2026-10-27 (v2.1.1)
+
+* The tab bar has the same height as in TextMate again.
+* Add OakMate → Uninstall OakMate… to move OakMate, its settings, and its caches to the Trash.
+* Check for Updates… explains when GitHub limits how often updates can be checked.
+* Contributor pictures in About → Contributions load again.
+* Saved settings are visible immediately, and the tests no longer hang on CI.
+
 ## 2026-10-27 (v2.1.0)
 
 First release of OakMate, a continuation of TextMate 2.0.22.
