@@ -4,11 +4,9 @@ OakMate is a fast, native text editor for macOS. It is a continuation of [TextMa
 
 OakMate is not affiliated with or endorsed by MacroMates.
 
-## Coming from TextMate
+## Bundles
 
-The first time OakMate starts, it copies the settings, bundles, plug-ins, and history from TextMate. TextMate itself is left untouched and both applications can be installed side by side.
-
-Bundle commands keep working since the `TM_*` environment variables, the `txmt://` URL scheme, `mate`, and `rmate` are unchanged.
+OakMate uses TextMate bundles. The `TM_*` environment variables, the `txmt://` URL scheme, `mate`, and `rmate` work as they do in TextMate.
 
 # Building
 

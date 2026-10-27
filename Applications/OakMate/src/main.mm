@@ -46,57 +46,8 @@ static void increase_max_open_files (rlim_t required = 2048)
 		fprintf(stderr, "Increased maximum number of open files from %llu to %llu\n", oldLimit, limit.rlim_cur);
 }
 
-// On first launch, copy settings, bundles, and history from TextMate. The open
-// documents of TextMate’s session are left alone since their backup files are
-// managed by TextMate.
-static void import_textmate_settings ()
-{
-	@autoreleasepool {
-		NSFileManager* fm = NSFileManager.defaultManager;
-		NSString* appSupport = NSSearchPathForDirectoriesInDomains(NSApplicationSupportDirectory, NSUserDomainMask, YES).firstObject;
-		NSString* src = [appSupport stringByAppendingPathComponent:@"TextMate"];
-		NSString* dst = [appSupport stringByAppendingPathComponent:@"OakMate"];
-
-		if(![fm fileExistsAtPath:dst] && [fm fileExistsAtPath:src])
-		{
-			NSError* error;
-			if([fm createDirectoryAtPath:dst withIntermediateDirectories:YES attributes:nil error:&error])
-			{
-				for(NSString* name in [fm contentsOfDirectoryAtPath:src error:nil])
-				{
-					if([name isEqualToString:@"Session"])
-						continue;
-					if(![fm copyItemAtPath:[src stringByAppendingPathComponent:name] toPath:[dst stringByAppendingPathComponent:name] error:&error])
-						os_log_error(OS_LOG_DEFAULT, "Failed to copy ‘%{public}@’ from TextMate: %{public}@", name, error.localizedDescription);
-				}
-			}
-			else
-			{
-				os_log_error(OS_LOG_DEFAULT, "Failed to create ‘%{public}@’: %{public}@", dst, error.localizedDescription);
-			}
-		}
-
-		CFArrayRef ourKeys = CFPreferencesCopyKeyList(kCFPreferencesCurrentApplication, kCFPreferencesCurrentUser, kCFPreferencesAnyHost);
-		BOOL firstLaunch = !ourKeys || CFArrayGetCount(ourKeys) == 0;
-		if(ourKeys)
-			CFRelease(ourKeys);
-
-		if(firstLaunch)
-		{
-			if(CFDictionaryRef settings = CFPreferencesCopyMultiple(NULL, CFSTR("com.macromates.TextMate"), kCFPreferencesCurrentUser, kCFPreferencesAnyHost))
-			{
-				CFPreferencesSetMultiple(settings, NULL, kCFPreferencesCurrentApplication, kCFPreferencesCurrentUser, kCFPreferencesAnyHost);
-				CFPreferencesAppSynchronize(kCFPreferencesCurrentApplication);
-				CFRelease(settings);
-			}
-		}
-	}
-}
-
 int main (int argc, char const* argv[])
 {
-	import_textmate_settings();
-
 	oak::application_t::set_support(path::join(path::home(), "Library/Application Support/OakMate"));
 	oak::application_t app(argc, argv);
 
