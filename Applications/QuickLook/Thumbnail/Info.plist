@@ -45,8 +45,8 @@
 				<string>com.microsoft.c-sharp</string>
 				<string>org.coffeescript.coffeescript</string>
 				<string>org.contextfreeart.contextfree</string>
-				<string>com.macromates.textmate.cgi-script</string>
-				<string>com.macromates.textmate.config-file</string>
+				<string>com.isztld.oakmate.cgi-script</string>
+				<string>com.isztld.oakmate.config-file</string>
 				<string>org.w3.css</string>
 				<string>org.dlang.d</string>
 				<string>public.patch-file</string>
@@ -60,9 +60,9 @@
 				<string>public.fortran-95-source</string>
 				<string>public.c-header</string>
 				<string>public.c-plus-plus-header</string>
-				<string>com.macromates.textmate.gtd</string>
+				<string>com.isztld.oakmate.gtd</string>
 				<string>org.haskell.haskell</string>
-				<string>com.macromates.textmate.include-file</string>
+				<string>com.isztld.oakmate.include-file</string>
 				<string>com.microsoft.ini</string>
 				<string>org.iolanguage.io</string>
 				<string>com.sun.java-source</string>
@@ -72,9 +72,9 @@
 				<string>com.sun.java-server-pages</string>
 				<string>public.json</string>
 				<string>org.ietf.ldap-data-interchange-format</string>
-				<string>com.macromates.textmate.lisp</string>
+				<string>com.isztld.oakmate.lisp</string>
 				<string>com.apple.log</string>
-				<string>com.macromates.textmate.logo</string>
+				<string>com.isztld.oakmate.logo</string>
 				<string>org.lua.lua</string>
 				<string>net.daringfireball.markdown</string>
 				<string>org.mediawiki.wiki-source</string>
@@ -95,11 +95,11 @@
 				<string>org.ruby-lang.eruby</string>
 				<string>org.rubyonrails.erb-sql</string>
 				<string>public.ruby-script</string>
-				<string>com.macromates.textmate.scheme</string>
-				<string>com.macromates.textmate.setext</string>
+				<string>com.isztld.oakmate.scheme</string>
+				<string>com.isztld.oakmate.setext</string>
 				<string>org.slatelanguage.slate</string>
 				<string>org.iso.sql</string>
-				<string>com.macromates.textmate.standard-ml</string>
+				<string>com.isztld.oakmate.standard-ml</string>
 				<string>com.apple.xcode.strings-text</string>
 				<string>org.swig.swig</string>
 				<string>tk.tcl.tcl</string>
@@ -109,14 +109,14 @@
 				<string>org.w3.xsl</string>
 				<string>com.microsoft.visual-basic</string>
 				<string>org.yaml.yaml</string>
-				<string>com.macromates.textmate.snippet</string>
-				<string>com.macromates.textmate.macro</string>
-				<string>com.macromates.textmate.language</string>
-				<string>com.macromates.textmate.preferences</string>
-				<string>com.macromates.textmate.command</string>
-				<string>com.macromates.textmate.drag-command</string>
-				<string>com.macromates.textmate.theme</string>
-				<string>com.macromates.textmate.release-notes</string>
+				<string>com.isztld.oakmate.snippet</string>
+				<string>com.isztld.oakmate.macro</string>
+				<string>com.isztld.oakmate.language</string>
+				<string>com.isztld.oakmate.preferences</string>
+				<string>com.isztld.oakmate.command</string>
+				<string>com.isztld.oakmate.drag-command</string>
+				<string>com.isztld.oakmate.theme</string>
+				<string>com.isztld.oakmate.release-notes</string>
 				<string>public.swift-source</string>
 				<string>com.microsoft.typescript</string>
 				<string>public.yaml</string>

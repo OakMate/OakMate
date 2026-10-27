@@ -239,7 +239,7 @@
 			<string>Alternate</string>
 			<key>LSItemContentTypes</key>
 			<array>
-				<string>com.macromates.textmate.cgi-script</string>
+				<string>com.isztld.oakmate.cgi-script</string>
 			</array>
 		</dict>
 		<dict>
@@ -251,7 +251,7 @@
 			<string>Alternate</string>
 			<key>LSItemContentTypes</key>
 			<array>
-				<string>com.macromates.textmate.config-file</string>
+				<string>com.isztld.oakmate.config-file</string>
 			</array>
 		</dict>
 		<dict>
@@ -419,7 +419,7 @@
 			<string>Alternate</string>
 			<key>LSItemContentTypes</key>
 			<array>
-				<string>com.macromates.textmate.gtd</string>
+				<string>com.isztld.oakmate.gtd</string>
 			</array>
 		</dict>
 		<dict>
@@ -455,7 +455,7 @@
 			<string>Alternate</string>
 			<key>LSItemContentTypes</key>
 			<array>
-				<string>com.macromates.textmate.include-file</string>
+				<string>com.isztld.oakmate.include-file</string>
 			</array>
 		</dict>
 		<dict>
@@ -587,7 +587,7 @@
 			<string>Alternate</string>
 			<key>LSItemContentTypes</key>
 			<array>
-				<string>com.macromates.textmate.lisp</string>
+				<string>com.isztld.oakmate.lisp</string>
 			</array>
 		</dict>
 		<dict>
@@ -611,7 +611,7 @@
 			<string>Alternate</string>
 			<key>LSItemContentTypes</key>
 			<array>
-				<string>com.macromates.textmate.logo</string>
+				<string>com.isztld.oakmate.logo</string>
 			</array>
 		</dict>
 		<dict>
@@ -899,7 +899,7 @@
 			<string>Alternate</string>
 			<key>LSItemContentTypes</key>
 			<array>
-				<string>com.macromates.textmate.scheme</string>
+				<string>com.isztld.oakmate.scheme</string>
 			</array>
 		</dict>
 		<dict>
@@ -911,7 +911,7 @@
 			<string>Alternate</string>
 			<key>LSItemContentTypes</key>
 			<array>
-				<string>com.macromates.textmate.setext</string>
+				<string>com.isztld.oakmate.setext</string>
 			</array>
 		</dict>
 		<dict>
@@ -959,7 +959,7 @@
 			<string>Alternate</string>
 			<key>LSItemContentTypes</key>
 			<array>
-				<string>com.macromates.textmate.standard-ml</string>
+				<string>com.isztld.oakmate.standard-ml</string>
 			</array>
 		</dict>
 		<dict>
@@ -1127,7 +1127,7 @@
 			<string>Owner</string>
 			<key>LSItemContentTypes</key>
 			<array>
-				<string>com.macromates.textmate.snippet</string>
+				<string>com.isztld.oakmate.snippet</string>
 			</array>
 		</dict>
 		<dict>
@@ -1139,7 +1139,7 @@
 			<string>Owner</string>
 			<key>LSItemContentTypes</key>
 			<array>
-				<string>com.macromates.textmate.macro</string>
+				<string>com.isztld.oakmate.macro</string>
 			</array>
 		</dict>
 		<dict>
@@ -1151,7 +1151,7 @@
 			<string>Owner</string>
 			<key>LSItemContentTypes</key>
 			<array>
-				<string>com.macromates.textmate.language</string>
+				<string>com.isztld.oakmate.language</string>
 			</array>
 		</dict>
 		<dict>
@@ -1163,7 +1163,7 @@
 			<string>Owner</string>
 			<key>LSItemContentTypes</key>
 			<array>
-				<string>com.macromates.textmate.preferences</string>
+				<string>com.isztld.oakmate.preferences</string>
 			</array>
 		</dict>
 		<dict>
@@ -1175,7 +1175,7 @@
 			<string>Owner</string>
 			<key>LSItemContentTypes</key>
 			<array>
-				<string>com.macromates.textmate.command</string>
+				<string>com.isztld.oakmate.command</string>
 			</array>
 		</dict>
 		<dict>
@@ -1187,7 +1187,7 @@
 			<string>Owner</string>
 			<key>LSItemContentTypes</key>
 			<array>
-				<string>com.macromates.textmate.drag-command</string>
+				<string>com.isztld.oakmate.drag-command</string>
 			</array>
 		</dict>
 		<dict>
@@ -1199,7 +1199,7 @@
 			<string>Owner</string>
 			<key>LSItemContentTypes</key>
 			<array>
-				<string>com.macromates.textmate.theme</string>
+				<string>com.isztld.oakmate.theme</string>
 			</array>
 		</dict>
 		<dict>
@@ -1211,7 +1211,7 @@
 			<string>Owner</string>
 			<key>LSItemContentTypes</key>
 			<array>
-				<string>com.macromates.textmate.release-notes</string>
+				<string>com.isztld.oakmate.release-notes</string>
 			</array>
 		</dict>
 		<dict>
@@ -1223,7 +1223,7 @@
 			<string>Owner</string>
 			<key>LSItemContentTypes</key>
 			<array>
-				<string>com.macromates.textmate.bundle</string>
+				<string>com.isztld.oakmate.bundle</string>
 			</array>
 		</dict>
 		<dict>
@@ -1235,7 +1235,7 @@
 			<string>Owner</string>
 			<key>LSItemContentTypes</key>
 			<array>
-				<string>com.macromates.textmate.plugin</string>
+				<string>com.isztld.oakmate.plugin</string>
 			</array>
 		</dict>
 		<dict>
@@ -1634,7 +1634,7 @@
 			<key>UTTypeDescription</key>
 			<string>CGI script</string>
 			<key>UTTypeIdentifier</key>
-			<string>com.macromates.textmate.cgi-script</string>
+			<string>com.isztld.oakmate.cgi-script</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -1652,7 +1652,7 @@
 			<key>UTTypeDescription</key>
 			<string>Configuration file</string>
 			<key>UTTypeIdentifier</key>
-			<string>com.macromates.textmate.config-file</string>
+			<string>com.isztld.oakmate.config-file</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -1919,7 +1919,7 @@
 			<key>UTTypeDescription</key>
 			<string>GTD document</string>
 			<key>UTTypeIdentifier</key>
-			<string>com.macromates.textmate.gtd</string>
+			<string>com.isztld.oakmate.gtd</string>
 			<key>UTTypeReferenceURL</key>
 			<string>http://en.wikipedia.org/wiki/Getting_Things_Done</string>
 			<key>UTTypeTagSpecification</key>
@@ -1985,7 +1985,7 @@
 			<key>UTTypeDescription</key>
 			<string>Include file</string>
 			<key>UTTypeIdentifier</key>
-			<string>com.macromates.textmate.include-file</string>
+			<string>com.isztld.oakmate.include-file</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -2204,7 +2204,7 @@
 			<key>UTTypeDescription</key>
 			<string>Lisp source</string>
 			<key>UTTypeIdentifier</key>
-			<string>com.macromates.textmate.lisp</string>
+			<string>com.isztld.oakmate.lisp</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -2243,7 +2243,7 @@
 			<key>UTTypeDescription</key>
 			<string>Logo source</string>
 			<key>UTTypeIdentifier</key>
-			<string>com.macromates.textmate.logo</string>
+			<string>com.isztld.oakmate.logo</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -2761,7 +2761,7 @@
 			<key>UTTypeDescription</key>
 			<string>Scheme source</string>
 			<key>UTTypeIdentifier</key>
-			<string>com.macromates.textmate.scheme</string>
+			<string>com.isztld.oakmate.scheme</string>
 			<key>UTTypeReferenceURL</key>
 			<string>http://www.r6rs.org</string>
 			<key>UTTypeTagSpecification</key>
@@ -2781,7 +2781,7 @@
 			<key>UTTypeDescription</key>
 			<string>Setext document</string>
 			<key>UTTypeIdentifier</key>
-			<string>com.macromates.textmate.setext</string>
+			<string>com.isztld.oakmate.setext</string>
 			<key>UTTypeReferenceURL</key>
 			<string>http://docutils.sourceforge.net/mirror/setext/setext_concepts_Aug92.etx.txt</string>
 			<key>UTTypeTagSpecification</key>
@@ -2861,7 +2861,7 @@
 			<key>UTTypeDescription</key>
 			<string>Standard ML source</string>
 			<key>UTTypeIdentifier</key>
-			<string>com.macromates.textmate.standard-ml</string>
+			<string>com.isztld.oakmate.standard-ml</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -3175,7 +3175,7 @@
 			<key>UTTypeDescription</key>
 			<string>TextMate Snippet</string>
 			<key>UTTypeIdentifier</key>
-			<string>com.macromates.textmate.snippet</string>
+			<string>com.isztld.oakmate.snippet</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -3192,7 +3192,7 @@
 			<key>UTTypeDescription</key>
 			<string>TextMate Macro</string>
 			<key>UTTypeIdentifier</key>
-			<string>com.macromates.textmate.macro</string>
+			<string>com.isztld.oakmate.macro</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -3209,7 +3209,7 @@
 			<key>UTTypeDescription</key>
 			<string>TextMate Language Grammar</string>
 			<key>UTTypeIdentifier</key>
-			<string>com.macromates.textmate.language</string>
+			<string>com.isztld.oakmate.language</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -3226,7 +3226,7 @@
 			<key>UTTypeDescription</key>
 			<string>TextMate Preferences</string>
 			<key>UTTypeIdentifier</key>
-			<string>com.macromates.textmate.preferences</string>
+			<string>com.isztld.oakmate.preferences</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -3243,7 +3243,7 @@
 			<key>UTTypeDescription</key>
 			<string>TextMate Command</string>
 			<key>UTTypeIdentifier</key>
-			<string>com.macromates.textmate.command</string>
+			<string>com.isztld.oakmate.command</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -3260,7 +3260,7 @@
 			<key>UTTypeDescription</key>
 			<string>TextMate Drag Command</string>
 			<key>UTTypeIdentifier</key>
-			<string>com.macromates.textmate.drag-command</string>
+			<string>com.isztld.oakmate.drag-command</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -3277,7 +3277,7 @@
 			<key>UTTypeDescription</key>
 			<string>TextMate Theme</string>
 			<key>UTTypeIdentifier</key>
-			<string>com.macromates.textmate.theme</string>
+			<string>com.isztld.oakmate.theme</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -3295,7 +3295,7 @@
 			<key>UTTypeDescription</key>
 			<string>TextMate release notes</string>
 			<key>UTTypeIdentifier</key>
-			<string>com.macromates.textmate.release-notes</string>
+			<string>com.isztld.oakmate.release-notes</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -3312,7 +3312,7 @@
 			<key>UTTypeDescription</key>
 			<string>TextMate Bundle</string>
 			<key>UTTypeIdentifier</key>
-			<string>com.macromates.textmate.bundle</string>
+			<string>com.isztld.oakmate.bundle</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -3330,7 +3330,7 @@
 			<key>UTTypeDescription</key>
 			<string>TextMate PlugIn</string>
 			<key>UTTypeIdentifier</key>
-			<string>com.macromates.textmate.plugin</string>
+			<string>com.isztld.oakmate.plugin</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>

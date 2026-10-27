@@ -34,7 +34,7 @@ if rake.nil? or not File.exist? rake
 end
 
 prefs = PStore.new( File.expand_path( "~/Library/Preferences/" +
-                                      "com.macromates.textmate.run_rake" ) )
+                                      "com.isztld.oakmate.run_rake" ) )
 
 Dir.chdir(RAKEFILE_DIR)
 tasks = fetch_rake_tasks

@@ -25,7 +25,7 @@ TIMEOUT = 5 * 60
 _PYDOC_PORT = 7400
 _PYDOC_URL = "http://localhost:%i/"
 
-prefdir = path.join(env["HOME"], "Library/Preferences/com.macromates.textmate.python")
+prefdir = path.join(env["HOME"], "Library/Preferences/com.isztld.oakmate.python")
 if not path.exists(prefdir):
     mkdir(prefdir)
 hitcount_path = path.join(prefdir, 'docmate_url_hitcount')
