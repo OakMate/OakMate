@@ -73,8 +73,14 @@ namespace ng
 				size_t _size;
 			};
 
-			struct iterator : public std::iterator<std::bidirectional_iterator_tag, value_t>
+			struct iterator
 			{
+				typedef std::bidirectional_iterator_tag iterator_category;
+				typedef value_t value_type;
+				typedef ptrdiff_t difference_type;
+				typedef value_type* pointer;
+				typedef value_type& reference;
+
 				iterator (typename oak::basic_tree_t<size_t, memory_t>::iterator base) : _base(base) { }
 				iterator (iterator const& rhs) : _base(rhs._base) { }
 				iterator& operator= (iterator const& rhs)   { _base = rhs._base; return *this; }
