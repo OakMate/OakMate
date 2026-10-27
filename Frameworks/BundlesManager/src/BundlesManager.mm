@@ -330,7 +330,7 @@ static NSString* SafeBasename (NSString* name)
 	cache.cleanup(bundlesPaths);
 	if(cache.dirty())
 	{
-		cache.save_capnp(bundlesIndexPath);
+		cache.save_binary(bundlesIndexPath);
 		cache.set_dirty(false);
 	}
 	_needsSaveBundlesIndex = NO;
@@ -525,12 +525,12 @@ namespace
 	if(access(oldPath.c_str(), R_OK) == 0)
 	{
 		cache.load(oldPath);
-		cache.save_capnp(bundlesIndexPath);
+		cache.save_binary(bundlesIndexPath);
 		unlink(oldPath.c_str());
 	}
 	else
 	{
-		cache.load_capnp(bundlesIndexPath);
+		cache.load_binary(bundlesIndexPath);
 	}
 
 	_needsCreateBundlesIndex = YES;

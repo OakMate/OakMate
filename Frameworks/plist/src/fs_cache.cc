@@ -1,7 +1,5 @@
 #include "fs_cache.h"
-#include "cache.capnp.h"
-#include <capnp/message.h>
-#include <capnp/serialize-packed.h>
+#include <oak/serialize.h>
 #include <io/entries.h>
 #include <text/format.h>
 #include <oak/debug.h>
@@ -22,10 +20,94 @@ static std::string read_link (std::string const& path)
 	return NULL_STR;
 }
 
+namespace
+{
+	char const kBinaryCacheMagic[4] = { 'T', 'M', 'B', 'I' };
+	uint32_t const kBinaryCacheFormatVersion = 3;
+
+	enum : uint8_t { kBinaryEntryFile, kBinaryEntryDirectory, kBinaryEntryLink, kBinaryEntryMissing };
+
+	// Tags are the index of the type in plist::any_t
+	struct write_any_t
+	{
+		oak::binary_writer_t& writer;
+
+		void operator() (bool flag) const                        { writer.u8(flag ? 1 : 0); }
+		void operator() (int32_t i) const                        { writer.u32((uint32_t)i); }
+		void operator() (uint64_t i) const                       { writer.u64(i); }
+		void operator() (std::string const& str) const           { writer.string(str); }
+		void operator() (std::vector<char> const& data) const    { writer.bytes(data.data(), data.size()); }
+		void operator() (oak::date_t const& date) const          { writer.f64(date.value()); }
+
+		void operator() (plist::array_t const& array) const
+		{
+			writer.varint(array.size());
+			for(auto const& item : array)
+				write(item);
+		}
+
+		void operator() (plist::dictionary_t const& dict) const
+		{
+			writer.varint(dict.size());
+			for(auto const& pair : dict)
+			{
+				writer.string(pair.first);
+				write(pair.second);
+			}
+		}
+
+		void write (plist::any_t const& value) const
+		{
+			writer.u8(value.index());
+			std::visit(*this, value);
+		}
+	};
+
+	void write_any (oak::binary_writer_t& writer, plist::any_t const& value)
+	{
+		write_any_t{ writer }.write(value);
+	}
+
+	plist::any_t read_any (oak::binary_reader_t& reader, size_t depth = 0)
+	{
+		if(depth > 256)
+			throw std::runtime_error("plist nested too deeply");
+
+		switch(reader.u8())
+		{
+			case 0: return reader.u8() != 0;
+			case 1: return (int32_t)reader.u32();
+			case 2: return reader.u64();
+			case 3: return reader.string();
+			case 4: { std::string const data = reader.string(); return std::vector<char>(data.begin(), data.end()); }
+			case 5: return oak::date_t(reader.f64());
+
+			case 6:
+			{
+				plist::array_t res;
+				for(size_t i = 0, n = reader.count(); i < n; ++i)
+					res.push_back(read_any(reader, depth + 1));
+				return res;
+			}
+
+			case 7:
+			{
+				plist::dictionary_t res;
+				for(size_t i = 0, n = reader.count(); i < n; ++i)
+				{
+					std::string key = reader.string();
+					res.emplace(std::move(key), read_any(reader, depth + 1));
+				}
+				return res;
+			}
+		}
+		throw std::runtime_error("unknown plist type");
+	}
+}
+
 namespace plist
 {
 	int32_t const cache_t::kPropertyCacheFormatVersion = 2;
-	uint32_t const kCapnpCacheFormatVersion = 2;
 
 	void cache_t::load (std::string const& path)
 	{
@@ -84,86 +166,75 @@ namespace plist
 		}
 	}
 
-	void cache_t::load_capnp (std::string const& path)
+	void cache_t::load_binary (std::string const& path)
 	{
 		try {
 			real_load(path);
 		}
 		catch(std::exception const& e) {
 			os_log_error(OS_LOG_DEFAULT, "Exception thrown while loading ‘%{public}s’: %{public}s", path.c_str(), e.what());
+			_cache.clear();
 		}
 	}
 
 	void cache_t::real_load (std::string const& path)
 	{
-		int fd = open(path.c_str(), O_RDONLY|O_CLOEXEC);
-		if(fd != -1)
+		std::string data;
+		if(!oak::binary_reader_t::read_file(path, data))
+			return;
+
+		oak::binary_reader_t reader(std::move(data), kBinaryCacheMagic, kBinaryCacheFormatVersion);
+		for(size_t i = 0, n = reader.count(); i < n; ++i)
 		{
-			capnp::PackedFdMessageReader message(kj::AutoCloseFd{fd});
-			auto cache = message.getRoot<Cache>();
-			if(cache.getVersion() != kCapnpCacheFormatVersion)
+			entry_t entry(reader.string());
+			switch(reader.u8())
 			{
-				os_log_error(OS_LOG_DEFAULT, "Skip ‘%{public}s’ version %u (expected %u)", path.c_str(), cache.getVersion(), kCapnpCacheFormatVersion);
-				return;
-			}
-
-			for(auto src : cache.getEntries())
-			{
-				entry_t entry(src.getPath());
-				switch(src.getType().which())
+				case kBinaryEntryFile:
 				{
-					case Entry::Type::Which::FILE:
+					entry.set_type(entry_type_t::file);
+					entry.set_modified(reader.u64());
+
+					plist::dictionary_t plist;
+					for(size_t j = 0, m = reader.count(); j < m; ++j)
 					{
-						entry.set_type(entry_type_t::file);
-						entry.set_modified(src.getType().getFile().getModified());
-
-						plist::dictionary_t plist;
-						for(auto pair : src.getType().getFile().getContent())
-						{
-							if(pair.hasValue())
-							{
-								plist.emplace(pair.getKey(), std::string(pair.getValue()));
-							}
-							else
-							{
-								auto array = pair.getPlist();
-								plist.emplace(pair.getKey(), plist::parse(std::string(array.begin(), array.end())));
-							}
-						}
-						entry.set_content(plist);
+						std::string key = reader.string();
+						plist.emplace(std::move(key), read_any(reader));
 					}
-					break;
-
-					case Entry::Type::Which::DIRECTORY:
-					{
-						entry.set_type(entry_type_t::directory);
-						entry.set_event_id(src.getType().getDirectory().getEventId());
-						entry.set_glob_string(src.getType().getDirectory().getGlob());
-
-						std::vector<std::string> v;
-						for(auto path : src.getType().getDirectory().getItems())
-							v.push_back(path);
-						entry.set_entries(v);
-					}
-					break;
-
-					case Entry::Type::Which::LINK:
-					{
-						entry.set_type(entry_type_t::link);
-						entry.set_link(src.getType().getLink());
-					}
-					break;
-
-					case Entry::Type::Which::MISSING:
-					{
-						entry.set_type(entry_type_t::missing);
-					}
-					break;
+					entry.set_content(plist);
 				}
+				break;
 
-				if(entry.type() != entry_type_t::unknown)
-					_cache.emplace(src.getPath(), entry);
+				case kBinaryEntryDirectory:
+				{
+					entry.set_type(entry_type_t::directory);
+					entry.set_event_id(reader.u64());
+					entry.set_glob_string(reader.string());
+
+					std::vector<std::string> v;
+					for(size_t j = 0, m = reader.count(); j < m; ++j)
+						v.push_back(reader.string());
+					entry.set_entries(v);
+				}
+				break;
+
+				case kBinaryEntryLink:
+				{
+					entry.set_type(entry_type_t::link);
+					entry.set_link(reader.string());
+				}
+				break;
+
+				case kBinaryEntryMissing:
+				{
+					entry.set_type(entry_type_t::missing);
+				}
+				break;
+
+				default:
+					throw std::runtime_error("unknown entry type");
 			}
+
+			_cache.emplace(entry.path(), entry);
 		}
 	}
 
@@ -201,76 +272,52 @@ namespace plist
 		plist::save(path, plist);
 	}
 
-	void cache_t::save_capnp (std::string const& path) const
+	void cache_t::save_binary (std::string const& path) const
 	{
-		capnp::MallocMessageBuilder message;
-		auto cache = message.initRoot<Cache>();
-		cache.setVersion(kCapnpCacheFormatVersion);
-		auto entries = cache.initEntries(_cache.size());
+		oak::binary_writer_t writer(kBinaryCacheMagic, kBinaryCacheFormatVersion);
+		writer.varint(_cache.size());
 
-		size_t i = 0;
-		for(auto pair : _cache)
+		for(auto const& pair : _cache)
 		{
-			auto entry = entries[i++];
-			entry.setPath(pair.first);
+			writer.string(pair.first);
 
 			if(pair.second.is_file())
 			{
-				auto file = entry.getType().initFile();
-				file.setModified(pair.second.modified());
+				writer.u8(kBinaryEntryFile);
+				writer.u64(pair.second.modified());
 
 				auto const& plist = pair.second.content();
-				auto content = file.initContent(plist.size());
-				size_t j = 0;
-				for(auto src : plist)
+				writer.varint(plist.size());
+				for(auto const& src : plist)
 				{
-					auto dst = content[j++];
-					dst.setKey(src.first);
-					if(std::string const* str = std::get_if<std::string>(&src.second))
-					{
-						dst.setValue(str->c_str());
-					}
-					else
-					{
-						if(CFPropertyListRef cfPlist = plist::create_cf_property_list(src.second))
-						{
-							if(CFDataRef data = CFPropertyListCreateData(kCFAllocatorDefault, cfPlist, kCFPropertyListBinaryFormat_v1_0, 0, nullptr))
-							{
-								dst.setPlist(capnp::Data::Reader(CFDataGetBytePtr(data), CFDataGetLength(data)));
-								CFRelease(data);
-							}
-							CFRelease(cfPlist);
-						}
-					}
+					writer.string(src.first);
+					write_any(writer, src.second);
 				}
 			}
 			else if(pair.second.is_directory())
 			{
-				auto dir = entry.getType().initDirectory();
-				dir.setGlob(pair.second.glob_string());
-				dir.setEventId(pair.second.event_id());
+				writer.u8(kBinaryEntryDirectory);
+				writer.u64(pair.second.event_id());
+				writer.string(pair.second.glob_string());
 
 				auto const& v = pair.second.entries();
-				auto items = dir.initItems(v.size());
-				for(size_t j = 0; j < v.size(); ++j)
-					items.set(j, v[j]);
+				writer.varint(v.size());
+				for(auto const& item : v)
+					writer.string(item);
 			}
 			else if(pair.second.is_link())
 			{
-				entry.getType().setLink(pair.second.link());
+				writer.u8(kBinaryEntryLink);
+				writer.string(pair.second.link());
 			}
-			else if(pair.second.is_missing())
+			else
 			{
-				entry.getType().setMissing();
+				writer.u8(kBinaryEntryMissing);
 			}
 		}
 
-		int fd = open(path.c_str(), O_CREAT|O_TRUNC|O_WRONLY|O_CLOEXEC, S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH);
-		if(fd != -1)
-		{
-			writePackedMessageToFd(fd, message);
-			close(fd);
-		}
+		if(!writer.write_to_file(path))
+			os_log_error(OS_LOG_DEFAULT, "Failed to write ‘%{public}s’: %{public}s", path.c_str(), strerror(errno));
 	}
 
 	uint64_t cache_t::event_id_for_path (std::string const& path) const

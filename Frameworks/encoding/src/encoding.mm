@@ -1,9 +1,8 @@
 #include "encoding.h"
-#include "frequencies.capnp.h"
-#include <capnp/message.h>
-#include <capnp/serialize-packed.h>
+#include <oak/serialize.h>
 
-static uint32_t const kCapnpClassifierFormatVersion = 1;
+static char const kClassifierMagic[4] = { 'T', 'M', 'E', 'F' };
+static uint32_t const kClassifierFormatVersion = 2;
 
 namespace encoding
 {
@@ -158,89 +157,80 @@ namespace encoding
 		}
 		catch(std::exception const& e) {
 			os_log_error(OS_LOG_DEFAULT, "Exception thrown while loading ‘%{public}s’: %{public}s", path.c_str(), e.what());
+			_charsets.clear();
+			_combined = record_t();
 		}
 	}
 
 	void classifier_t::real_load (std::string const& path)
 	{
-		int fd = open(path.c_str(), O_RDONLY|O_CLOEXEC);
-		if(fd != -1)
+		std::string data;
+		if(!oak::binary_reader_t::read_file(path, data))
+			return;
+
+		oak::binary_reader_t reader(std::move(data), kClassifierMagic, kClassifierFormatVersion);
+		for(size_t i = 0, n = reader.count(); i < n; ++i)
 		{
-			capnp::PackedFdMessageReader message(kj::AutoCloseFd{fd});
-			auto freq = message.getRoot<Frequencies>();
-			if(freq.getVersion() != kCapnpClassifierFormatVersion)
+			std::string charset = reader.string();
+
+			record_t r;
+			for(size_t j = 0, m = reader.count(); j < m; ++j)
 			{
-				os_log_info(OS_LOG_DEFAULT, "Skip ‘%{public}s’ version %u (expected %u)", path.c_str(), freq.getVersion(), kCapnpClassifierFormatVersion);
-				return;
+				std::string word = reader.string();
+				r.words.emplace(std::move(word), reader.varint());
+			}
+			for(size_t j = 0, m = reader.count(); j < m; ++j)
+			{
+				char byte = reader.u8();
+				r.bytes.emplace(byte, reader.varint());
+			}
+			_charsets.emplace(std::move(charset), r);
+		}
+
+		for(auto& pair : _charsets)
+		{
+			for(auto const& word : pair.second.words)
+			{
+				_combined.words[word.first] += word.second;
+				_combined.total_words += word.second;
+				pair.second.total_words += word.second;
 			}
 
-			for(auto src : freq.getCharsets())
+			for(auto const& byte : pair.second.bytes)
 			{
-				record_t r;
-				for(auto word : src.getWords())
-					r.words.emplace(word.getType().getWord(), word.getCount());
-				for(auto byte : src.getBytes())
-					r.bytes.emplace(byte.getType().getByte(), byte.getCount());
-				_charsets.emplace(src.getCharset(), r);
-			}
-
-			for(auto& pair : _charsets)
-			{
-				for(auto const& word : pair.second.words)
-				{
-					_combined.words[word.first] += word.second;
-					_combined.total_words += word.second;
-					pair.second.total_words += word.second;
-				}
-
-				for(auto const& byte : pair.second.bytes)
-				{
-					_combined.bytes[byte.first] += byte.second;
-					_combined.total_bytes += byte.second;
-					pair.second.total_bytes += byte.second;
-				}
+				_combined.bytes[byte.first] += byte.second;
+				_combined.total_bytes += byte.second;
+				pair.second.total_bytes += byte.second;
 			}
 		}
 	}
 
 	void classifier_t::save (std::string const& path) const
 	{
-		capnp::MallocMessageBuilder message;
-		auto freq = message.initRoot<Frequencies>();
-		freq.setVersion(kCapnpClassifierFormatVersion);
-		auto charsets = freq.initCharsets(_charsets.size());
-		size_t i = 0;
+		oak::binary_writer_t writer(kClassifierMagic, kClassifierFormatVersion);
+		writer.varint(_charsets.size());
 
 		for(auto const& pair : _charsets)
 		{
-			auto entry = charsets[i++];
-			entry.setCharset(pair.first);
+			writer.string(pair.first);
 
-			auto words = entry.initWords(pair.second.words.size());
-			size_t j = 0;
+			writer.varint(pair.second.words.size());
 			for(auto const& word : pair.second.words)
 			{
-				auto tmp = words[j++];
-				tmp.getType().setWord(word.first);
-				tmp.setCount(word.second);
+				writer.string(word.first);
+				writer.varint(word.second);
 			}
 
-			auto bytes = entry.initBytes(pair.second.bytes.size());
-			j = 0;
+			writer.varint(pair.second.bytes.size());
 			for(auto const& byte : pair.second.bytes)
 			{
-				auto tmp = bytes[j++];
-				tmp.getType().setByte(byte.first);
-				tmp.setCount(byte.second);
+				writer.u8(byte.first);
+				writer.varint(byte.second);
 			}
 		}
 
-		int fd = open(path.c_str(), O_CREAT|O_TRUNC|O_WRONLY|O_CLOEXEC, S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH);
-		if(fd != -1)
-		{
-			writePackedMessageToFd(fd, message);
-			close(fd);
-		}
+		if(!writer.write_to_file(path))
+			os_log_error(OS_LOG_DEFAULT, "Failed to write ‘%{public}s’: %{public}s", path.c_str(), strerror(errno));
 	}
 
 } /* encoding */

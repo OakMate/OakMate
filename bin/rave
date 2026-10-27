@@ -645,24 +645,6 @@ class CompileRagel < Compiler
   end
 end
 
-class CompileCapnp < Compiler
-  transforms '.capnp' => '.capnp.c++'
-
-  def transform(file, config, builddir)
-    base = super
-
-    source = base[:out]
-    header = source.chomp('.c++') + '.h'
-
-    base.merge(
-      out:         [ source, header ],
-      flags:       "-oc++:#{File.dirname(source).shellescape} --src-prefix=#{File.dirname(file).shellescape}",
-      command:     'capnp compile $flags $in',
-      description: 'Cap’n Proto ‘${in}’…',
-    )
-  end
-end
-
 class CompileXib < Compiler
   transforms '.xib' => '.nib'
 
@@ -857,9 +839,9 @@ module Target
         include_dirs = required_targets(target, targets, include_weak: true).map { |archs| include_dir(archs) }.reject { |e| e.nil? }.sort
         config = target[:variables].merge(prelude: target[:prelude], inference: target[:inference], include: include_dirs.sort.uniq)
 
-        # ===============
-        # = Cap’n Proto =
-        # ===============
+        # =====================
+        # = Generated sources =
+        # =====================
 
         generated_headers = []
         sources, non_sources = sources.partition { |file| file.end_with?('.c', '.m', '.cc', '.mm') }
