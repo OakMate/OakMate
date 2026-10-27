@@ -33,5 +33,5 @@ target "${dirname}" {
 
 	sources src/*.{cc,mm}
 	executable "MacOS/${target}"
-	frameworks Cocoa
+	frameworks Cocoa Security
 }

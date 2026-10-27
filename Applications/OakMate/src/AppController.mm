@@ -3,6 +3,7 @@
 #import "Favorites.h"
 #import "AboutWindowController.h"
 #import "TMPlugInController.h"
+#import "SoftwareUpdate.h"
 #import "RMateServer.h"
 #import <BundleEditor/BundleEditor.h>
 #import <BundlesManager/BundlesManager.h>
@@ -94,17 +95,18 @@ BOOL HasDocumentWindow (NSArray* windows)
 	MBMenu const items = {
 		{ @"OakMate",
 			.submenu = {
-				{ @"About OakMate",        @selector(orderFrontAboutPanel:)               },
+				{ @"About OakMate",         @selector(orderFrontAboutPanel:)               },
+				{ @"Check for Updates…",    @selector(checkForUpdates:)                    },
 				{ /* -------- */ },
 				{ @"Preferences…",          @selector(showPreferences:),            @","   },
 				{ /* -------- */ },
 				{ @"Services",              .systemMenu = MBMenuTypeServices               },
 				{ /* -------- */ },
-				{ @"Hide OakMate",         @selector(hide:),                       @"h"   },
+				{ @"Hide OakMate",          @selector(hide:),                       @"h"   },
 				{ @"Hide Others",           @selector(hideOtherApplications:),      @"h", .modifierFlags = NSEventModifierFlagCommand|NSEventModifierFlagOption },
 				{ @"Show All",              @selector(unhideAllApplications:),             },
 				{ /* -------- */ },
-				{ @"Quit OakMate",         @selector(terminate:),                  @"q"   },
+				{ @"Quit OakMate",          @selector(terminate:),                  @"q"   },
 			}
 		},
 		{ @"File",
@@ -555,6 +557,7 @@ BOOL HasDocumentWindow (NSArray* windows)
 	[AboutWindowController showChangesIfUpdated];
 
 	[OakCommitWindowServer sharedInstance]; // Setup server
+	[SoftwareUpdate.sharedInstance scheduleAutomaticChecks];
 
 	self.didFinishLaunching = YES;
 }
@@ -618,6 +621,11 @@ BOOL HasDocumentWindow (NSArray* windows)
 {
 	[NSApp activateIgnoringOtherApps:YES];
 	[self openDocument:sender];
+}
+
+- (IBAction)checkForUpdates:(id)sender
+{
+	[SoftwareUpdate.sharedInstance checkForUpdates:sender];
 }
 
 - (IBAction)orderFrontAboutPanel:(id)sender
