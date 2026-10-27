@@ -25,11 +25,12 @@ jobs:
     runs-on: macos-26
     environment: release
 
-    env:
-      KEYCHAIN: ${{ runner.temp }}/signing.keychain-db
-      BUILD_DIR: ${{ runner.temp }}/build
-
     steps:
+    - name: Set paths
+      run: |
+        echo "KEYCHAIN=$RUNNER_TEMP/signing.keychain-db" >> "$GITHUB_ENV"
+        echo "BUILD_DIR=$RUNNER_TEMP/build" >> "$GITHUB_ENV"
+
     - uses: actions/checkout@v4
       with:
         fetch-depth: 0  # The Contributions page is generated from the commit history
@@ -86,6 +87,7 @@ jobs:
         builddir="$BUILD_DIR" ./configure
         ninja OakMate
         ninja test
+      timeout-minutes: 60
       env:
         GITHUB_TOKEN: ${{ github.token }}
 
