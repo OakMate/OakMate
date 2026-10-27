@@ -7,9 +7,9 @@
 	<key>CFBundleShortVersionString</key>
 	<string>${APP_VERSION}</string>
 	<key>CFBundleVersion</key>
-	<string>9800</string>
+	<string>${APP_VERSION}</string>
 	<key>CFBundleIdentifier</key>
-	<string>org.oakmate.${TARGET_NAME}</string>
+	<string>com.isztld.oakmate</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>English</string>
 	<key>CFBundleExecutable</key>

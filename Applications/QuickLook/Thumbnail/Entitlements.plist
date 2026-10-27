@@ -7,7 +7,7 @@
 	<key>com.apple.security.temporary-exception.files.home-relative-path.read-only</key>
 	<array>
 		<string>/Library/Application Support/OakMate/</string>
-		<string>/Library/Caches/org.oakmate.OakMate/</string>
+		<string>/Library/Caches/com.isztld.oakmate/</string>
 	</array>
 	<key>com.apple.security.temporary-exception.files.absolute-path.read-only</key>
 	<array>
@@ -15,7 +15,7 @@
 	</array>
 	<key>com.apple.security.temporary-exception.shared-preference.read-only</key>
 	<array>
-		<string>org.oakmate.OakMate</string>
+		<string>com.isztld.oakmate</string>
 	</array>
 	<key>com.apple.security.get-task-allow</key>
 	<${CS_GET_TASK_ALLOW}/>

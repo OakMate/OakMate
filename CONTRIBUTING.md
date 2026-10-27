@@ -18,9 +18,9 @@ Developing patches should follow this workflow:
 ### Initial Setup
 
 1.	Fork on GitHub (click Fork button)
-2.	Clone to computer: `git clone git@github.com:«github account»/oakmate.git`
-3.	cd into your repo: `cd oakmate`
-4.	Set up remote upstream: `git remote add -f upstream «OakMate repository URL»`
+2.	Clone to computer: `git clone git@github.com:«github account»/OakMate.git`
+3.	cd into your repo: `cd OakMate`
+4.	Set up remote upstream: `git remote add -f upstream https://github.com/OakMate/OakMate.git`
 
 ### Adding a Feature
 

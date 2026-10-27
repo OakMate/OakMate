@@ -9,7 +9,7 @@
 #import <file/type.h>
 #import <OakFoundation/NSString Additions.h>
 
-NSString* const SyntaxMateErrorDomain = @"org.oakmate.SyntaxMate.Error";
+NSString* const SyntaxMateErrorDomain = @"com.isztld.oakmate.SyntaxMate.Error";
 
 @implementation SyntaxMateImpl
 

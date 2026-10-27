@@ -11,7 +11,7 @@
 	<key>CFBundleName</key>
 	<string>${TARGET_NAME}</string>
 	<key>CFBundleIdentifier</key>
-	<string>org.oakmate.OakMate.QuickLookThumbnail</string>
+	<string>com.isztld.oakmate.QuickLookThumbnail</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundlePackageType</key>

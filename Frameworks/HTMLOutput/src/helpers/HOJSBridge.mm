@@ -209,7 +209,7 @@ static NSString* const kBridgePrompt = @"x-txmt-bridge";
 
 	if([command isEqualToString:@"console"])
 	{
-		static os_log_t log = os_log_create("org.oakmate.JavaScript", "HTMLOutput");
+		static os_log_t log = os_log_create("com.isztld.oakmate.JavaScript", "HTMLOutput");
 		os_log(log, "%{public}@: %{public}@", message.frameInfo.request.URL.absoluteString, payload[@"message"]);
 		return;
 	}

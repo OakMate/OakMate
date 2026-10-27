@@ -227,7 +227,7 @@ namespace scm
 
 		if(CFRunLoopRef currentRunLoop = CFRunLoopGetCurrent())
 		{
-			static dispatch_queue_t queue = dispatch_queue_create("org.oakmate.scm.status", DISPATCH_QUEUE_SERIAL);
+			static dispatch_queue_t queue = dispatch_queue_create("com.isztld.oakmate.scm.status", DISPATCH_QUEUE_SERIAL);
 			shared_info_weak_ptr weakThis = shared_from_this();
 
 			CFRetain(currentRunLoop);
@@ -255,7 +255,7 @@ namespace scm
 
 	static dispatch_queue_t cache_access_queue ()
 	{
-		static dispatch_queue_t res = dispatch_queue_create("org.oakmate.scm.info-cache", DISPATCH_QUEUE_SERIAL);
+		static dispatch_queue_t res = dispatch_queue_create("com.isztld.oakmate.scm.info-cache", DISPATCH_QUEUE_SERIAL);
 		return res;
 	}
 

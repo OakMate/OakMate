@@ -34,7 +34,7 @@ static void initialize ()
 			paths.push_back(path::join(path, "Bundles"));
 
 		plist::cache_t cache;
-		cache.load_binary(path::join(path::home(), "Library/Caches/org.oakmate.OakMate/BundlesIndex.binary"));
+		cache.load_binary(path::join(path::home(), "Library/Caches/com.isztld.oakmate/BundlesIndex.binary"));
 
 		auto index = create_bundle_index(paths, cache);
 		bundles::set_index(index.first, index.second);
@@ -137,7 +137,7 @@ NSAttributedString* TMQLCreatePreview (NSURL* url, NSColor** backgroundColor)
 	if(fileType == NULL_STR)
 		fileType = "text.plain";
 
-	NSUserDefaults* userDefaults = [[NSUserDefaults alloc] initWithSuiteName:@"org.oakmate.OakMate"];
+	NSUserDefaults* userDefaults = [[NSUserDefaults alloc] initWithSuiteName:@"com.isztld.oakmate"];
 	NSString* appearance = [userDefaults stringForKey:@"themeAppearance"];
 	BOOL darkMode = [appearance isEqualToString:@"dark"];
 	if(!darkMode && ![appearance isEqualToString:@"light"]) // If it is not ‘light’ then assume ‘auto’

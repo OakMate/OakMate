@@ -118,7 +118,7 @@
 	for(auto const& pair : untrackedPaths)
 	{
 		NSURL* url = [NSURL fileURLWithPath:to_ns(pair.first)];
-		[url setTemporaryResourceValue:@YES forKey:@"org.oakmate.disable-scm-status"];
+		[url setTemporaryResourceValue:@YES forKey:@"com.isztld.oakmate.disable-scm-status"];
 		[res addObject:url];
 	}
 	return res;

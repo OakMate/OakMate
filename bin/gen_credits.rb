@@ -13,7 +13,7 @@ require 'uri'
 require 'cgi'
 require 'dbm'
 require 'date'
-require 'yaml'
+require 'json'
 require 'set'
 
 # Helper class to handle searching for GitHub users
@@ -21,6 +21,7 @@ require 'set'
 # to avoid exhausting the GitHub API rate limits for
 # anonymous requests.
 class GitHubLookup
+  REPOSITORY = 'OakMate/OakMate'
 
   def self.initialize(dbm_file)
     FileUtils.mkdir_p(File.dirname(dbm_file))
@@ -71,35 +72,56 @@ class GitHubLookup
   end
 
   def self.user_by_email(email)
-    emailhash = Digest::MD5.hexdigest(email)
-    if @db.has_key?(emailhash)
-      return @db[emailhash]
+    # GitHub’s no-reply addresses contain the login: «id»+«login»@users.noreply.github.com
+    if email =~ /\A(?:\d+\+)?([^@]+)@users\.noreply\.github\.com\z/i
+      return $1
     end
 
-    url = 'https://api.github.com/legacy/user/email/' + email
-    uri = URI.parse(url)
-    http = Net::HTTP.new(uri.host, uri.port)
+    emailhash = Digest::MD5.hexdigest(email.downcase)
+    load_repository_authors unless @loaded_repository_authors
+    @db[emailhash] if @db.has_key?(emailhash)
+  end
+
+  # Map author emails to GitHub logins using the commit list of the OakMate
+  # repository. Set GITHUB_TOKEN to avoid the API rate limit for anonymous
+  # requests. Results are cached, so only new commits are fetched.
+  def self.load_repository_authors
+    @loaded_repository_authors = true
+
+    headers = { 'User-Agent' => 'OakMate-gen_credits', 'Accept' => 'application/vnd.github+json' }
+    headers['Authorization'] = "Bearer #{ENV['GITHUB_TOKEN']}" if ENV['GITHUB_TOKEN']
+
+    newest_seen = @db['__newest_commit']
+    newest = nil
+
+    http = Net::HTTP.new('api.github.com', 443)
     http.use_ssl = true
-    http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+    http.open_timeout = http.read_timeout = 10
+    http.start do
+      (1..1000).each do |page|
+        response = http.request(Net::HTTP::Get.new("/repos/#{REPOSITORY}/commits?per_page=100&page=#{page}", headers))
+        break unless response.code == '200'
 
-    # issue request
-    request = Net::HTTP::Get.new(uri.request_uri, {'User-Agent' => 'curl'})
-    response = http.request(request)
+        commits = JSON.parse(response.body)
+        break if commits.empty?
 
-    # we may be rate-limited
-    if response.code == '403'
-      return @db[emailhash] = nil
+        commits.each do |commit|
+          newest ||= commit['sha']
+          return finish_loading(newest) if commit['sha'] == newest_seen
+
+          email = commit.dig('commit', 'author', 'email')
+          login = commit.dig('author', 'login')
+          @db[Digest::MD5.hexdigest(email.downcase)] = login if email && login
+        end
+      end
     end
+    finish_loading(newest)
+  rescue StandardError, Timeout::Error => e
+    STDERR << "WARNING: unable to fetch commit authors from GitHub: #{e}\n"
+  end
 
-    # could be a 404, return nil if so
-    if response.code == '404'
-      return @db[emailhash] = nil
-    end
-
-    user = YAML.load(response.body)
-    return nil if user.nil?
-    # save result to k/v store
-    return @db[emailhash] = user['user']['login']
+  def self.finish_loading(newest)
+    @db['__newest_commit'] = newest if newest
   end
 
 end
@@ -118,7 +140,7 @@ def generate_credits(dbm_file, warn=false)
     # omit commits from Allan; he gets enough credit already ;)
     if fields[1] != 'Allan Odgaard' then
       # hash email address for referencing Gravatar userpics
-      emailhash = Digest::MD5.hexdigest(fields[2])
+      emailhash = Digest::MD5.hexdigest(fields[2].downcase)
 
       # escape user-supplied bits like name and subject
       hash = fields[0]
@@ -162,9 +184,9 @@ See [commits at GitHub][1].
     </tr>
 <%
 require 'bin/gen_credits'
-credits = generate_credits(File.expand_path('~/Library/Caches/org.oakmate.OakMate/githubcredits'))
+credits = generate_credits(File.expand_path('~/Library/Caches/com.isztld.oakmate/githubcredits'))
 %>
 <%= credits %>
 </table>
 
-[1]: https://github.com/textmate/textmate/commits/master
+[1]: https://github.com/OakMate/OakMate/commits/master

@@ -37,6 +37,6 @@
 
 - (NSString*)usageForInvocation:(NSString*)invocation;
 {
-	return [NSString stringWithFormat:@"\t%1$@ --register  \"{ macro = '$(find_app org.oakmate.OakMate)/Contents/Resources/Bundle Item Icons/Macros.png'; }\"\n", invocation];
+	return [NSString stringWithFormat:@"\t%1$@ --register  \"{ macro = '$(find_app com.isztld.oakmate)/Contents/Resources/Bundle Item Icons/Macros.png'; }\"\n", invocation];
 }
 @end

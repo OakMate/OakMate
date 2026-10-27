@@ -48,7 +48,7 @@ data.sub!(%r{^#+ .* \((v\d+(?:\.\d+)*(-\w+(?:\.\w+)*)?)\)}) do |match, cap|
   res = "## #{Time.now.strftime('%Y-%m-%d')} (#{newVersion})\n"
   res << "\n"
   res << changes
-  res << "* See [all changes since #{lastVersion}](https://github.com/textmate/textmate/compare/#{lastVersion}...#{newVersion})\n"
+  res << "* See [all changes since #{lastVersion}](https://github.com/OakMate/OakMate/compare/#{lastVersion}...#{newVersion})\n"
   res << "\n"
   res << match
 

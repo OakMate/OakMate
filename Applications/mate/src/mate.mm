@@ -59,7 +59,7 @@ static NSURL* find_app ()
 {
 	disable_sudo_helper_t helper;
 
-	if(NSURL* url = [NSWorkspace.sharedWorkspace URLForApplicationWithBundleIdentifier:@"org.oakmate.OakMate"])
+	if(NSURL* url = [NSWorkspace.sharedWorkspace URLForApplicationWithBundleIdentifier:@"com.isztld.oakmate"])
 		return url;
 
 	fprintf(stderr, "Can’t find OakMate.app\n");

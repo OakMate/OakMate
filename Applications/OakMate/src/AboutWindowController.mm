@@ -253,12 +253,12 @@ static NSData* Digest (NSString* someString)
 	{
 		if([payload[@"level"] isEqualToString:@"error"])
 		{
-			static os_log_t log = os_log_create("org.oakmate.JavaScript", "error");
+			static os_log_t log = os_log_create("com.isztld.oakmate.JavaScript", "error");
 			os_log_error(log, "%{public}@:%{public}@: %{public}@", payload[@"filename"], payload[@"lineno"], payload[@"message"]);
 		}
 		else
 		{
-			static os_log_t log = os_log_create("org.oakmate.JavaScript", "log");
+			static os_log_t log = os_log_create("com.isztld.oakmate.JavaScript", "log");
 			os_log(log, "%{public}@: %{public}@", self.webView.title, payload[@"message"]);
 		}
 	}

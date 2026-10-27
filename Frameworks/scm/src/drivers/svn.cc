@@ -82,7 +82,7 @@ namespace scm
 	{
 		svn_driver_t () : driver_t("svn", "%s/.svn", "svn")
 		{
-			if(CFBundleRef bundle = CFBundleGetBundleWithIdentifier(CFSTR("org.oakmate.OakMate.scm")) ?: CFBundleGetMainBundle())
+			if(CFBundleRef bundle = CFBundleGetBundleWithIdentifier(CFSTR("com.isztld.oakmate.scm")) ?: CFBundleGetMainBundle())
 			{
 				if(CFURLRef xsltURL = CFBundleCopyResourceURL(bundle, CFSTR("svn_status"), CFSTR("xslt"), nullptr))
 				{

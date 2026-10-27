@@ -258,7 +258,7 @@ namespace
 {
 	for(auto path : bundles::locations())
 		bundlesPaths.push_back(path::join(path, "Bundles"));
-	bundlesIndexPath = path::join(path::home(), "Library/Caches/org.oakmate.OakMate/BundlesIndex.binary");
+	bundlesIndexPath = path::join(path::home(), "Library/Caches/com.isztld.oakmate/BundlesIndex.binary");
 	cache.set_content_filter(&prune_dictionary);
 	cache.load_binary(bundlesIndexPath);
 

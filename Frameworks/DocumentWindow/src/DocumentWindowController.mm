@@ -2257,12 +2257,12 @@ static NSArray* const kObservedKeyPaths = @[ @"arrayController.arrangedObjects.p
 // = Touch Bar =
 // =============
 
-static NSTouchBarItemIdentifier kTouchBarCustomizationIdentifier = @"org.oakmate.OakMate.touch-bar.customization-identifier";
-static NSTouchBarItemIdentifier kTouchBarTabNavigationIdentifier = @"org.oakmate.OakMate.touch-bar.tab-navigation";
-static NSTouchBarItemIdentifier kTouchBarNewTabItemIdentifier    = @"org.oakmate.OakMate.touch-bar.new-tab";
-static NSTouchBarItemIdentifier kTouchBarQuickOpenItemIdentifier = @"org.oakmate.OakMate.touch-bar.quick-open";
-static NSTouchBarItemIdentifier kTouchBarFindItemIdentifier      = @"org.oakmate.OakMate.touch-bar.find";
-static NSTouchBarItemIdentifier kTouchBarFavoritesItemIdentifier = @"org.oakmate.OakMate.touch-bar.favorites";
+static NSTouchBarItemIdentifier kTouchBarCustomizationIdentifier = @"com.isztld.oakmate.touch-bar.customization-identifier";
+static NSTouchBarItemIdentifier kTouchBarTabNavigationIdentifier = @"com.isztld.oakmate.touch-bar.tab-navigation";
+static NSTouchBarItemIdentifier kTouchBarNewTabItemIdentifier    = @"com.isztld.oakmate.touch-bar.new-tab";
+static NSTouchBarItemIdentifier kTouchBarQuickOpenItemIdentifier = @"com.isztld.oakmate.touch-bar.quick-open";
+static NSTouchBarItemIdentifier kTouchBarFindItemIdentifier      = @"com.isztld.oakmate.touch-bar.find";
+static NSTouchBarItemIdentifier kTouchBarFavoritesItemIdentifier = @"com.isztld.oakmate.touch-bar.favorites";
 
 - (NSTouchBar*)makeTouchBar
 {

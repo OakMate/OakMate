@@ -101,7 +101,7 @@ static void load_bundle_index (bool verbose)
 {
 	oak::duration_t timer;
 
-	std::string const path = path::join(path::home(), "Library/Caches/org.oakmate.OakMate/BundlesIndex.binary");
+	std::string const path = path::join(path::home(), "Library/Caches/com.isztld.oakmate/BundlesIndex.binary");
 
 	plist::cache_t cache;
 	cache.load_binary(path);
