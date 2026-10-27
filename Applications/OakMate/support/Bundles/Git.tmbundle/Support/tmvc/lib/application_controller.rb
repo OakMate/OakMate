@@ -102,7 +102,13 @@ class ApplicationController
     self.params = _params
     params[:action] = action.to_s
     @output_buffer = params.delete(:__output_buffer__) if params[:__output_buffer__]
-    with_filters { send(action) }
+    begin
+      with_filters { send(action) }
+    rescue SCM::Git::NotInRepositoryError => e
+      suppress_output
+      Object::STDOUT.puts e.message
+      exit_show_tool_tip
+    end
     flush
     end_layout
     flush

@@ -3,6 +3,9 @@ require LIB_ROOT + "/commands/proxy_command_base.rb"
 require LIB_ROOT + "/commands/config.rb" # we have to specifically require this
 module SCM
   class Git
+    # Raised when a command is not run on a file or folder inside a Git repository
+    class NotInRepositoryError < RuntimeError; end
+
     attr_reader :parent
     GIT_SCM_STATUS_MAP = {
       'A' => {:short => 'A', :long => 'added',        :foreground => '#008000', :background => '#bbffb3'},
@@ -77,11 +80,15 @@ module SCM
 
     # The absolute path to working copy
     def path
-      @path ||= %x{
-        cd #{e_sh dir_part(paths.first)}
-        #{git} rev-parse --show-toplevel;
-        cd - > /dev/null;
-      }.chomp
+      @path ||= begin
+        dir = dir_part(paths.first)
+        res = %x{
+          cd #{e_sh dir} 2>/dev/null &&
+          #{git} rev-parse --show-toplevel 2>/dev/null
+        }.chomp
+        raise NotInRepositoryError, "“#{shorten(dir)}” is not inside a Git repository." if res.empty?
+        res
+      end
     end
 
     def root
@@ -132,7 +139,7 @@ module SCM
       elsif ENV.has_key?('TM_PROJECT_DIRECTORY')
         [ENV['TM_PROJECT_DIRECTORY']]
       else
-        raise "No selected files." # FIXME throw an object with more info
+        raise NotInRepositoryError, "There is no file or folder to use with Git. Open a file or folder inside a Git repository."
       end
     end
 
