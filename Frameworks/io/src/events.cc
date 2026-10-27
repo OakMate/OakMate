@@ -1,6 +1,6 @@
 #include "events.h"
 #include "path.h"
-#include <cf/cf.h>
+#include "fsevents.h"
 #include <oak/debug.h>
 
 namespace
@@ -67,21 +67,16 @@ namespace
 					_requestedExists = false;
 				}
 
-				FSEventStreamContext contextInfo = { 0, this, nullptr, nullptr, nullptr };
-				if(!(_stream = FSEventStreamCreate(kCFAllocatorDefault, &events_t::callback, &contextInfo, cf::wrap(std::vector<std::string>(1, _observed.path())), eventId, latency, kFSEventStreamCreateFlagNone)))
+				set_replaying_history(eventId != kFSEventStreamEventIdSinceNow, path, eventId);
+
+				_stream = std::make_shared<fs::event_stream_t>(std::vector<std::string>{ _observed.path() }, ^(std::vector<fs::event_t> const& events){
+					did_receive_events(events);
+				}, eventId, latency);
+
+				if(!*_stream)
 					os_log_error(OS_LOG_DEFAULT, "Can’t observe ‘%{public}s’", path.c_str());
 
-				_event_id = FSEventsGetCurrentEventId();
-			}
-
-			~stream_t ()
-			{
-				if(!_stream)
-					return;
-
-				FSEventStreamStop(_stream);
-				FSEventStreamInvalidate(_stream);
-				FSEventStreamRelease(_stream);
+				_event_id = std::max(_event_id, FSEventsGetCurrentEventId());
 			}
 
 			void set_replaying_history (bool flag, std::string const& observedPath, uint64_t eventId)
@@ -94,10 +89,9 @@ namespace
 				}
 			}
 
-			explicit operator bool () const    { return _stream; }
-			operator FSEventStreamRef () const { return _stream; }
+			void did_receive_events (std::vector<fs::event_t> const& events);
 
-			FSEventStreamRef _stream;
+			fs::event_stream_ptr _stream;
 			file_info_t _requested;
 			file_info_t _observed;
 			fs::event_callback_t* _callback;
@@ -114,106 +108,100 @@ namespace
 		{
 			auto stream = std::make_shared<stream_t>(path, cb, eventId, latency);
 
-			streams_mutex.lock();
+			std::lock_guard<std::mutex> lock(streams_mutex);
 			streams.push_back(stream);
-			streams_mutex.unlock();
-
-			ASSERT(*stream);
-			if(*stream)
-			{
-				FSEventStreamScheduleWithRunLoop(*stream, CFRunLoopGetCurrent(), kCFRunLoopDefaultMode);
-				stream->set_replaying_history(eventId != kFSEventStreamEventIdSinceNow, path, eventId);
-				FSEventStreamStart(*stream);
-				FSEventStreamFlushSync(*stream);
-			}
 		}
 
 		void unwatch (std::string const& path, fs::event_callback_t* cb)
 		{
 			std::lock_guard<std::mutex> lock(streams_mutex);
-			iterate(stream, streams)
+			iterate(it, streams)
 			{
-				if((*stream)->_requested.path() == path && (*stream)->_callback == cb)
-					return (void)streams.erase(stream);
+				if((*it)->_requested.path() == path && (*it)->_callback == cb)
+				{
+					// Events are handled on the main queue, so the stream must be destroyed there
+					stream_ptr stream = *it;
+					streams.erase(it);
+					if(!pthread_main_np())
+						dispatch_async(dispatch_get_main_queue(), ^{ stream_ptr dispose = stream; });
+					return;
+				}
 			}
 			os_log_error(OS_LOG_DEFAULT, "Not watching ‘%{public}s’", path.c_str());
 		}
+	};
 
-		static void callback (ConstFSEventStreamRef streamRef, void* clientCallBackInfo, size_t numEvents, void* eventPaths, FSEventStreamEventFlags const eventFlags[], FSEventStreamEventId const eventIds[])
+	void events_t::stream_t::did_receive_events (std::vector<fs::event_t> const& events)
+	{
+		stream_t& stream = *this;
+		uint64_t lastEventId = 0;
+		for(auto const& event : events)
 		{
-			stream_t& stream = *static_cast<stream_t*>(clientCallBackInfo);
-			uint64_t lastEventId = 0;
-			for(size_t i = 0; i < numEvents; ++i)
+			std::string path = event.path;
+			std::string const& requestedPath = stream._requested.path();
+
+			if(stream._requestedExists && requestedPath != stream._observed.path())
+				path = path::join(requestedPath, path::relative_to(path, stream._observed.path()));
+
+			if(event.flags & kFSEventStreamEventFlagHistoryDone)
 			{
-				std::string path = ((char const* const*)eventPaths)[i];
-				std::string const& requestedPath = stream._requested.path();
-
-				if(stream._requestedExists && requestedPath != stream._observed.path())
-					path = path::join(requestedPath, path::relative_to(path, stream._observed.path()));
-
-				if(path.size() > 1 && path.back() == '/')
-					path.erase(path.size()-1, 1);
-
-				if(eventFlags[i] & kFSEventStreamEventFlagHistoryDone)
+				ASSERT(stream._replay);
+				stream.set_replaying_history(false, requestedPath, event.id);
+			}
+			else
+			{
+				if(!stream._requested.exists()) // check if it has been created
 				{
-					ASSERT(stream._replay);
-					stream.set_replaying_history(false, requestedPath, eventIds[i]);
-				}
-				else
-				{
-					if(!stream._requested.exists()) // check if it has been created
+					std::string const parentPath = path::parent(requestedPath);
+					if(path.compare(0, parentPath.size(), parentPath) == 0)
 					{
-						std::string const parentPath = path::parent(requestedPath);
-						if(path.compare(0, parentPath.size(), parentPath) == 0)
+						stream._requested = file_info_t(requestedPath);
+						if(stream._requested.exists())
 						{
-							stream._requested = file_info_t(requestedPath);
-							if(stream._requested.exists())
-							{
-								if(!stream._requested.is_directory())
-									stream._callback->did_change(requestedPath, requestedPath, eventIds[i], eventFlags[i] & kFSEventStreamEventFlagMustScanSubDirs);
-								else if(path.compare(0, requestedPath.size(), requestedPath) == 0)
-									stream._callback->did_change(path, requestedPath, eventIds[i], eventFlags[i] & kFSEventStreamEventFlagMustScanSubDirs);
-							}
+							if(!stream._requested.is_directory())
+								stream._callback->did_change(requestedPath, requestedPath, event.id, event.flags & kFSEventStreamEventFlagMustScanSubDirs);
+							else if(path.compare(0, requestedPath.size(), requestedPath) == 0)
+								stream._callback->did_change(path, requestedPath, event.id, event.flags & kFSEventStreamEventFlagMustScanSubDirs);
 						}
 					}
-					else if(!stream._requested.is_directory()) // check if file was modified
+				}
+				else if(!stream._requested.is_directory()) // check if file was modified
+				{
+					if(path == path::parent(requestedPath))
 					{
-						if(path == path::parent(requestedPath))
+						file_info_t newInfo(requestedPath);
+						if(stream._requested != newInfo)
 						{
-							file_info_t newInfo(requestedPath);
-							if(stream._requested != newInfo)
-							{
-								stream._requested = newInfo;
-								stream._callback->did_change(requestedPath, requestedPath, eventIds[i], eventFlags[i] & kFSEventStreamEventFlagMustScanSubDirs);
-							}
-							else
-							{
-								// fprintf(stderr, "file not changed: %s\n", requestedPath.c_str());
-							}
+							stream._requested = newInfo;
+							stream._callback->did_change(requestedPath, requestedPath, event.id, event.flags & kFSEventStreamEventFlagMustScanSubDirs);
 						}
 						else
 						{
-							// fprintf(stderr, "skipping %s (watching %s, requested %s)\n", path.c_str(), stream._observed.path().c_str(), requestedPath.c_str());
+							// fprintf(stderr, "file not changed: %s\n", requestedPath.c_str());
 						}
-					}
-					else if(path.compare(0, requestedPath.size(), requestedPath) == 0) // make sure the event is in our observed directory
-					{
-						stream._callback->did_change(path, requestedPath, eventIds[i], eventFlags[i] & kFSEventStreamEventFlagMustScanSubDirs);
 					}
 					else
 					{
-						// this happens if we setup observing for a non-existing directory which is later created
 						// fprintf(stderr, "skipping %s (watching %s, requested %s)\n", path.c_str(), stream._observed.path().c_str(), requestedPath.c_str());
 					}
-
-					lastEventId = eventIds[i];
 				}
-			}
+				else if(path.compare(0, requestedPath.size(), requestedPath) == 0) // make sure the event is in our observed directory
+				{
+					stream._callback->did_change(path, requestedPath, event.id, event.flags & kFSEventStreamEventFlagMustScanSubDirs);
+				}
+				else
+				{
+					// this happens if we setup observing for a non-existing directory which is later created
+					// fprintf(stderr, "skipping %s (watching %s, requested %s)\n", path.c_str(), stream._observed.path().c_str(), requestedPath.c_str());
+				}
 
-			if(!stream._replay && lastEventId)
-				stream._event_id = lastEventId;
+				lastEventId = event.id;
+			}
 		}
-	};
+
+		if(!stream._replay && lastEventId)
+			stream._event_id = lastEventId;
+	}
 }
 
 namespace fs

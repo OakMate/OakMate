@@ -5,25 +5,28 @@
 #define BSTR(b) ((b)?"YES":"NO")
 #endif
 
+// Events are delivered on the main queue while tests run on other threads
 struct callback_t : fs::event_callback_t
 {
-	callback_t (test::jail_t const& jail, bool log = false) : _jail(jail), _in_replay(false), _log(log) { }
-	void set_replaying_history (bool flag, std::string const& observedPath, uint64_t eventId) { _in_replay = flag; }
+	callback_t (test::jail_t const& jail, bool log = false) : _jail(jail), _log(log) { }
+	void set_replaying_history (bool flag, std::string const& observedPath, uint64_t eventId) { }
 
 	void did_change (std::string const& path, std::string const& observedPath, uint64_t eventId, bool recursive)
 	{
+		std::lock_guard<std::mutex> lock(_mutex);
 		if(_log)
 			fprintf(stderr, "\t%s, allowed %s, must see %s\n", path::relative_to(path, _jail.path()).c_str(), BSTR(_allowed.find(path) != _allowed.end()), BSTR(_must_see.find(path) != _must_see.end()));
 
-		OAK_MASSERT(path::relative_to(path, _jail.path()).c_str(), _allowed.find(path) != _allowed.end());
+		if(_allowed.find(path) == _allowed.end())
+			_unexpected.insert(path);
 
 		_must_see.erase(path);
-		if(_must_see.empty())
-			CFRunLoopStop(CFRunLoopGetCurrent());
+		_condition.notify_all();
 	}
 
 	void allowed (char const* firstPath, ...)
 	{
+		std::lock_guard<std::mutex> lock(_mutex);
 		va_list ap;
 		va_start(ap, firstPath);
 		do {
@@ -34,6 +37,7 @@ struct callback_t : fs::event_callback_t
 
 	void must_see (char const* firstPath, ...)
 	{
+		std::lock_guard<std::mutex> lock(_mutex);
 		va_list ap;
 		va_start(ap, firstPath);
 		do {
@@ -45,31 +49,29 @@ struct callback_t : fs::event_callback_t
 
 	void event_loop (std::string const& observedPath)
 	{
+		std::unique_lock<std::mutex> lock(_mutex);
 		if(_log)
 		{
 			fprintf(stderr, "observing ‘%s’\n", observedPath.c_str());
 			for(auto const& path : _must_see)
 				fprintf(stderr, "\tmust see: %s\n", path::relative_to(path, _jail.path()).c_str());
-			fprintf(stderr, "starting event loop:\n");
 		}
 
-		while(!_must_see.empty())
-		{
-			if(CFRunLoopRunInMode(kCFRunLoopDefaultMode, 5, false) == kCFRunLoopRunTimedOut)
-			{
-				for(auto const& path : _must_see)
-					fprintf(stderr, "*** waiting: %s\n", path::relative_to(path, _jail.path()).c_str());
-			}
-		}
+		bool sawAll = _condition.wait_for(lock, std::chrono::seconds(10), [this]{ return _must_see.empty(); });
+		for(auto const& path : _must_see)
+			fprintf(stderr, "*** not seen: %s\n", path::relative_to(path, _jail.path()).c_str());
+		OAK_ASSERT(sawAll);
 
-		if(_log)
-			fprintf(stderr, "seen it all\n\n");
+		for(auto const& path : _unexpected)
+			OAK_MASSERT(path::relative_to(path, _jail.path()).c_str(), false);
 	}
 
 private:
 	test::jail_t const& _jail;
-	std::set<std::string> _must_see, _allowed;
-	bool _in_replay, _log;
+	std::set<std::string> _must_see, _allowed, _unexpected;
+	std::mutex _mutex;
+	std::condition_variable _condition;
+	bool _log;
 };
 
 void test_simple ()

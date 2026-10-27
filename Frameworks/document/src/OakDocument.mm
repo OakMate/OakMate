@@ -5,7 +5,7 @@
 #import "Printing.h"
 #import "merge.h"
 #import <FileBrowser/FileItemImage.h>
-#import <FileBrowser/KEventManager.h>
+#import "KEventManager.h"
 #import <OakFoundation/OakFoundation.h>
 #import <OakFoundation/NSString Additions.h>
 #import <OakAppKit/OakEncodingPopUpButton.h>
