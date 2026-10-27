@@ -65,7 +65,7 @@ protected
     tmp_file = "#{ENV['TMPDIR']}/output.diff"
     File.unlink(tmp_file) if File.exist? tmp_file
     puts <<-EOF
-      <a style='float:right' href='txmt://open?url=file://#{e_url tmp_file}'>Open diff in TextMate</a>
+      <a style='float:right' href='txmt://open?url=file://#{e_url tmp_file}'>Open diff in OakMate</a>
     EOF
   end
   

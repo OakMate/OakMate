@@ -38,7 +38,7 @@ end
 ::IO.popen('"$TM_SUPPORT_PATH/bin/Markdown.pl"|"$TM_SUPPORT_PATH/bin/SmartyPants.pl"', "r+") do |io|
 
   Thread.new { ARGF.each_line { |line| 
-    io << line.gsub(/\[(.+?)\]\(\?(.+?)\)/){ '[' + $1 + '][?' + $2 + ']' + "\n[?" + $2 + "]: help:anchor='" + e_url($2) + "'%20bookID='TextMate%20Help'\n" }
+    io << line.gsub(/\[(.+?)\]\(\?(.+?)\)/){ '[' + $1 + '][?' + $2 + ']' + "\n[?" + $2 + "]: help:anchor='" + e_url($2) + "'%20bookID='OakMate%20Help'\n" }
   }; io.close_write }
 
   root = tree_node = TreeNode.new
@@ -95,7 +95,7 @@ function setup_external_links() {
       link.addEventListener('click', click_external_link, false);
       insert_after(document.createTextNode("  ➲"), link);
     } else if (link.href.match(/^help:/)) {
-      link.title = 'Open TextMate help in Help Viewer.';
+      link.title = 'Open OakMate help in Help Viewer.';
       insert_after(document.createTextNode(" ⓘ"), link);
     }
   }

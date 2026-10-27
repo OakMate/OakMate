@@ -29,8 +29,8 @@ describe DiffController do
       @output.should include("Support/lib/formatters/diff.rb")
     end
     
-    it "should show a link to open the diff in textmate" do
-      @output.should include("Open diff in TextMate")      
+    it "should show a link to open the diff in oakmate" do
+      @output.should include("Open diff in OakMate")      
     end
     
     it "should include a javascript include tag for prototype.js" do

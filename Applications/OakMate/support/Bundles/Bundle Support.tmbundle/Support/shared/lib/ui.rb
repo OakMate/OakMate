@@ -442,14 +442,14 @@ class TestCompletes < Test::Unit::TestCase
 
   def test_with_images
     @images = {
-      "Macro"      => "/Applications/TextMate.app/Contents/Resources/Bundle Item Icons/Macros.png",
-      "Language"   => "/Applications/TextMate.app/Contents/Resources/Bundle Item Icons/Languages.png",
-      "Template"   => "/Applications/TextMate.app/Contents/Resources/Bundle Item Icons/Template Files.png",
-      "Templates"  => "/Applications/TextMate.app/Contents/Resources/Bundle Item Icons/Templates.png",
-      "Snippet"    => "/Applications/TextMate.app/Contents/Resources/Bundle Item Icons/Snippets.png",
-      "Preference" => "/Applications/TextMate.app/Contents/Resources/Bundle Item Icons/Preferences.png",
-      "Drag"       => "/Applications/TextMate.app/Contents/Resources/Bundle Item Icons/Drag Commands.png",
-      "Command"    => "/Applications/TextMate.app/Contents/Resources/Bundle Item Icons/Commands.png"
+      "Macro"      => "/Applications/OakMate.app/Contents/Resources/Macro.png",
+      "Language"   => "/Applications/OakMate.app/Contents/Resources/Grammar.png",
+      "Template"   => "/Applications/OakMate.app/Contents/Resources/Bundle.png",
+      "Templates"  => "/Applications/OakMate.app/Contents/Resources/Bundle.png",
+      "Snippet"    => "/Applications/OakMate.app/Contents/Resources/Snippet.png",
+      "Preference" => "/Applications/OakMate.app/Contents/Resources/Settings.png",
+      "Drag"       => "/Applications/OakMate.app/Contents/Resources/Drag Command.png",
+      "Command"    => "/Applications/OakMate.app/Contents/Resources/Command.png"
     }
 
     TextMate::UI.complete @choices, :images => @images

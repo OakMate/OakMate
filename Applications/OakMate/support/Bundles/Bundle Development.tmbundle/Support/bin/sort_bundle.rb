@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby20
 
-$: << '/Applications/TextMate.app/Contents/SharedSupport/Support/lib/'
+$: << '/Applications/OakMate.app/Contents/SharedSupport/Bundles/Bundle Support.tmbundle/Support/shared/lib/'
 $: << '/Library/Application Support/OakMate/Support/lib/'
 $: << '~/Library/Application Support/OakMate/Support/lib/'
 require 'escape'

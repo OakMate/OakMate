@@ -8,7 +8,7 @@
 # Needed to easily convert date
 require 'time'
 require "#{ENV['TM_SUPPORT_PATH']}/lib/web_preview.rb"
-# require "/Library/Application Support/TextMate/Bundles/Mercurial.tmbundle/Support/web_preview.rb"
+# require "/Library/Application Support/OakMate/Bundles/Mercurial.tmbundle/Support/web_preview.rb"
 
 
 module HGHelper   

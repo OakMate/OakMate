@@ -3,7 +3,7 @@
 require "yaml"
 require "find"
 
-$: << '/Applications/TextMate.app/Contents/SharedSupport/Support/lib/'
+$: << '/Applications/OakMate.app/Contents/SharedSupport/Bundles/Bundle Support.tmbundle/Support/shared/lib/'
 $: << '/Library/Application Support/OakMate/Support/lib/'
 $: << '~/Library/Application Support/OakMate/Support/lib/'
 require "osx/plist"
@@ -475,7 +475,7 @@ allowed_globals:
 - 7C9736B2-B851-11D9-B05D-00039369B986
 - 3AA8A593-6E4C-11D9-91AF-000D93589AF6
 - 3E8C2307-8175-4A58-BE07-785713D5837A
-# TextMate
+# OakMate
 - 970BA294-B667-11D9-8D53-00039369B986
 - E5142394-B07A-11D9-8EC4-000D93589AF6
 - 5F225755-5840-44CF-BC26-2D484DE833A0

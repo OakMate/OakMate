@@ -1,3 +1,4 @@
 build.ninja
 local.rave
 .DS_Store
+__pycache__/

@@ -33,7 +33,7 @@ def all_are_instance(it, typ):
     return all([isinstance(i, typ) for i in it])
 
 def menu(options):
-    """ Accepts a list and causes TextMate to show an inline menu.
+    """ Accepts a list and causes OakMate to show an inline menu.
     
     If options is a list of strings, will return the selected index.
     

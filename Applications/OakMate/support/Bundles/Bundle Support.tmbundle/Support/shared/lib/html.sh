@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# This file contains support functions for generating HTML, to be used with TextMate's
+# This file contains support functions for generating HTML, to be used with OakMate's
 # HTML output window.  Please don't put functions in here without coordinating with me
 # or Allan.
 #
