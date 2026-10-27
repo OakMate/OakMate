@@ -1098,7 +1098,8 @@ module Target
                 name:         'CopyFile',
                 in:           src,
                 out:          File.join(target[:builddir], target[:dir], target[:prefix], dst),
-                command:      '/bin/cp -Xp $in $out && touch $out',
+                # Replace rather than overwrite so a running copy of the application keeps valid code pages
+                command:      '/bin/cp -Xp $in $out~ && touch $out~ && mv $out~ $out',
                 description:  'Copy ‘${in}’…',
                 dependencies: deps,
               }
