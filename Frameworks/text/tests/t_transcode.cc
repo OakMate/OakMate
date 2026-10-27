@@ -104,3 +104,16 @@ void test_transcode ()
 		OAK_ASSERT_EQ(transcode.invalid_count(), 3);
 	}
 }
+
+void test_transliterate ()
+{
+	// The system iconv (macOS 14+) produced “AEblegro......” for this input
+	std::string const src = "Æblegrød… “Æød…” x€y";
+	std::string const expected = "AEblegrod... \"AEod...\" xEURy";
+
+	OAK_ASSERT_EQ(convert_batch("UTF-8", "ASCII//TRANSLIT", src), expected);
+	OAK_ASSERT_EQ(convert("UTF-8", "ASCII//TRANSLIT", src), expected);
+	OAK_ASSERT_EQ(convert_batch("UTF-8", "ascii//translit", src), expected);
+	OAK_ASSERT_EQ(convert_batch("MACINTOSH", "ASCII//TRANSLIT", std::string("\xAE""blegr\xBF""d\xC9", 9)), "AEblegrod...");
+	OAK_ASSERT_EQ(convert_batch("UTF-8", "ISO-8859-1//TRANSLIT", "Æblegrød…"), "\xC6""blegr\xF8""d...");
+}

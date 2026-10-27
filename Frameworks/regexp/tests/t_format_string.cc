@@ -9,6 +9,7 @@ void test_format_string ()
 	OAK_ASSERT_EQ(replace("æbleGRØD", ".+", "»${0:/asciify}«"),            "»aebleGROD«");
 	OAK_ASSERT_EQ(replace("æblegrød", ".+", "»${0:/capitalize}«"),         "»Æblegrød«");
 	OAK_ASSERT_EQ(replace("æblegrød", ".+", "»${0:/capitalize/asciify}«"), "»AEblegrod«");
+	OAK_ASSERT_EQ(replace("Æød… “ø”", ".+", "»${0:/asciify}«"),           "»AEod... \"o\"«");
 }
 
 void test_capitalize ()

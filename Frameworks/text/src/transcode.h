@@ -1,5 +1,11 @@
+#ifndef TEXT_TRANSCODE_H_K3M8QZ2V
+#define TEXT_TRANSCODE_H_K3M8QZ2V
+
 #include <oak/debug.h>
 #include <oak/misc.h>
+#include <CoreFoundation/CoreFoundation.h>
+#include <iconv.h>
+#include <map>
 
 namespace text
 {
@@ -31,6 +37,16 @@ namespace text
 				}
 			}
 
+			// Transliteration via iconv’s //TRANSLIT is unreliable on macOS 14+: Output is corrupted when several characters in one
+			// call need multi-byte replacements (e.g. “Æød…” → “AEo......”) and opening a plain handle for the same charsets (anywhere
+			// in the process) silently disables transliteration for existing handles. We therefore convert without //TRANSLIT and
+			// transliterate unconvertible characters ourselves (see transliterate()).
+			if(parse_charset_option(toCharset, "//TRANSLIT"))
+			{
+				_decode_handle = iconv_open("UTF-8", fromCharset.c_str());
+				_encode_handle = iconv_open(toCharset.c_str(), "UTF-8");
+			}
+
 			_handle = iconv_open(toCharset.c_str(), fromCharset.c_str());
 			if(_handle == (iconv_t)-1)
 				perrorf("transcode_t: iconv_open(\"%s\", \"%s\")", toCharset.c_str(), fromCharset.c_str());
@@ -41,6 +57,11 @@ namespace text
 			ASSERT_EQ(_left, _buffer_size);
 			if(_handle != (iconv_t)-1)
 				iconv_close(_handle);
+			for(iconv_t handle : { _decode_handle, _encode_handle })
+			{
+				if(handle != (iconv_t)-1)
+					iconv_close(handle);
+			}
 			delete[] _buffer;
 		}
 
@@ -133,6 +154,9 @@ namespace text
 					}
 					else if(errno == EILSEQ)
 					{
+						if(_partial_sequence.empty() ? transliterate(inBuf, inBufLeft, out) : transliterate_partial_sequence(out))
+							continue;
+
 						++_invalid_count;
 
 						if(_partial_sequence.empty())
@@ -164,17 +188,133 @@ namespace text
 		size_t invalid_count () const { return _invalid_count; }
 
 	private:
+		static bool parse_charset_option (std::string& charset, std::string const& option)
+		{
+			auto it = std::search(charset.begin(), charset.end(), option.begin(), option.end(), [](char lhs, char rhs){ return toupper(lhs) == toupper(rhs); });
+			if(it == charset.end())
+				return false;
+			charset.erase(it, it + option.size());
+			return true;
+		}
+
 		std::string parse_charset (std::string charset, bool* bom)
 		{
-			std::string const kBOMOption = "//BOM";
-			auto i = charset.find(kBOMOption);
-			if(i != std::string::npos)
-			{
-				charset.erase(i, kBOMOption.size());
-				if(bom)
-					*bom = true;
-			}
+			if(parse_charset_option(charset, "//BOM") && bom)
+				*bom = true;
 			return charset;
+		}
+
+		// Convert all of ‘src’ (resetting state first), returns false if any of it could not be converted
+		static bool convert_all (iconv_t handle, std::string const& src, std::string& dst)
+		{
+			char buf[256];
+			char* inBuf      = (char*)src.data();
+			size_t inBufLeft = src.size();
+
+			iconv(handle, nullptr, nullptr, nullptr, nullptr);
+			while(true)
+			{
+				char* outBuf      = buf;
+				size_t outBufLeft = sizeof(buf);
+				size_t rc = inBufLeft ? iconv(handle, &inBuf, &inBufLeft, &outBuf, &outBufLeft) : iconv(handle, nullptr, nullptr, &outBuf, &outBufLeft);
+				dst.append(buf, outBuf);
+
+				if(rc == (size_t)-1 && errno != E2BIG)
+					return false;
+				else if(rc != (size_t)-1 && inBufLeft == 0)
+					return true;
+			}
+		}
+
+		// Characters not handled by ICU’s Latin-ASCII transform (replacements match what iconv used to produce)
+		static char const* symbol_transliteration (std::string const& utf8)
+		{
+			static std::map<std::string, char const*> const symbols = {
+				{ "€", "EUR" }, { "£", "lb" }, { "¥", "yen" }, { "¢", "c" }, { "™", "TM" }, { "°", "^0" }, { "§", "SS" },
+				{ "¶", "P" }, { "•", "o" }, { "·", "." }, { "‰", "o/oo" }, { "µ", "u" }, { "¬", "not" }, { "¦", "|" },
+				{ "≠", "/=" }, { "≤", "<=" }, { "≥", ">=" }, { "ª", "a" }, { "º", "o" }, { "¹", "^1" }, { "²", "^2" }, { "³", "^3" },
+			};
+			auto it = symbols.find(utf8);
+			return it != symbols.end() ? it->second : nullptr;
+		}
+
+		static std::string ascii_transliteration (std::string const& utf8)
+		{
+			if(char const* symbol = symbol_transliteration(utf8))
+				return symbol;
+
+			std::string res = utf8;
+			if(CFStringRef str = CFStringCreateWithBytes(kCFAllocatorDefault, (UInt8 const*)utf8.data(), utf8.size(), kCFStringEncodingUTF8, false))
+			{
+				if(CFMutableStringRef tmp = CFStringCreateMutableCopy(kCFAllocatorDefault, 0, str))
+				{
+					if(CFStringTransform(tmp, nullptr, CFSTR("Any-Latin; Latin-ASCII"), false))
+					{
+						CFIndex len = 0, length = CFStringGetLength(tmp);
+						CFStringGetBytes(tmp, CFRangeMake(0, length), kCFStringEncodingUTF8, 0, false, nullptr, 0, &len);
+						res.resize(len);
+						CFStringGetBytes(tmp, CFRangeMake(0, length), kCFStringEncodingUTF8, 0, false, (UInt8*)res.data(), len, nullptr);
+					}
+					CFRelease(tmp);
+				}
+				CFRelease(str);
+			}
+			return res;
+		}
+
+		// Transliterate the single (unconvertible) character at the start of ‘inBuf’
+		template <typename _OutputIter>
+		bool transliterate (char*& inBuf, size_t& inBufLeft, _OutputIter& out)
+		{
+			if(_decode_handle == (iconv_t)-1 || _encode_handle == (iconv_t)-1)
+				return false;
+
+			// Find the length of the character by decoding increasingly longer prefixes
+			std::string utf8;
+			size_t len = 0;
+			while(++len <= std::min<size_t>(inBufLeft, 8))
+			{
+				utf8.clear();
+				if(convert_all(_decode_handle, std::string(inBuf, len), utf8))
+					break;
+				else if(errno != EINVAL)
+					return false; // invalid input
+			}
+
+			if(len > std::min<size_t>(inBufLeft, 8))
+				return false;
+
+			std::string dst, tmp;
+			auto convert = [&](iconv_t handle, std::string const& src){
+				tmp.clear();
+				return handle != (iconv_t)-1 && convert_all(handle, src, tmp) && (dst += tmp, true);
+			};
+
+			for(char const* it = utf8.data(), *last = it + utf8.size(); it != last; )
+			{
+				std::string const original(it, std::find_if(it + 1, last, [](char ch){ return (ch & 0xC0) != 0x80; }));
+				it += original.size();
+
+				// Use ‘?’ for characters without transliteration (same as iconv)
+				if(!convert(_encode_handle, ascii_transliteration(original)))
+					convert(_encode_handle, "?");
+			}
+
+			out = std::copy(dst.begin(), dst.end(), out);
+			inBuf     += len;
+			inBufLeft -= len;
+			return true;
+		}
+
+		template <typename _OutputIter>
+		bool transliterate_partial_sequence (_OutputIter& out)
+		{
+			char* buf  = (char*)_partial_sequence.data();
+			size_t len = _partial_sequence.size();
+			if(!transliterate(buf, len, out))
+				return false;
+			_partial_sequence.erase(0, _partial_sequence.size() - len);
+			return true;
 		}
 
 		void reset_buffer ()
@@ -184,6 +324,8 @@ namespace text
 		}
 
 		iconv_t _handle = (iconv_t)-1;
+		iconv_t _decode_handle = (iconv_t)-1;
+		iconv_t _encode_handle = (iconv_t)-1;
 		size_t _invalid_count = 0;
 
 		std::string _skip_prefix;
@@ -199,3 +341,5 @@ namespace text
 	};
 
 } /* text */
+
+#endif /* end of include guard: TEXT_TRANSCODE_H_K3M8QZ2V */
