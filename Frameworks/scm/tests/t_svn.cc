@@ -10,7 +10,8 @@ void test_basic_status ()
 	test::jail_t jail;
 
 	std::string const svn = scm::find_executable("svn", "TM_SVN");
-	OAK_MASSERT("\n\n  Unable to test subversion driver (svn executable not found).\n\n  To skip this test:\n    ninja scm/coerce\n\n  To install required executable (via MacPorts):\n    sudo port install subversion\n", svn != NULL_STR);
+	if(svn == NULL_STR)
+		return OAK_WARN("Skipping subversion driver tests (svn executable not found)");
 
 	std::string const repoName = "tm-test-repo";
 	std::string const wcName = "tm-test-wc";

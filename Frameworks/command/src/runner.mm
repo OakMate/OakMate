@@ -152,7 +152,7 @@ namespace command
 	{
 		NSData* data = [NSData dataWithBytesNoCopy:(void*)command.data() length:command.size() freeWhenDone:NO];
 
-		NSString* scriptPath = [NSString pathWithComponents:@[ NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES).firstObject, NSBundle.mainBundle.bundleIdentifier, @"Scripts", hash(data) ]];
+		NSString* scriptPath = [NSString pathWithComponents:@[ NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES).firstObject, NSBundle.mainBundle.bundleIdentifier ?: NSProcessInfo.processInfo.processName, @"Scripts", hash(data) ]];
 		if(![NSFileManager.defaultManager isExecutableFileAtPath:scriptPath])
 		{
 			[NSFileManager.defaultManager createDirectoryAtPath:scriptPath.stringByDeletingLastPathComponent withIntermediateDirectories:YES attributes:nil error:nullptr];
@@ -272,8 +272,15 @@ namespace command
 				CFRunLoopStop(runLoop);
 			});
 
+			// A run loop without sources returns immediately, so keep a dormant timer installed while we wait
+			CFRunLoopTimerRef keepAlive = CFRunLoopTimerCreateWithHandler(kCFAllocatorDefault, CFAbsoluteTimeGetCurrent() + 1e10, 0, 0, 0, ^(CFRunLoopTimerRef){ });
+			CFRunLoopAddTimer(runLoop, keepAlive, kCFRunLoopDefaultMode);
+
 			while(shouldWait)
 				CFRunLoopRun();
+
+			CFRunLoopRemoveTimer(runLoop, keepAlive, kCFRunLoopDefaultMode);
+			CFRelease(keepAlive);
 		}
 		else
 		{

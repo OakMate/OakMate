@@ -40,7 +40,7 @@ static CGRect from_str (std::string const& s)
 			}
 		}
 	}
-	return CGRectMake(x0, y0, x1 - x0, y1 - y0);
+	return x0 < x1 ? CGRectMake(x0, y0, x1 - x0, y1 - y0) : CGRectZero;
 }
 
 static std::string xor_rects (std::string const& lhs, std::string const& rhs)
