@@ -723,38 +723,6 @@ class CompileMarkdown < Compiler
   end
 end
 
-class CreateBundlesArchive < Compiler
-  transforms '.tbz.bl' => '.tbz'
-
-  def transform(file, config, builddir)
-    bundles = {
-      name:        "DownloadBundles",
-      in:          file,
-      out:         File.join(builddir, "_#{self.class}", File.dirname(file), 'Managed'),
-      command:     "$bl -C $out install $(<$in) && touch $out",
-      description: 'Download bundles…',
-      pool:        'console',
-      bl:          "#{builddir}/Applications/bl/bl",
-      order_only:  "#{builddir}/Applications/bl/bl",
-    }
-
-    flags = [ '--disable-copyfile' ]
-    if pbzip2 = ENV['PATH'].split(':').map { |path| File.join(path, 'pbzip2') }.find { |path| File.exist?(path) }
-      flags << "--use-compress-prog=#{pbzip2.shellescape}"
-    else
-      flags << '-j'
-    end
-
-    super.merge(
-      before:      [ bundles ],
-      in:          bundles[:out],
-      flags:       flags.join(' '),
-      command:     '/usr/bin/tar $flags -cf $out~ -C $(dirname $in) $(basename $in) && mv $out~ $out',
-      description: 'Archive ‘${in}’…',
-    )
-  end
-end
-
 # ==========
 # = Target =
 # ==========
@@ -1000,7 +968,10 @@ module Target
                 end
 
                 Array(file).each do |file|
-                  if File.directory?(file)
+                  if File.directory?(file) && File.extname(file) == '.tmbundle'
+                    # Bundles contain file names that ninja can’t express (e.g. ‘|’), so they are copied as a whole
+                    assets << [ file, File.join(dest, File.basename(file)), [] ]
+                  elsif File.directory?(file)
                     queue << [
                       File.join(dest, File.basename(file)),
                       Dir.entries(file).reject { |path| path =~ /^\./ }.map { |entry| File.join(file, entry) }
@@ -1094,6 +1065,22 @@ module Target
 
           required_targets(target, targets, include_self: true).each do |other|
             assets(other, targets).each do |src, dst, deps|
+              if File.directory?(src)
+                rules << {
+                  name:         'CopyDirectory',
+                  in:           src,
+                  out:          File.join(target[:builddir], '_CopyDirectory', target[:dir], target[:prefix], dst + '.stamp'),
+                  dst:          File.join(target[:builddir], target[:dir], target[:prefix], dst),
+                  # Runs every build but only touches the stamp (and thereby triggers signing) when rsync changed something
+                  command:      'mkdir -p "$(dirname "$dst")" "$(dirname $out)" && changes=$(/usr/bin/rsync -a --delete --itemize-changes $in/ "$dst/") && { [[ -z "$$changes" && -f $out ]] || touch $out; }',
+                  restat:       "1",
+                  description:  'Copy ‘${in}’…',
+                  dependencies: [ *deps, 'always' ],
+                }
+                dependencies << rules.last[:out]
+                next
+              end
+
               rules << {
                 name:         'CopyFile',
                 in:           src,
@@ -1445,7 +1432,7 @@ end
 # = Output Buildfile =
 # ====================
 
-NINJA_KEYS = %w[ command description depfile deps generator pool ]
+NINJA_KEYS = %w[ command description depfile deps generator pool restat ]
 
 def write_rules(io, rules)
   actions = Set.new
@@ -1462,6 +1449,11 @@ def write_rules(io, rules)
   end
 
   rules = flat_rules.sort_by { |rule| rule[:name].downcase }
+
+  # Dependency of rules that must run on every build
+  if rules.any? { |rule| Array(rule[:dependencies]).include?('always') }
+    rules << { name: 'phony', out: 'always' }
+  end
 
   rules.each do |rule|
     next if actions.include?(rule[:name]) || rule[:name] == 'phony'

@@ -1,6 +1,5 @@
 #import "DocumentWindowController.h"
 #import "ProjectLayoutView.h"
-#import "SelectGrammarViewController.h"
 #import "OakRunCommandWindowController.h"
 #import <document/OakDocument.h>
 #import <document/OakDocumentController.h>
@@ -22,7 +21,6 @@
 #import <OakFilterList/FileChooser.h>
 #import <OakSystem/application.h>
 #import <Find/Find.h>
-#import <BundlesManager/BundlesManager.h>
 #import <BundleEditor/BundleEditor.h>
 #import <file/path_info.h>
 #import <io/entries.h>
@@ -39,24 +37,6 @@
 static NSString* const kUserDefaultsAlwaysFindInDocument = @"alwaysFindInDocument";
 static NSString* const kUserDefaultsDisableFolderStateRestore = @"disableFolderStateRestore";
 static NSString* const kUserDefaultsHideStatusBarKey = @"hideStatusBar";
-static NSString* const kUserDefaultsDisableBundleSuggestionsKey = @"disableBundleSuggestions";
-static NSString* const kUserDefaultsGrammarsToNeverSuggestKey = @"grammarsToNeverSuggest";
-
-static bool can_reach_host (char const* host)
-{
-	bool res = false;
-	if(SCNetworkReachabilityRef ref = SCNetworkReachabilityCreateWithName(kCFAllocatorDefault, host))
-	{
-		SCNetworkReachabilityFlags flags;
-		if(SCNetworkReachabilityGetFlags(ref, &flags))
-		{
-			if(flags & kSCNetworkReachabilityFlagsReachable)
-				res = true;
-		}
-		CFRelease(ref);
-	}
-	return res;
-}
 
 static void show_command_error (std::string const& message, oak::uuid_t const& uuid, NSWindow* window = nil, std::string commandName = NULL_STR)
 {
@@ -113,7 +93,6 @@ static void show_command_error (std::string const& message, oak::uuid_t const& u
 
 @property (nonatomic) NSString*                   documentPath;
 
-@property (nonatomic) NSArray<Bundle*>*           bundlesAlreadySuggested;
 
 @property (nonatomic, readwrite) NSArray<OakDocument*>* documents;
 @property (nonatomic, readwrite) OakDocument*           selectedDocument;
@@ -1004,47 +983,8 @@ static NSArray* const kObservedKeyPaths = @[ @"arrayController.arrangedObjects.p
 	[document loadModalForWindow:self.window completionHandler:^(OakDocumentIOResult result, NSString* errorMessage, oak::uuid_t const& filterUUID){
 		if(result == OakDocumentIOResultSuccess)
 		{
-			BOOL showBundleSuggestions = ![NSUserDefaults.standardUserDefaults boolForKey:kUserDefaultsDisableBundleSuggestionsKey];
-			if(!document.fileType && showBundleSuggestions)
+			if(!document.fileType)
 			{
-				NSArray<BundleGrammar*>* grammars = document.proposedGrammars;
-				if(NSArray* excludedGrammars = [NSUserDefaults.standardUserDefaults stringArrayForKey:kUserDefaultsGrammarsToNeverSuggestKey])
-					grammars = [grammars filteredArrayUsingPredicate:[NSPredicate predicateWithFormat:@"NOT (identifier.UUIDString IN %@)", excludedGrammars]];
-				if(_bundlesAlreadySuggested)
-					grammars = [grammars filteredArrayUsingPredicate:[NSPredicate predicateWithFormat:@"NOT (bundle IN %@)", _bundlesAlreadySuggested]];
-
-				if([grammars count] && can_reach_host([[[NSURL URLWithString:@(REST_API)] host] UTF8String]))
-				{
-					self.bundlesAlreadySuggested = [(_bundlesAlreadySuggested ?: @[ ]) arrayByAddingObject:[grammars firstObject].bundle];
-
-					SelectGrammarViewController* installer = [[SelectGrammarViewController alloc] init];
-					installer.documentDisplayName = document.path || document.customName ? document.displayName : nil;
-
-					__weak __block id documentCloseObserver = [NSNotificationCenter.defaultCenter addObserverForName:OakDocumentWillCloseNotification object:document queue:nil usingBlock:^(NSNotification*){
-						[installer dismiss];
-						[NSNotificationCenter.defaultCenter removeObserver:documentCloseObserver];
-					}];
-
-					[installer showGrammars:grammars forView:_documentView completionHandler:^(SelectGrammarResponse response, BundleGrammar* grammar){
-						if(response == SelectGrammarResponseInstall && grammar.bundle.isInstalled)
-						{
-							for(OakDocument* doc in _documents)
-							{
-								if([doc isEqual:document] || [[doc proposedGrammars] containsObject:grammar])
-									doc.fileType = grammar.fileType;
-							}
-						}
-						else if(response == SelectGrammarResponseNever)
-						{
-							NSArray* excludedGrammars = [NSUserDefaults.standardUserDefaults stringArrayForKey:kUserDefaultsGrammarsToNeverSuggestKey] ?: @[ ];
-							[NSUserDefaults.standardUserDefaults setObject:[excludedGrammars arrayByAddingObject:grammar.identifier.UUIDString] forKey:kUserDefaultsGrammarsToNeverSuggestKey];
-						}
-
-						if(id observer = documentCloseObserver)
-							[NSNotificationCenter.defaultCenter removeObserver:observer];
-					}];
-				}
-
 				std::string const docAttributes = document.path ? "attr.file.unknown-type" : "attr.untitled";
 				document.fileType = to_ns(settings_for_path(to_s(document.virtualPath ?: document.path), docAttributes, to_s(self.projectPath)).get(kSettingsFileTypeKey, "text.plain"));
 			}

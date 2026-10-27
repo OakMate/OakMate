@@ -1,7 +1,6 @@
 #import "Preferences.h"
 #import "FilesPreferences.h"
 #import "ProjectsPreferences.h"
-#import "BundlesPreferences.h"
 #import "VariablesPreferences.h"
 #import "TerminalPreferences.h"
 #import "Keys.h"
@@ -94,7 +93,6 @@ static NSString* const kMASPreferencesSelectedViewKey = @"MASPreferences Selecte
 		NSArray<NSViewController <PreferencesPaneProtocol>*>* viewControllers = @[
 			[[FilesPreferences alloc] init],
 			[[ProjectsPreferences alloc] init],
-			[[BundlesPreferences alloc] init],
 			[[VariablesPreferences alloc] init],
 			[[TerminalPreferences alloc] init]
 		];

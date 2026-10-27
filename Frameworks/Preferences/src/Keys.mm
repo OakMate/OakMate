@@ -1,6 +1,5 @@
 #import "Keys.h"
 #import <OakTabBarView/OakTabBarView.h>
-#import <BundlesManager/BundlesManager.h>
 
 static NSArray* default_environment ()
 {
@@ -24,7 +23,6 @@ static NSDictionary* default_settings ()
 		kUserDefaultsFileBrowserPlacementKey:    @"right",
 		kUserDefaultsShowFileExtensionsKey:      @NO,
 		kUserDefaultsEnvironmentVariablesKey:    default_environment(),
-		kUserDefaultsDisableBundleUpdatesKey:    @NO,
 		kUserDefaultsDisableRMateServerKey:      @NO,
 		kUserDefaultsRMateServerListenKey:       kRMateServerListenLocalhost,
 		kUserDefaultsRMateServerPortKey:         @"52698",

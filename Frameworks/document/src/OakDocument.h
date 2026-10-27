@@ -22,7 +22,6 @@ typedef NS_ENUM(NSInteger, OakDocumentIOResult) {
 	OakDocumentIOResultCount
 };
 
-@class BundleGrammar;
 @class OakDocument;
 @class OakDocumentEditor;
 
@@ -104,7 +103,6 @@ typedef NS_ENUM(NSInteger, OakDocumentIOResult) {
 - (BOOL)performReplacements:(std::multimap<std::pair<size_t, size_t>, std::string> const&)someReplacements checksum:(uint32_t)crc32;
 @property (nonatomic) NSString* content;
 
-- (NSArray<BundleGrammar*>*)proposedGrammars;
 - (std::map<std::string, std::string>)variables;
 
 @property (nonatomic, readonly) BOOL canUndo;

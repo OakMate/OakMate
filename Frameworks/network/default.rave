@@ -1,8 +1,0 @@
-target "${dirname}" {
-	require text cf io plist OakSystem regexp
-	headers src/{download{,_tbz},filter_*,network,proxy,tbz}.h
-	sources src/*.cc
-	tests tests/*.cc
-	libraries curl
-	frameworks SystemConfiguration Security
-}

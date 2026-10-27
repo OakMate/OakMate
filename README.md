@@ -8,6 +8,8 @@ OakMate is not affiliated with or endorsed by MacroMates.
 
 OakMate uses TextMate bundles. The `TM_*` environment variables, the `txmt://` URL scheme, `mate`, and `rmate` work as they do in TextMate.
 
+The default bundles are part of this repository (`Applications/OakMate/support/Bundles`, see `vendor/README.md` for their origins) and ship inside the application. OakMate does not download or update bundles. To add another bundle, double-click a `.tmbundle` or place it in `~/Library/Application Support/OakMate/Bundles`.
+
 # Building
 
 ## Setup
@@ -37,7 +39,7 @@ Machine-specific settings (extra compiler flags, code signing identity, etc.) ca
 
 ## Building from within OakMate
 
-You should install the [Ninja][NinjaBundle] bundle which can be installed via _Preferences_ → _Bundles_.
+You should install the [Ninja][NinjaBundle] bundle, e.g. by cloning it into `~/Library/Application Support/OakMate/Bundles`.
 
 After this you can press ⌘B to build from within OakMate. In case you haven't already you also need to set up the `PATH` variable either in _Preferences_ → _Variables_ or `~/.tm_properties` so it can find `ninja` and related tools; an example could be `$PATH:/usr/local/bin`.
 

@@ -12,7 +12,6 @@ namespace bundles
 		{
 			path::join(path::home(), "Library/Application Support/OakMate"),
 			path::join(path::home(), "Library/Application Support/OakMate/Pristine Copy"),
-			path::join(path::home(), "Library/Application Support/OakMate/Managed"),
 			path::join("/",          "Library/Application Support/OakMate"),
 			path::join("/",          "Library/Application Support/OakMate/Pristine Copy"),
 			oak::application_t::path("Contents/SharedSupport"),

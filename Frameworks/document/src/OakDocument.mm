@@ -12,7 +12,6 @@
 #import <OakAppKit/OakSavePanel.h>
 #import <OakAppKit/NSAlert Additions.h>
 #import <TMFileReference/TMFileReference.h>
-#import <BundlesManager/BundlesManager.h>
 #import <authorization/constants.h>
 #import <cf/run_loop.h>
 #import <ns/ns.h>
@@ -1237,38 +1236,6 @@ static void* kDocumentEditedObserverContext = &kDocumentEditedObserverContext;
 {
 	_selection    = newSelection;
 	_visibleIndex = ng::index_t();
-}
-
-- (NSArray<BundleGrammar*>*)proposedGrammars
-{
-	NSMutableArray* res = [NSMutableArray array];
-
-	std::string const firstLine = _buffer ? _buffer->substr(_buffer->begin(0), std::min<size_t>(_buffer->eol(0), 2048)) : NULL_STR;
-	std::string const path      = to_s(_virtualPath ?: _path);
-
-	for(Bundle* bundle in BundlesManager.sharedInstance.bundles)
-	{
-		for(BundleGrammar* grammar in bundle.grammars)
-		{
-			if(firstLine != NULL_STR && grammar.firstLineMatch && regexp::search(to_s(grammar.firstLineMatch), firstLine))
-			{
-				[res addObject:grammar];
-				break;
-			}
-			else if(path != NULL_STR)
-			{
-				for(NSString* ext in grammar.filePatterns)
-				{
-					if(path::rank(path, to_s(ext)))
-					{
-						[res addObject:grammar];
-						break;
-					}
-				}
-			}
-		}
-	}
-	return res;
 }
 
 - (void)enumerateSymbolsUsingBlock:(void(^)(text::pos_t const& pos, NSString* symbol))block
