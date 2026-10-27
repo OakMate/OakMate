@@ -1,6 +1,8 @@
 #!/System/Library/Frameworks/Ruby.framework/Versions/Current/usr/bin/ruby
+Encoding.default_external = Encoding::UTF_8
 require 'optparse'
 require 'erb'
+require 'shellwords'
 
 def expand_tpl(str, binding)
   ERB.new(str, 0, '%-').result(binding)
@@ -39,7 +41,7 @@ def wrap_in_article(html)
   end
 end
 
-title, header, footer, warn = 'untitled', nil, nil, false
+title, header, footer, warn, compiler = 'untitled', nil, nil, false, nil
 
 OptionParser.new do |opts|
   opts.banner = "Usage: gen_html [options] [file]"
@@ -50,6 +52,10 @@ OptionParser.new do |opts|
   opts.on("-?", "--help", "show help.") do |v|
     puts opts
     exit
+  end
+
+  opts.on("-m","--markdown PATH", "markdown compiler reading stdin and writing html to stdout (default: md2html or multimarkdown found via PATH)") do |arg|
+    compiler = arg
   end
 
   opts.on("-h","--header FILE", "prepend «file» as header (erb)") do |arg|
@@ -69,12 +75,18 @@ OptionParser.new do |opts|
   end
 end.parse!
 
-MARKDOWN_COMPILERS = %w[ multimarkdown ]
+if compiler.nil?
+  if exe = find_exe('md2html')
+    compiler = exe.shellescape
+  elsif exe = find_exe('multimarkdown')
+    compiler = "#{exe.shellescape} --nosmart"
+  end
+else
+  compiler = compiler.shellescape
+end
+abort "Unable to find a markdown compiler" if compiler.nil?
 
-filter = MARKDOWN_COMPILERS.find { |exe| find_exe exe }
-abort "Unable to find a markdown compiler" if filter.nil?
-
-filters    = "|#{filter} --nosmart"
+filters    = "|#{compiler}"
 
 document   = ARGF.read
 document   = wrap_authors(wrap_key_equivalents(document))

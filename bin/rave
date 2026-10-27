@@ -1,4 +1,5 @@
 #!/usr/bin/env ruby
+Encoding.default_external = Encoding::UTF_8
 require 'optparse'
 require 'shellwords'
 require 'fileutils'
@@ -689,12 +690,18 @@ class CompileMarkdown < Compiler
   transforms '.md' => '.html'
   extensions '.md' => [ '.mdown' ]
 
+  # Built from vendor/md4c (target ‘md2html’)
+  def self.md2html(config)
+    File.join(*[ '$builddir', config['config'], 'vendor/md4c/md2html' ].reject { |e| e.nil? })
+  end
+
   def transform(file, config, builddir)
+    md2html = CompileMarkdown.md2html(config)
     super.merge(
-      flags:        config['MD_FLAGS'],
+      flags:        [ "-m #{md2html}", config['MD_FLAGS'] ].compact.join(' '),
       command:      "#{__dir__}/gen_html > $out~ $flags $in && mv $out~ $out",
       description:  'Markdown ‘${in}’…',
-      dependencies: [ "#{__dir__}/gen_html", *(config.dig(:inference, 'MD_FLAGS') || []) ],
+      dependencies: [ "#{__dir__}/gen_html", md2html, *(config.dig(:inference, 'MD_FLAGS') || []) ],
     )
   end
 end

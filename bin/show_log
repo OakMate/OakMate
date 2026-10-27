@@ -1,4 +1,5 @@
 #!/usr/bin/env ruby -wKU
+Encoding.default_external = Encoding::UTF_8
 require 'pathname'
 
 def pretty(txt, width, indent)

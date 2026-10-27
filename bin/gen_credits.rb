@@ -1,4 +1,5 @@
 #!/System/Library/Frameworks/Ruby.framework/Versions/Current/usr/bin/ruby
+Encoding.default_external = Encoding::UTF_8
 # == Synopsis
 #
 # Module to assist in building the Contributors page using git commit history.

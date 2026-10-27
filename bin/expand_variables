@@ -1,4 +1,5 @@
 #!/System/Library/Frameworks/Ruby.framework/Versions/Current/usr/bin/ruby
+Encoding.default_external = Encoding::UTF_8
 require 'optparse'
 require 'shellwords'
 

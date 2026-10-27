@@ -19,7 +19,10 @@ Once you have TextMate 2, you need to make sure you refresh the command-line `ma
 
 The installer of this command-line utility has moved in TextMate 2.  You can now find it in the _TextMate_ menu under _Preferences…_ in the _Terminal_ pane.
 
-![The Terminal Preferences pane][preferences]
+<figure>
+<img src="images/terminal_preferences.png" alt="The Terminal Preferences pane">
+<figcaption>The Terminal Preferences pane</figcaption>
+</figure>
 
 To install or upgrade `mate`, just select a Location and hit Install.  You may be prompted to Replace an old version, if present.
 
@@ -162,7 +165,10 @@ If you don't have SSH setup to automatically log you into the server, you may al
 
 Back on your own machine, you need to make sure TextMate 2 is ready for the incoming connections.  Be sure Accept `rmate` connections is checked in the _Terminal_ pane of _Preferences…_ in the _TextMate_ menu.  You can leave "Access for" on "local clients" though, because I'll show you a secure trick for bridging the two computers.
 
-![The Terminal Preferences pane][preferences]
+<figure>
+<img src="images/terminal_preferences.png" alt="The Terminal Preferences pane">
+<figcaption>The Terminal Preferences pane</figcaption>
+</figure>
 
 ### The Magic of SSH Tunnels
 
@@ -250,5 +256,4 @@ Those settings would be forwarded up to the server when you connect and `rmate` 
 
 Either way, it's a little work to get `rmate` setup, but it sure expands TextMate 2 reach once you do.  Welcome to remote editing with TextMate.
 
-[preferences]: images/terminal_preferences.png
 [carets]: multiple_carets.md

@@ -1,0 +1,8 @@
+# md4c 0.5.2 — https://github.com/mity/md4c (MIT license, see vendor/LICENSE.md)
+target "md2html" {
+	add FLAGS   "-I${dir}/vendor"
+	add C_FLAGS "-Wno-unused-function"
+
+	sources    vendor/{md4c,md4c-html,entity}.c src/main.c
+	executable "${target}"
+}
