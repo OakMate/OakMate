@@ -119,11 +119,12 @@ static pid_t run_command (dispatch_group_t rootGroup, std::string const& cmd, in
 
 	dispatch_group_enter(rootGroup);
 	dispatch_group_notify(group, dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+		// Leave the root group only after the completion handler has run, otherwise wait_for_command() can return before did_exit() has reported the result
 		CFRunLoopPerformBlock(runLoop, kCFRunLoopCommonModes, ^{
 			completionHandler(status);
+			dispatch_group_leave(rootGroup);
 		});
 		CFRunLoopWakeUp(runLoop);
-		dispatch_group_leave(rootGroup);
 	});
 
 	return pid;
@@ -268,8 +269,11 @@ namespace command
 			CFRunLoopRef runLoop = CFRunLoopGetCurrent();
 
 			dispatch_group_notify(_dispatch_group, dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-				shouldWait = false;
-				CFRunLoopStop(runLoop);
+				CFRunLoopPerformBlock(runLoop, kCFRunLoopCommonModes, ^{
+					shouldWait = false;
+					CFRunLoopStop(runLoop);
+				});
+				CFRunLoopWakeUp(runLoop);
 			});
 
 			// A run loop without sources returns immediately, so keep a dormant timer installed while we wait
