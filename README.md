@@ -8,6 +8,8 @@ OakMate is a fast, native text editor for macOS. It continues [TextMate 2][TextM
 
 OakMate is not affiliated with or endorsed by MacroMates.
 
+![OakMate editing a Markdown file, with the file browser open](.github/screenshot.png)
+
 ## Features
 
 * Bundles for dozens of languages and tools, with commands written in any scripting language
