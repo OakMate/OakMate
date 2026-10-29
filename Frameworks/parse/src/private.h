@@ -4,6 +4,7 @@
 #include "parse.h"
 #include <scope/scope.h>
 #include <regexp/regexp.h>
+#include <atomic>
 
 namespace parse
 {
@@ -16,7 +17,7 @@ namespace parse
 
 	struct rule_t
 	{
-		static size_t rule_id_counter;
+		static std::atomic<size_t> rule_id_counter;
 
 		rule_t () : rule_id(++rule_id_counter), include_string(NULL_STR), scope_string(NULL_STR), content_scope_string(NULL_STR), match_string(NULL_STR), while_string(NULL_STR), end_string(NULL_STR), apply_end_last(NULL_STR) { }
 

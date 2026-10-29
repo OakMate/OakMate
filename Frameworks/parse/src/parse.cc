@@ -89,7 +89,7 @@ namespace
 
 namespace parse
 {
-	size_t rule_t::rule_id_counter = 0;
+	std::atomic<size_t> rule_t::rule_id_counter{0};
 
 	bool equal (stack_ptr lhs, stack_ptr rhs)
 	{
