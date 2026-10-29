@@ -2,6 +2,7 @@
 #define TRACK_PATHS_H_38DE4GVD
 
 #include <io/path.h>
+#include <atomic>
 
 struct track_paths_t
 {
@@ -108,7 +109,7 @@ private:
 		{
 			record_t (dispatch_source_t source) : source(source) { }
 			dispatch_source_t source;
-			bool changed = false;
+			std::atomic<bool> changed{false};
 		};
 
 		typedef std::shared_ptr<record_t> record_ptr;
