@@ -2,6 +2,14 @@ Title: Release Notes
 
 # Changes
 
+## 2026-10-29 (v2.1.2)
+
+* Bundle commands with HTML output always report their error output and exit status.
+* Fix a thread-safety bug in the trees behind documents, layout, and folding that could corrupt them when they were changed on several threads at once.
+* Syntax highlighting no longer risks mixing up rules when several grammars are loaded at the same time.
+* Changes to settings files are detected reliably.
+* Fix flaky tests found with AddressSanitizer and ThreadSanitizer.
+
 ## 2026-10-27 (v2.1.1)
 
 * The tab bar has the same height as in TextMate again.
