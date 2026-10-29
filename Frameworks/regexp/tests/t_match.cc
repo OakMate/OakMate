@@ -2,7 +2,8 @@
 
 void test_match ()
 {
-	regexp::match_t const match = regexp::search("(\\w+)\\s+(\\w+)", " foo bar fud");
+	std::string const str = " foo bar fud";
+	regexp::match_t const match = regexp::search("(\\w+)\\s+(\\w+)", str);
 	OAK_ASSERT(match);
 	OAK_ASSERT_EQ(match[0], "foo bar");
 	OAK_ASSERT_EQ(match[1], "foo");

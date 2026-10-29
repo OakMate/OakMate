@@ -77,6 +77,7 @@ namespace regexp
 	std::string escape (std::string ptrn);
 	match_t search (pattern_t const& ptrn, char const* first, char const* last, char const* from = NULL, char const* to = NULL, OnigOptionType options = ONIG_OPTION_NONE);
 	match_t search (pattern_t const& ptrn, std::string const& str);
+	match_t search (pattern_t const& ptrn, std::string&& str) = delete; // match_t points into ‘str’ so it must outlive the match
 
 } /* regexp */
 
