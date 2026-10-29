@@ -47,7 +47,7 @@ namespace oak
 
 			static void skew (node_t*& node)
 			{
-				if(node->_level == node->_left->_level)
+				if(!node->is_null() && node->_level == node->_left->_level)
 				{
 					//      A              B
 					//     / \            / \
@@ -72,7 +72,7 @@ namespace oak
 
 			static void split (node_t*& node)
 			{
-				if(node->_level == node->_right->_right->_level)
+				if(!node->is_null() && node->_level == node->_right->_right->_level)
 				{
 					//      A              C¹
 					//     / \            / \
