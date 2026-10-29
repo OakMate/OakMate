@@ -47,7 +47,7 @@ decltype(c) u = (c); foreach(v, std::begin(u), std::end(u))
 #endif
 
 #ifndef riterate
-#define riterate(v,c) foreach(v, std::reverse_iterator<decltype(std::end(c))>(std::end(c)), std::reverse_iterator<decltype(std::begin(c))>(std::begin(c)))
+#define riterate(v,c) foreach(v, std::rbegin(c), std::rend(c))
 #endif
 
 #endif /* end of include guard: OAK_ITERATOR_MACROS_H_1SQFE1YN */

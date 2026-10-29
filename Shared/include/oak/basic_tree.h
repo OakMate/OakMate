@@ -194,12 +194,52 @@ namespace oak
 			basic_tree_t* _tree;
 		};
 
-		typedef std::reverse_iterator<iterator> reverse_iterator;
+		// Our iterator returns a reference to a value stored inside itself, so std::reverse_iterator (which dereferences a temporary copy) would return a dangling reference
+		struct reverse_iterator
+		{
+			typedef std::bidirectional_iterator_tag iterator_category;
+			typedef typename basic_tree_t::value_type value_type;
+			typedef ptrdiff_t difference_type;
+			typedef value_type* pointer;
+			typedef value_type& reference;
+
+			reverse_iterator (iterator base, basic_tree_t* tree) : _base(base), _current(base), _tree(tree) { if(_base != _tree->begin()) --_current; }
+
+			iterator base () const { return _base; }
+
+			bool operator== (reverse_iterator const& rhs) const { return _base == rhs._base; }
+			bool operator!= (reverse_iterator const& rhs) const { return _base != rhs._base; }
+
+			value_type& operator*  ()             { return *_current;  }
+			value_type* operator-> ()             { return &*_current; }
+			value_type const& operator*  () const { return *_current;  }
+			value_type const* operator-> () const { return &*_current; }
+
+			reverse_iterator& operator++ ()
+			{
+				_base = _current;
+				if(_base != _tree->begin())
+					--_current;
+				return *this;
+			}
+
+			reverse_iterator& operator-- ()
+			{
+				_current = _base;
+				++_base;
+				return *this;
+			}
+
+		private:
+			iterator _base;
+			iterator _current;
+			basic_tree_t* _tree;
+		};
 
 		iterator begin ()                    { node_t* res = _root; while(!res->_left->is_null()) res = res->_left; return iterator(res, this); }
 		iterator end ()                      { return iterator(node_t::null_ptr(), this); }
-		reverse_iterator rbegin ()           { return reverse_iterator(end()); }
-		reverse_iterator rend ()             { return reverse_iterator(begin()); }
+		reverse_iterator rbegin ()           { return reverse_iterator(end(), this); }
+		reverse_iterator rend ()             { return reverse_iterator(begin(), this); }
 
 		_KeyT const& aggregated () const     { return _root->key_offset(); }
 
