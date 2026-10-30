@@ -176,7 +176,21 @@ static NSArray* const kObservedKeyPaths = @[ @"arrayController.arrangedObjects.p
 		self.layoutView.documentView = self.documentView;
 
 		NSUInteger windowStyle = (NSWindowStyleMaskTitled|NSWindowStyleMaskClosable|NSWindowStyleMaskResizable|NSWindowStyleMaskMiniaturizable);
-		self.window = [[NSWindow alloc] initWithContentRect:[NSWindow contentRectForFrameRect:[self frameRectForNewWindow] styleMask:windowStyle] styleMask:windowStyle backing:NSBackingStoreBuffered defer:NO];
+		NSRect frameRect = [self frameRectForNewWindow];
+		NSRect contentRect = [NSWindow contentRectForFrameRect:frameRect styleMask:windowStyle];
+
+		// Without an explicit screen the window is created on NSScreen.mainScreen, which is the primary screen when no window is key, and later ordering it front moves it back there
+		NSScreen* screen = nil;
+		for(NSScreen* candidate in [NSScreen screens])
+		{
+			if(NSPointInRect(NSMakePoint(NSMidX(frameRect), NSMaxY(frameRect) - 1), [candidate frame]))
+				screen = candidate;
+		}
+
+		if(screen) // The screen argument makes contentRect relative to the screen’s origin
+			contentRect = NSOffsetRect(contentRect, -NSMinX([screen frame]), -NSMinY([screen frame]));
+
+		self.window = [[NSWindow alloc] initWithContentRect:contentRect styleMask:windowStyle backing:NSBackingStoreBuffered defer:NO screen:screen];
 		self.window.animationBehavior  = NSWindowAnimationBehaviorDocumentWindow;
 		self.window.collectionBehavior = NSWindowCollectionBehaviorFullScreenPrimary;
 		self.window.delegate           = self;
@@ -287,7 +301,14 @@ static NSArray* const kObservedKeyPaths = @[ @"arrayController.arrangedObjects.p
 	}
 
 	if(NSString* rectStr = [NSUserDefaults.standardUserDefaults stringForKey:@"DocumentControllerWindowFrame"])
-		return NSRectFromString(rectStr);
+	{
+		NSRect r = NSRectFromString(rectStr);
+		for(NSScreen* screen in [NSScreen screens])
+		{
+			if(NSIntersectsRect([screen visibleFrame], r))
+				return r;
+		}
+	}
 
 	NSRect r = [[NSScreen mainScreen] visibleFrame];
 	return r = NSIntegralRect(NSInsetRect(r, NSWidth(r) / 3, NSHeight(r) / 5));

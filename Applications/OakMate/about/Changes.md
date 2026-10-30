@@ -2,6 +2,10 @@ Title: Release Notes
 
 # Changes
 
+## Unreleased (v2.1.3)
+
+* New windows open where the last window was closed, also when that was on a secondary display.
+
 ## 2026-10-29 (v2.1.2)
 
 * Bundle commands with HTML output always report their error output and exit status.
