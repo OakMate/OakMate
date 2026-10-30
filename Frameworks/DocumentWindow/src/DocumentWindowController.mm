@@ -177,8 +177,20 @@ static NSArray* const kObservedKeyPaths = @[ @"arrayController.arrangedObjects.p
 
 		NSUInteger windowStyle = (NSWindowStyleMaskTitled|NSWindowStyleMaskClosable|NSWindowStyleMaskResizable|NSWindowStyleMaskMiniaturizable);
 		NSRect frameRect = [self frameRectForNewWindow];
-		self.window = [[NSWindow alloc] initWithContentRect:[NSWindow contentRectForFrameRect:frameRect styleMask:windowStyle] styleMask:windowStyle backing:NSBackingStoreBuffered defer:NO];
-		[self.window setFrame:frameRect display:NO]; // Initializer constrains the rect to NSScreen.mainScreen, which is the primary screen when no window is key
+		NSRect contentRect = [NSWindow contentRectForFrameRect:frameRect styleMask:windowStyle];
+
+		// Without an explicit screen the window is created on NSScreen.mainScreen, which is the primary screen when no window is key, and later ordering it front moves it back there
+		NSScreen* screen = nil;
+		for(NSScreen* candidate in [NSScreen screens])
+		{
+			if(NSPointInRect(NSMakePoint(NSMidX(frameRect), NSMaxY(frameRect) - 1), [candidate frame]))
+				screen = candidate;
+		}
+
+		if(screen) // The screen argument makes contentRect relative to the screen’s origin
+			contentRect = NSOffsetRect(contentRect, -NSMinX([screen frame]), -NSMinY([screen frame]));
+
+		self.window = [[NSWindow alloc] initWithContentRect:contentRect styleMask:windowStyle backing:NSBackingStoreBuffered defer:NO screen:screen];
 		self.window.animationBehavior  = NSWindowAnimationBehaviorDocumentWindow;
 		self.window.collectionBehavior = NSWindowCollectionBehaviorFullScreenPrimary;
 		self.window.delegate           = self;
