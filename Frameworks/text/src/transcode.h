@@ -40,11 +40,23 @@ namespace text
 			// Transliteration via iconv’s //TRANSLIT is unreliable on macOS 14+: Output is corrupted when several characters in one
 			// call need multi-byte replacements (e.g. “Æød…” → “AEo......”) and opening a plain handle for the same charsets (anywhere
 			// in the process) silently disables transliteration for existing handles. We therefore convert without //TRANSLIT and
-			// transliterate unconvertible characters ourselves (see transliterate()).
-			if(parse_charset_option(toCharset, "//TRANSLIT"))
-			{
+			// transliterate unconvertible characters ourselves (see transliterate()). The same applies to //IGNORE: A handle opened
+			// with it makes existing plain handles for the same charsets silently drop unconvertible characters, so we skip these ourselves.
+			_ignore = parse_charset_option(toCharset, "//IGNORE");
+			bool const translit = parse_charset_option(toCharset, "//TRANSLIT");
+			if(translit || _ignore)
 				_decode_handle = iconv_open("UTF-8", fromCharset.c_str());
+			if(translit)
 				_encode_handle = iconv_open(toCharset.c_str(), "UTF-8");
+
+			// Invalid input is skipped one code unit at a time (e.g. 2 bytes for UTF-16) to not misalign the remaining input
+			iconv_t unitHandle = _ignore ? iconv_open(fromCharset.c_str(), "UTF-8") : (iconv_t)-1;
+			if(unitHandle != (iconv_t)-1)
+			{
+				std::string one, two;
+				if(convert_all(unitHandle, "a", one) && convert_all(unitHandle, "aa", two) && two.size() > one.size())
+					_unit_size = two.size() - one.size();
+				iconv_close(unitHandle);
 			}
 
 			_handle = iconv_open(toCharset.c_str(), fromCharset.c_str());
@@ -157,6 +169,23 @@ namespace text
 						if(_partial_sequence.empty() ? transliterate(inBuf, inBufLeft, out) : transliterate_partial_sequence(out))
 							continue;
 
+						if(_ignore)
+						{
+							if(_partial_sequence.empty())
+							{
+								size_t len = skip_length(inBuf, inBufLeft);
+								inBuf     += len;
+								inBufLeft -= len;
+							}
+							else // Skip the invalid prefix and convert the bytes following it
+							{
+								std::string const rest = _partial_sequence.substr(skip_length(_partial_sequence.data(), _partial_sequence.size()));
+								_partial_sequence.clear();
+								out = (*this)(rest.data(), rest.data() + rest.size(), out);
+							}
+							continue;
+						}
+
 						++_invalid_count;
 
 						if(_partial_sequence.empty())
@@ -262,26 +291,43 @@ namespace text
 			return res;
 		}
 
+		// Decode the single character at the start of ‘buf’ to UTF-8, returns its length or 0 if the input is invalid
+		size_t decode_character (char const* buf, size_t bufLeft, std::string& utf8)
+		{
+			if(_decode_handle == (iconv_t)-1)
+				return 0;
+
+			// Find the length of the character by decoding increasingly longer prefixes
+			for(size_t len = 1; len <= std::min<size_t>(bufLeft, 8); ++len)
+			{
+				utf8.clear();
+				if(convert_all(_decode_handle, std::string(buf, len), utf8))
+					return len;
+				else if(errno != EINVAL)
+					break;
+			}
+			return 0;
+		}
+
+		// Number of bytes to skip for //IGNORE: The full (unconvertible) character, or a single code unit of invalid input
+		size_t skip_length (char const* buf, size_t bufLeft)
+		{
+			std::string utf8;
+			if(size_t len = decode_character(buf, bufLeft, utf8))
+				return len;
+			return std::min(_unit_size, bufLeft);
+		}
+
 		// Transliterate the single (unconvertible) character at the start of ‘inBuf’
 		template <typename _OutputIter>
 		bool transliterate (char*& inBuf, size_t& inBufLeft, _OutputIter& out)
 		{
-			if(_decode_handle == (iconv_t)-1 || _encode_handle == (iconv_t)-1)
+			if(_encode_handle == (iconv_t)-1)
 				return false;
 
-			// Find the length of the character by decoding increasingly longer prefixes
 			std::string utf8;
-			size_t len = 0;
-			while(++len <= std::min<size_t>(inBufLeft, 8))
-			{
-				utf8.clear();
-				if(convert_all(_decode_handle, std::string(inBuf, len), utf8))
-					break;
-				else if(errno != EINVAL)
-					return false; // invalid input
-			}
-
-			if(len > std::min<size_t>(inBufLeft, 8))
+			size_t len = decode_character(inBuf, inBufLeft, utf8);
+			if(len == 0)
 				return false;
 
 			std::string dst, tmp;
@@ -295,8 +341,8 @@ namespace text
 				std::string const original(it, std::find_if(it + 1, last, [](char ch){ return (ch & 0xC0) != 0x80; }));
 				it += original.size();
 
-				// Use ‘?’ for characters without transliteration (same as iconv)
-				if(!convert(_encode_handle, ascii_transliteration(original)))
+				// Use ‘?’ for characters without transliteration (same as iconv) unless these should be ignored
+				if(!convert(_encode_handle, ascii_transliteration(original)) && !_ignore)
 					convert(_encode_handle, "?");
 			}
 
@@ -327,6 +373,8 @@ namespace text
 		iconv_t _decode_handle = (iconv_t)-1;
 		iconv_t _encode_handle = (iconv_t)-1;
 		size_t _invalid_count = 0;
+		bool _ignore = false;
+		size_t _unit_size = 1;
 
 		std::string _skip_prefix;
 		size_t _skip_offset = 0;

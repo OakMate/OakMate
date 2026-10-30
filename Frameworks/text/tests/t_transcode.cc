@@ -94,6 +94,25 @@ void test_transcode ()
 		OAK_ASSERT_EQ(transcode.invalid_count(), 0);
 	}
 
+	// Opening a //IGNORE converter must not affect existing converters for the same charsets
+	if(auto transcode = text::transcode_t("MACINTOSH", "ASCII"))
+	{
+		OAK_ASSERT_EQ(convert_batch("MACINTOSH", "ASCII//IGNORE", macRoman), "blegrd");
+
+		std::string dst;
+		transcode(transcode(macRoman.data(), macRoman.data() + macRoman.size(), back_inserter(dst)));
+		OAK_ASSERT_EQ(dst, "\\xAEblegr\\xBFd");
+	}
+
+	// //IGNORE must skip whole characters (or code units for invalid input) and keep valid input following an invalid sequence
+	OAK_ASSERT_EQ(convert_batch("UTF-16LE", "ASCII//IGNORE", std::string("x\0\0\x41\0\x42y\0", 8)), "xy");
+	OAK_ASSERT_EQ(convert_batch("UTF-32LE", "ASCII//IGNORE", std::string("x\0\0\0\0\x41\0\0\0\x42\0\0y\0\0\0", 16)), "xy");
+	OAK_ASSERT_EQ(convert_batch("UTF-16LE", "ASCII//IGNORE", std::string("a\0\0\xD8""b\0", 6)), "ab");
+	OAK_ASSERT_EQ(convert("UTF-16LE",       "ASCII//IGNORE", std::string("a\0\0\xD8""b\0", 6)), "ab");
+	OAK_ASSERT_EQ(convert_batch("UTF-8",    "ASCII//IGNORE", "a\xE2\x82""b"), "ab");
+	OAK_ASSERT_EQ(convert("UTF-8",          "ASCII//IGNORE", "a\xE2\x82""b"), "ab");
+	OAK_ASSERT_EQ(convert_batch("UTF-8",    "ASCII//TRANSLIT//IGNORE", "aø☃b"), "aob");
+
 	if(auto transcode = text::transcode_t("UTF-8", "MACINTOSH"))
 	{
 		std::string src = "\uFEFFÆblegrød";
