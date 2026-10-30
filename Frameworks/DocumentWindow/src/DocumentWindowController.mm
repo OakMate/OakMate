@@ -176,7 +176,9 @@ static NSArray* const kObservedKeyPaths = @[ @"arrayController.arrangedObjects.p
 		self.layoutView.documentView = self.documentView;
 
 		NSUInteger windowStyle = (NSWindowStyleMaskTitled|NSWindowStyleMaskClosable|NSWindowStyleMaskResizable|NSWindowStyleMaskMiniaturizable);
-		self.window = [[NSWindow alloc] initWithContentRect:[NSWindow contentRectForFrameRect:[self frameRectForNewWindow] styleMask:windowStyle] styleMask:windowStyle backing:NSBackingStoreBuffered defer:NO];
+		NSRect frameRect = [self frameRectForNewWindow];
+		self.window = [[NSWindow alloc] initWithContentRect:[NSWindow contentRectForFrameRect:frameRect styleMask:windowStyle] styleMask:windowStyle backing:NSBackingStoreBuffered defer:NO];
+		[self.window setFrame:frameRect display:NO]; // Initializer constrains the rect to NSScreen.mainScreen, which is the primary screen when no window is key
 		self.window.animationBehavior  = NSWindowAnimationBehaviorDocumentWindow;
 		self.window.collectionBehavior = NSWindowCollectionBehaviorFullScreenPrimary;
 		self.window.delegate           = self;
@@ -287,7 +289,14 @@ static NSArray* const kObservedKeyPaths = @[ @"arrayController.arrangedObjects.p
 	}
 
 	if(NSString* rectStr = [NSUserDefaults.standardUserDefaults stringForKey:@"DocumentControllerWindowFrame"])
-		return NSRectFromString(rectStr);
+	{
+		NSRect r = NSRectFromString(rectStr);
+		for(NSScreen* screen in [NSScreen screens])
+		{
+			if(NSIntersectsRect([screen visibleFrame], r))
+				return r;
+		}
+	}
 
 	NSRect r = [[NSScreen mainScreen] visibleFrame];
 	return r = NSIntegralRect(NSInsetRect(r, NSWidth(r) / 3, NSHeight(r) / 5));
