@@ -2,7 +2,7 @@ Title: Release Notes
 
 # Changes
 
-## Unreleased (v2.1.3)
+## 2026-10-30 (v2.1.3)
 
 * New windows open where the last window was closed, also when that was on a secondary display.
 
