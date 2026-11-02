@@ -1,4 +1,4 @@
-// The plug-in listens on a Unix domain socket whose path is in DIALOG_SOCKET.
+// OakMate listens on a Unix domain socket whose path is in DIALOG_SOCKET.
 //
 // tm_dialog2 sends a property list with its arguments, environment, and
 // working directory, together with three pipes for standard input, output,
@@ -10,3 +10,8 @@ static NSString* const kDialogSocketEnvironmentVariable = @"DIALOG_SOCKET";
 static NSString* const kDialogArgumentsKey        = @"arguments";
 static NSString* const kDialogEnvironmentKey      = @"environment";
 static NSString* const kDialogWorkingDirectoryKey = @"cwd";
+
+#ifdef __cplusplus
+// Starts the server used by tm_dialog2 and sets DIALOG and DIALOG_SOCKET for commands run by OakMate.
+void OakStartDialogServer ();
+#endif

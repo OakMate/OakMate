@@ -1,0 +1,17 @@
+target "tm_dialog2" {
+	require    ipc
+	sources    tm_dialog2.mm
+	executable "${target}"
+	frameworks Foundation
+}
+
+target "${dirname}" {
+	require ipc
+	headers Dialog2.h
+
+	files @tm_dialog2 "Resources"
+
+	sources CLIProxy.mm Dialog2.mm TMDCommand.mm
+	sources Commands/**/*.mm
+	frameworks Cocoa WebKit Quartz UniformTypeIdentifiers
+}

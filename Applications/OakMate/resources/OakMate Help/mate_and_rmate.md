@@ -147,23 +147,21 @@ by selecting `main.cc:32`, copying that to the Find clipboard with ⌘E, opening
 
 In the past, OakMate has suffered with editing files on a server, but that's all changed now.  If you regularly find yourself SSHed into a remote box and wanting to edit a file using OakMate on your own box, your ship has come in.
 
-OakMate now ships with an `rmate` (Ruby) script that you can drop onto servers.  When you trigger `rmate` on a remote box, it will connect back to your box, allow you to edit, and update the file on the server with the changes.
+`rmate` is a small Ruby script that you can drop onto servers.  When you trigger `rmate` on a remote box, it will connect back to your box, allow you to edit, and update the file on the server with the changes.
 
 Let me show you how to get `rmate` installed on a server you want edit from remotely.
 
 ### Installing rmate
 
-First, we need to copy `rmate` up to your server.  You can find a link to the script in the _Preferences…_ dialog of the _OakMate_ menu, under the _Terminal_ pane.  Click that link to open the script, then finish the install with these steps:
+`rmate` is not part of OakMate.  The link in the _Terminal_ pane of _Preferences…_ in the _OakMate_ menu leads to [the rmate project](https://github.com/textmate/rmate/), where you can read its documentation.  The simplest way to install it on a server with Ruby is as a gem:
 
-1. Open a Terminal and type `scp` followed by a space
-2. Drag the `rmate` icon out of the window title bar and drop it into your Terminal to fill in the path to the script
-3. Add another space and then the server you wish to install the script on followed by a colon (`:`) and the path to install the script into
+    ssh example.com gem install --user-install rmate
 
-Your final command should look something like:
+Alternately, download the script into a folder in your path on the server, e.g. `~/bin`:
 
-    scp /Applications/OakMate.app/Contents/Frameworks/Preferences.framework/Versions/A/Resources/rmate example.com:/usr/local/bin
+    ssh example.com 'mkdir -p ~/bin && curl -fsSLo ~/bin/rmate https://raw.githubusercontent.com/textmate/rmate/master/bin/rmate && chmod +x ~/bin/rmate'
 
-If you don't have SSH setup to automatically log you into the server, you may also need to provide the proper authentication options.  If your user doesn't have permission to copy directly into a the directory you want to install into, you may need to upload the script to your user's home directory, SSH into the remote, and move it into place using `sudo`.  Alternately, you could place it in `~/bin` and ensure that directory is in your path.
+If you don't have SSH setup to automatically log you into the server, you may also need to provide the proper authentication options.  To make `rmate` available to all users of the server, install it into a folder like `/usr/local/bin` using `sudo`.
 
 Back on your own machine, you need to make sure OakMate is ready for the incoming connections.  Be sure Accept `rmate` connections is checked in the _Terminal_ pane of _Preferences…_ in the _OakMate_ menu.  You can leave "Access for" on "local clients" though, because I'll show you a secure trick for bridging the two computers.
 

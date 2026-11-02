@@ -2,7 +2,6 @@
 #import "OakMainMenu.h"
 #import "Favorites.h"
 #import "AboutWindowController.h"
-#import "TMPlugInController.h"
 #import "SoftwareUpdate.h"
 #import "RMateServer.h"
 #import <authorization/helper.h>
@@ -11,6 +10,7 @@
 #import <DocumentWindow/DocumentWindowController.h>
 #import <Find/Find.h>
 #import <CommitWindow/CommitWindow.h>
+#import <Dialog/Dialog2.h>
 #import <OakAppKit/NSAlert Additions.h>
 #import <OakAppKit/NSMenuItem Additions.h>
 #import <OakAppKit/OakAppKit.h>
@@ -42,7 +42,6 @@ void OakOpenDocuments (NSArray* paths, BOOL treatFilePackageAsFolder)
 
 	NSMutableArray<OakDocument*>* documents = [NSMutableArray array];
 	NSMutableArray* itemsToInstall = [NSMutableArray array];
-	NSMutableArray* plugInsToInstall = [NSMutableArray array];
 	BOOL enableInstallHandler = treatFilePackageAsFolder == NO && ([NSEvent modifierFlags] & NSEventModifierFlagOption) == 0;
 	for(NSString* path in paths)
 	{
@@ -51,10 +50,6 @@ void OakOpenDocuments (NSArray* paths, BOOL treatFilePackageAsFolder)
 		if(enableInstallHandler && [bundleExtensions containsObject:pathExt])
 		{
 			[itemsToInstall addObject:path];
-		}
-		else if(enableInstallHandler && [pathExt isEqualToString:@"tmplugin"])
-		{
-			[plugInsToInstall addObject:path];
 		}
 		else if([NSFileManager.defaultManager fileExistsAtPath:path isDirectory:&isDirectory] && isDirectory)
 		{
@@ -68,9 +63,6 @@ void OakOpenDocuments (NSArray* paths, BOOL treatFilePackageAsFolder)
 
 	if([itemsToInstall count])
 		[BundlesManager.sharedInstance installBundleItemsAtPaths:itemsToInstall];
-
-	for(NSString* path in plugInsToInstall)
-		[TMPlugInController.sharedInstance installPlugInAtPath:path];
 
 	[OakDocumentController.sharedInstance showDocuments:documents];
 }
@@ -495,7 +487,7 @@ BOOL HasDocumentWindow (NSArray* windows)
 	}];
 	RegisterDefaults();
 
-	[TMPlugInController.sharedInstance loadAllPlugIns:nil];
+	OakStartDialogServer();
 
 	[BundlesManager.sharedInstance loadBundlesIndex];
 

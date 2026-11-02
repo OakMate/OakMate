@@ -1225,18 +1225,6 @@
 			</array>
 		</dict>
 		<dict>
-			<key>CFBundleTypeIconSystemGenerated</key>
-			<true/>
-			<key>CFBundleTypeRole</key>
-			<string>Editor</string>
-			<key>LSHandlerRank</key>
-			<string>Owner</string>
-			<key>LSItemContentTypes</key>
-			<array>
-				<string>com.isztld.oakmate.plugin</string>
-			</array>
-		</dict>
-		<dict>
 			<key>CFBundleTypeExtensions</key>
 			<array>
 				<string>nfo</string>
@@ -3317,25 +3305,6 @@
 				<array>
 					<string>tmBundle</string>
 					<string>tmbundle</string>
-				</array>
-			</dict>
-		</dict>
-		<dict>
-			<key>UTTypeConformsTo</key>
-			<array>
-				<string>com.apple.package</string>
-			</array>
-			<key>UTTypeDescription</key>
-			<string>OakMate PlugIn</string>
-			<key>UTTypeIdentifier</key>
-			<string>com.isztld.oakmate.plugin</string>
-			<key>UTTypeTagSpecification</key>
-			<dict>
-				<key>public.filename-extension</key>
-				<array>
-					<string>tmPlugIn</string>
-					<string>tmPlugin</string>
-					<string>tmplugin</string>
 				</array>
 			</dict>
 		</dict>

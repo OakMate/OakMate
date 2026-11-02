@@ -9,6 +9,7 @@ Title: Release Notes
 * The software update progress window has padding on the right.
 * Files that require administrator privileges, such as `/etc/hosts`, are opened and saved by a new helper which you allow once in System Settings → General → Login Items & Extensions, and you confirm with Touch ID or your password. The helper installed by earlier versions is removed.
 * `mate` talks to OakMate over a socket that only you can reach, runs as you when started with `sudo`, and uses the copy of OakMate it is inside. Connections to the `rmate` port can only open the content they send, not files on your computer or open documents.
+* Plug-ins (`*.tmplugin`) are no longer installed or loaded, and OakMate only runs code signed together with it. The `$DIALOG` commands are now built into OakMate. This keeps other software from running inside OakMate to use its administrator access.
 * Building from source puts the build output in a `build` folder inside the source folder instead of `~/build`.
 
 ## 2026-10-30 (v2.1.3)

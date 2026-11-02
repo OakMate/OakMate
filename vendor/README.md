@@ -5,12 +5,12 @@ These directories used to be git submodules and are now part of this repository.
 | Path | Origin | Imported commit |
 |------|--------|-----------------|
 | `Applications/SyntaxMate/resources/SyntaxMate.tmBundle` | https://github.com/shpakovski/syntaxmate.tmbundle.git | `a609c5cb7184` |
-| `PlugIns/dialog` | https://github.com/textmate/dialog.git | `fa2f59e3a8df` |
+| `Frameworks/Dialog` | https://github.com/textmate/dialog.git | `fa2f59e3a8df` |
 | `vendor/Onigmo/vendor` | https://github.com/textmate/Onigmo.git | `05da5931eb10` |
 | `vendor/kvdb/vendor` | https://github.com/textmate/kvdb.git | `13e30cf55baa` |
 | `vendor/md4c/vendor` | https://github.com/mity/md4c | release 0.5.2 |
 
-`PlugIns/dialog-1.x` (https://github.com/textmate/dialog-1.x.git) was removed. Its command line options are handled by `PlugIns/dialog/Commands/nib/dialog1.mm`.
+`PlugIns/dialog-1.x` (https://github.com/textmate/dialog-1.x.git) was removed. Its command line options are handled by `Frameworks/Dialog/Commands/nib/dialog1.mm`. Dialog was a plug-in loaded at runtime and is now built into OakMate.
 
 The document icons from https://github.com/textmate/document-icons.git were removed. macOS now generates document icons from the app icon.
 

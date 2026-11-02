@@ -45,4 +45,4 @@ config release {
 	add CS_FLAGS "--timestamp"
 }
 
-load local.rave {Applications,Frameworks,PlugIns,vendor}/*/*.rave
+load local.rave {Applications,Frameworks,vendor}/*/*.rave
