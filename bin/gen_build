@@ -3,7 +3,7 @@ Encoding.default_external = Encoding::UTF_8
 require 'optparse'
 
 if __FILE__ == $PROGRAM_NAME
-  builddir  = File.expand_path('~/build')
+  builddir  = File.expand_path('build')
 
   OptionParser.new do |opts|
     opts.banner = "Usage: gen_build [options] "

@@ -19,7 +19,7 @@ OakMate builds on Apple silicon Macs running macOS 14 or later. You need [Xcode]
 	cd OakMate
 	./configure && ninja OakMate/run
 
-The `./configure` script checks that the tools can be found and then calls `bin/rave` to bootstrap a `build.ninja` file with default config set to `release` and default target set to `OakMate`. The build directory is `~/build/«name of the source folder»`.
+The `./configure` script checks that the tools can be found and then calls `bin/rave` to bootstrap a `build.ninja` file with default config set to `release` and default target set to `OakMate`. The build directory is `build` inside the source folder; set the `builddir` environment variable to an existing directory before running `./configure` to build elsewhere.
 
 Machine-specific settings (extra compiler flags, code signing identity, etc.) can be placed in an optional `local.rave` file, which is not under version control.
 
