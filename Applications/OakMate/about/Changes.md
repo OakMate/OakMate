@@ -2,11 +2,12 @@ Title: Release Notes
 
 # Changes
 
-## 2026-11-02 (v2.1.4)
+## 2026-11-02 (v2.1.5)
 
 * Converting text between encodings no longer risks dropping characters.
 * Invalid gutter colors in a theme are ignored, and choosing a theme that could not be found no longer prevents it from being applied once it is available.
 * The software update progress window has padding on the right.
+* Scrolling the release notes in the software update window, and windows shown by `$DIALOG` commands, is smooth again.
 * Files that require administrator privileges, such as `/etc/hosts`, are opened and saved by a new helper which you allow once in System Settings → General → Login Items & Extensions, and you confirm with Touch ID or your password. The helper installed by earlier versions is removed.
 * `mate` talks to OakMate over a socket that only you can reach, runs as you when started with `sudo`, and uses the copy of OakMate it is inside. Connections to the `rmate` port can only open the content they send, not files on your computer or open documents.
 * Plug-ins (`*.tmplugin`) are no longer installed or loaded, and OakMate only runs code signed together with it. The `$DIALOG` commands are now built into OakMate. This keeps other software from running inside OakMate to use its administrator access.
