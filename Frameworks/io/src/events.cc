@@ -114,20 +114,32 @@ namespace
 
 		void unwatch (std::string const& path, fs::event_callback_t* cb)
 		{
-			std::lock_guard<std::mutex> lock(streams_mutex);
-			iterate(it, streams)
+			stream_ptr stream;
 			{
-				if((*it)->_requested.path() == path && (*it)->_callback == cb)
+				std::lock_guard<std::mutex> lock(streams_mutex);
+				iterate(it, streams)
 				{
-					// Events are handled on the main queue, so the stream must be destroyed there
-					stream_ptr stream = *it;
-					streams.erase(it);
-					if(!pthread_main_np())
-						dispatch_async(dispatch_get_main_queue(), ^{ stream_ptr dispose = stream; });
-					return;
+					if((*it)->_requested.path() == path && (*it)->_callback == cb)
+					{
+						stream = *it;
+						streams.erase(it);
+						break;
+					}
 				}
 			}
-			os_log_error(OS_LOG_DEFAULT, "Not watching ‘%{public}s’", path.c_str());
+
+			if(!stream)
+			{
+				os_log_error(OS_LOG_DEFAULT, "Not watching ‘%{public}s’", path.c_str());
+			}
+			else if(!pthread_main_np())
+			{
+				// Events are delivered on the main queue, so the stream must be destroyed there. Wait for it, so that no event reaches the callback after we return and the caller destroys it.
+				__block stream_ptr blockStream = std::move(stream);
+				dispatch_sync(dispatch_get_main_queue(), ^{
+					blockStream.reset();
+				});
+			}
 		}
 	};
 
