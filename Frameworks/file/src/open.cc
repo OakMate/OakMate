@@ -5,8 +5,9 @@
 #include "filter.h"
 #include "type.h"
 #include "server.h"
-#include <authorization/constants.h>
-#include <authorization/server.h>
+#include <authorization/helper.h>
+#include <io/path.h>
+#include <text/format.h>
 #include <cf/cf.h>
 #include <command/parser.h>
 #include <command/runner.h>
@@ -178,15 +179,15 @@ namespace file
 		}
 		else if(errno == EACCES)
 		{
-			if(connection_t conn = connect_to_auth_server(request.authorization))
+			std::string content;
+			std::string const error = privileged_helper::read_file(request.path, request.authorization, content, result.attributes);
+			if(error == NULL_STR)
 			{
-				conn << "read" << request.path;
-				std::string content;
-				conn >> content >> result.attributes;
 				result.bytes = std::make_shared<io::bytes_t>(content);
 			}
 			else
 			{
+				os_log_error(OS_LOG_DEFAULT, "%{public}s", error.c_str());
 				result.error_code = EACCES;
 			}
 		}
@@ -232,7 +233,7 @@ namespace file
 {
 	void open_callback_t::obtain_authorization (std::string const& path, osx::authorization_t auth, open_context_ptr context)
 	{
-		if(auth.obtain_right(kAuthRightName))
+		if(privileged_helper::authorize(auth, text::format("OakMate needs administrator privileges to open “%s”.", path::name(path).c_str())))
 			context->set_authorization(auth);
 	}
 

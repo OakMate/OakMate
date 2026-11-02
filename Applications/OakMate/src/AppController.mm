@@ -5,6 +5,7 @@
 #import "TMPlugInController.h"
 #import "SoftwareUpdate.h"
 #import "RMateServer.h"
+#import <authorization/helper.h>
 #import <BundleEditor/BundleEditor.h>
 #import <BundlesManager/BundlesManager.h>
 #import <DocumentWindow/DocumentWindowController.h>
@@ -650,6 +651,8 @@ BOOL HasDocumentWindow (NSArray* windows)
 {
 	if(!self.uninstallOnTerminate)
 		return;
+
+	privileged_helper::unregister();
 
 	NSString* bundleIdentifier = NSBundle.mainBundle.bundleIdentifier;
 	NSString* library          = [NSHomeDirectory() stringByAppendingPathComponent:@"Library"];

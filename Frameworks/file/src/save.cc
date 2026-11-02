@@ -3,8 +3,8 @@
 #include "encoding.h"
 #include "filter.h"
 #include "path_info.h"
-#include <authorization/server.h>
-#include <authorization/constants.h>
+#include <authorization/helper.h>
+#include <text/format.h>
 #include <io/intermediate.h>
 #include <io/path.h>
 #include <text/trim.h>
@@ -142,15 +142,7 @@ namespace
 		}
 		else if(status == kFileTestWritableByRoot || status == kFileTestNotWritable)
 		{
-			if(connection_t conn = connect_to_auth_server(authorization))
-			{
-				conn << "write" << path << std::string(bytes->begin(), bytes->end()) << attributes;
-				conn >> error;
-			}
-			else
-			{
-				error = "Could not connect to privileged helper demon.";
-			}
+			error = privileged_helper::write_file(path, std::string(bytes->begin(), bytes->end()), attributes, authorization);
 		}
 		return error;
 	}
@@ -395,7 +387,7 @@ namespace file
 
 	void save_callback_t::obtain_authorization (std::string const& path, io::bytes_ptr content, osx::authorization_t auth, save_context_ptr context)
 	{
-		if(auth.obtain_right(kAuthRightName))
+		if(privileged_helper::authorize(auth, text::format("OakMate needs administrator privileges to save “%s”.", path::name(path).c_str())))
 			context->set_authorization(auth);
 	}
 

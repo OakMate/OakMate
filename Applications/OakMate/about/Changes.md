@@ -7,6 +7,7 @@ Title: Release Notes
 * Converting text between encodings no longer risks dropping characters.
 * Invalid gutter colors in a theme are ignored, and choosing a theme that could not be found no longer prevents it from being applied once it is available.
 * The software update progress window has padding on the right.
+* Files that require administrator privileges, such as `/etc/hosts`, are opened and saved by a new helper which you allow once in System Settings → General → Login Items & Extensions, and you confirm with Touch ID or your password. The helper installed by earlier versions is removed.
 * Building from source puts the build output in a `build` folder inside the source folder instead of `~/build`.
 
 ## 2026-10-30 (v2.1.3)

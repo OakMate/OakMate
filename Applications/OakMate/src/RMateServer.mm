@@ -4,7 +4,6 @@
 #include <document/OakDocument.h>
 #include <document/OakDocumentController.h>
 #include <oak/debug.h>
-#include <authorization/authorization.h>
 #include <io/io.h>
 #include <ns/ns.h>
 #include <OakAppKit/IOAlertPanel.h>
@@ -21,7 +20,6 @@
 	project-uuid: «uuid»
 	add-to-recents: «boolean»
 	re-activate: «boolean»
-	authorization: «blob»
 	wait: «boolean»
 	data-on-save: «boolean»
 	data-on-close: «boolean»
@@ -574,9 +572,6 @@ struct socket_observer_t
 			// std::string folder;         // when there is no path we still may provide a default folder
 			// enum fallback_t { must_share_path, should_share_path, frontmost, create_new } project_fallback;
 			// bool bring_to_front;
-
-			if(args.find("authorization") != args.end())
-				doc.authorization = args["authorization"];
 
 			if(oak::uuid_t::is_valid(args["project-uuid"]))
 					[OakDocumentController.sharedInstance showDocument:doc inProject:[[NSUUID alloc] initWithUUIDString:to_ns(args["project-uuid"])] bringToFront:YES];

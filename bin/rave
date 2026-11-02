@@ -1642,7 +1642,7 @@ if __FILE__ == $PROGRAM_NAME
   if new_outputs && old_outputs
     lost_outputs = old_outputs - new_outputs
     lost_outputs.each do |path|
-      if File.exists?(path)
+      if File.exist?(path)
         STDERR << "Remove old target ‘#{path}’…\n"
         # FIXME Does not seem to work with symbolic links (Proxy.png → Settings.png)
         File.unlink(path)

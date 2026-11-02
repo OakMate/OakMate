@@ -34,9 +34,11 @@ Users usually install `mate` into `~/bin` if they just need it for the current u
 
 Let's get to the good stuff.  What's upgraded in `mate`?
 
-First, it's a small tweak, but you will be happy to hear that `mate` now works with `sudo`.  You can use this to edit restricted access files in OakMate without being bothered by an authorization dialog on save:
+First, you do not need `sudo` to edit files that require administrator privileges.  Open them as usual and OakMate asks you to authenticate, with Touch ID or your password, when it needs to read or save them:
 
-    sudo mate /etc/hosts
+    mate /etc/hosts
+
+The first time, OakMate asks you to allow its helper in System Settings → General → Login Items & Extensions.
 
 Next, `mate` has picked up some new command-line options.  One is `-t`, which allows you to set the type of an opened file.  Personally, I like this feature for README files, which I prefer to write in Markdown.  Since the name of standard files like this don't always include an extension, we can just tell OakMate how to handle the file as we open it:
 

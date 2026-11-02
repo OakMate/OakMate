@@ -10,7 +10,8 @@
 #import <ns/ns.h>
 #import <regexp/format_string.h>
 #import <bundles/bundles.h>
-#import <oak/compat.h>
+#import <authorization/helper.h>
+#import <text/format.h>
 
 static void CreateHyperLink (NSTextField* textField, NSString* text, NSString* url)
 {
@@ -30,83 +31,9 @@ static void CreateHyperLink (NSTextField* textField, NSString* text, NSString* u
 	[textField setAttributedStringValue:attrString];
 }
 
-static bool run_auth_command (AuthorizationRef& auth, std::string const cmd, ...)
+static bool is_permission_error (int error)
 {
-	if(!auth && AuthorizationCreate(NULL, kAuthorizationEmptyEnvironment, kAuthorizationFlagDefaults, &auth) != errAuthorizationSuccess)
-		return false;
-
-	std::vector<char*> args;
-
-	va_list ap;
-	va_start(ap, cmd);
-	char* arg = NULL;
-	while((arg = va_arg(ap, char*)) && *arg)
-		args.push_back(arg);
-	va_end(ap);
-
-	args.push_back(NULL);
-
-	bool res = false;
-	if(oak::execute_with_privileges(auth, cmd, kAuthorizationFlagDefaults, &args[0], NULL) == errAuthorizationSuccess)
-	{
-		int status;
-		int pid = wait(&status);
-		if(pid != -1 && WIFEXITED(status) && WEXITSTATUS(status) == 0)
-				res = true;
-		else	errno = WEXITSTATUS(status);
-	}
-	else
-	{
-		errno = EPERM;
-	}
-	return res;
-}
-
-static bool mk_dir (std::string const& path, AuthorizationRef& auth)
-{
-	struct stat buf;
-	if(stat(path.c_str(), &buf) == 0)
-	{
-		if(S_ISDIR(buf.st_mode))
-			return true;
-	}
-	else if(path != "/" && mk_dir(path::parent(path), auth))
-	{
-		if(access(path::parent(path).c_str(), W_OK) == 0)
-		{
-			if(mkdir(path.c_str(), S_IRWXU|S_IRWXG|S_IRWXO) == 0)
-				return true;
-			perrorf("TerminalPreferences: mkdir(\"%s\")", path.c_str());
-		}
-		else
-		{
-			if(run_auth_command(auth, "/bin/mkdir", path.c_str(), NULL))
-				return true;
-			perrorf("TerminalPreferences: /bin/mkdir \"%s\"", path.c_str());
-		}
-	}
-	return false;
-}
-
-static bool rm_path (std::string const& path, AuthorizationRef& auth)
-{
-	struct stat buf;
-	if(lstat(path.c_str(), &buf) != 0)
-		return true;
-
-	if(access(path::parent(path).c_str(), W_OK) == 0)
-	{
-		if(unlink(path.c_str()) == 0)
-			return true;
-		perrorf("TerminalPreferences: unlink \"%s\"", path.c_str());
-	}
-	else
-	{
-		if(run_auth_command(auth, "/bin/rm", path.c_str(), NULL))
-			return true;
-		perrorf("TerminalPreferences: /bin/rm \"%s\"", path.c_str());
-	}
-	return false;
+	return error == EACCES || error == EPERM;
 }
 
 static bool cp_requires_admin (std::string const& dst)
@@ -114,40 +41,47 @@ static bool cp_requires_admin (std::string const& dst)
 	return access(dst.c_str(), W_OK) != 0 && (access(dst.c_str(), X_OK) == 0 || access(path::parent(dst).c_str(), W_OK) != 0);
 }
 
-static bool cp_path (std::string const& src, std::string const& dst, AuthorizationRef& auth)
-{
-	if(!cp_requires_admin(dst))
-	{
-		if(copyfile(src.c_str(), dst.c_str(), NULL, COPYFILE_ALL | COPYFILE_NOFOLLOW_SRC) == 0)
-			return true;
-		perrorf("TerminalPreferences: copyfile(\"%s\", \"%s\", NULL, COPYFILE_ALL | COPYFILE_NOFOLLOW_SRC)", src.c_str(), dst.c_str());
-	}
-	else
-	{
-		if(run_auth_command(auth, "/bin/cp", "-p", src.c_str(), dst.c_str(), NULL))
-			return true;
-		perrorf("TerminalPreferences: /bin/cp -p \"%s\" \"%s\"", src.c_str(), dst.c_str());
-	}
-	return false;
-}
-
 static bool install_mate (std::string const& src, std::string const& dst)
 {
-	AuthorizationRef auth = NULL;
-	if(mk_dir(path::parent(dst), auth))
+	struct stat buf;
+	if(path::make_dir(path::parent(dst)) && (lstat(dst.c_str(), &buf) != 0 || S_ISREG(buf.st_mode) || unlink(dst.c_str()) == 0) && copyfile(src.c_str(), dst.c_str(), NULL, COPYFILE_ALL | COPYFILE_NOFOLLOW_SRC) == 0)
+		return true;
+
+	if(!is_permission_error(errno))
 	{
-		struct stat buf;
-		if(lstat(dst.c_str(), &buf) == 0 && !S_ISREG(buf.st_mode) && !rm_path(dst, auth))
-			return false;
-		return cp_path(src, dst, auth);
+		perrorf("TerminalPreferences: install “%s”", dst.c_str());
+		return false;
 	}
-	return false;
+
+	osx::authorization_t auth;
+	if(!privileged_helper::authorize(auth, text::format("OakMate needs administrator privileges to install “mate” in %s.", path::with_tilde(path::parent(dst)).c_str())))
+		return false;
+
+	std::string const error = privileged_helper::copy_file(src, dst, auth);
+	if(error != NULL_STR)
+		os_log_error(OS_LOG_DEFAULT, "%{public}s", error.c_str());
+	return error == NULL_STR;
 }
 
 static bool uninstall_mate (std::string const& path)
 {
-	AuthorizationRef auth = NULL;
-	return access(path.c_str(), F_OK) != 0 || rm_path(path, auth);
+	if(unlink(path.c_str()) == 0 || errno == ENOENT)
+		return true;
+
+	if(!is_permission_error(errno))
+	{
+		perrorf("TerminalPreferences: unlink “%s”", path.c_str());
+		return false;
+	}
+
+	osx::authorization_t auth;
+	if(!privileged_helper::authorize(auth, text::format("OakMate needs administrator privileges to remove “%s”.", path::with_tilde(path).c_str())))
+		return false;
+
+	std::string const error = privileged_helper::remove_file(path, auth);
+	if(error != NULL_STR)
+		os_log_error(OS_LOG_DEFAULT, "%{public}s", error.c_str());
+	return error == NULL_STR;
 }
 
 @implementation TerminalPreferences

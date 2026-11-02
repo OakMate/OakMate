@@ -1,0 +1,7 @@
+target "${dirname}" {
+	require io
+	require_headers authorization
+	sources src/*.mm
+	executable "${target}"
+	frameworks Foundation Security
+}

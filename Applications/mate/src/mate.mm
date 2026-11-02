@@ -1,13 +1,8 @@
-#include <authorization/constants.h>
-#include <authorization/authorization.h>
 #include <oak/oak.h>
 #include <text/format.h>
 #include <text/parse.h>
 #include <io/path.h>
 #include <plist/uuid.h>
-#import <spawn.h>
-
-extern char** environ;
 
 static char const* const AppVersion = "2.13.3";
 
@@ -88,34 +83,6 @@ static void launch_app (bool disableUntitled)
 	{
 		fprintf(stderr, "Can’t launch OakMate.app: %s\n", error.localizedDescription.UTF8String);
 		exit(EX_UNAVAILABLE);
-	}
-}
-
-static void install_auth_tool ()
-{
-	if(geteuid() == 0 && (!path::exists(kAuthToolPath) || !path::exists(kAuthPlistPath) || AuthorizationRightGet(kAuthRightName, nullptr) == errAuthorizationDenied))
-	{
-		NSURL* toolURL = [find_app() URLByAppendingPathComponent:@"Contents/Resources/PrivilegedTool"];
-
-		char const* arg0 = toolURL.fileSystemRepresentation;
-		if(access(arg0, X_OK) != 0)
-		{
-			fprintf(stderr, "No such executable file: ‘%s’\n", arg0);
-			exit(EX_UNAVAILABLE);
-		}
-
-		pid_t pid;
-		char* argv[] = { (char*)arg0, (char*)"--install", nullptr };
-		if(int rc = posix_spawn(&pid, arg0, nullptr, nullptr, argv, environ))
-		{
-			fprintf(stderr, "%s: %s\n", arg0, strerror(rc));
-		}
-		else
-		{
-			int status = 0;
-			if(waitpid(pid, &status, 0) == pid && WIFEXITED(status) && WEXITSTATUS(status) != 0)
-				fprintf(stderr, "%s: %s\n", arg0, strerror(WEXITSTATUS(status)));
-		}
 	}
 }
 
@@ -298,7 +265,6 @@ int main (int argc, char const* argv[])
 		{ 0,                  0,                   0,      0     }
 	};
 
-	osx::authorization_t auth;
 	std::vector<std::string> files, lines, types, names, projects, setMarks, clearMarks;
 	oak::uuid_t uuid;
 
@@ -309,8 +275,6 @@ int main (int argc, char const* argv[])
 
 	if(strlen(getprogname()) > 5 && strcmp(getprogname() + strlen(getprogname()) - 5, "_wait") == 0)
 		shouldWait = boolean::kEnable;
-
-	install_auth_tool();
 
 	std::vector<std::string> options = text::split(getenv("MATEFLAGS") ?: "", " ");
 	char const** flags = new char const*[options.size()+1];
@@ -531,9 +495,6 @@ int main (int argc, char const* argv[])
 
 			if(addToRecent != boolean::kUnset)
 				write_key_pair(fd, "add-to-recents", to_s(addToRecent));
-
-			if(geteuid() == 0 && auth.obtain_right(kAuthRightName))
-				write_key_pair(fd, "authorization", auth);
 
 			write_key_pair(fd, "selection",        i < lines.size()    ? lines[i] : "");
 			write_key_pair(fd, "file-type",        i < types.size()    ? types[i] : "");

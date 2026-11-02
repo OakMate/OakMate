@@ -12,7 +12,7 @@
 #import <OakAppKit/OakSavePanel.h>
 #import <OakAppKit/NSAlert Additions.h>
 #import <TMFileReference/TMFileReference.h>
-#import <authorization/constants.h>
+#import <authorization/helper.h>
 #import <cf/run_loop.h>
 #import <ns/ns.h>
 #import <settings/settings.h>
@@ -973,7 +973,7 @@ static void* kDocumentEditedObserverContext = &kDocumentEditedObserverContext;
 				if(!_window)
 					return;
 
-				if(auth.obtain_right(kAuthRightName))
+				if(privileged_helper::authorize(auth, to_s([NSString stringWithFormat:@"OakMate needs administrator privileges to save “%@”.", _document.displayName])))
 						context->set_authorization(auth);
 				else	_cancel = true;
 			}

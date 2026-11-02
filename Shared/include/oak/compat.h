@@ -15,10 +15,6 @@ namespace oak
 	inline size_t os_minor () { return get_gestalt(gestaltSystemVersionMinor); }
 	inline size_t os_patch () { return get_gestalt(gestaltSystemVersionBugFix); }
 
-	inline OSStatus execute_with_privileges (AuthorizationRef authorization, std::string const& pathToTool, AuthorizationFlags options, char* const* arguments, FILE** communicationsPipe)
-	{
-		return AuthorizationExecuteWithPrivileges(authorization, pathToTool.c_str(), options, arguments, communicationsPipe);
-	}
 #pragma clang diagnostic pop
 } /* oak */
 
