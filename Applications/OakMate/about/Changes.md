@@ -2,6 +2,13 @@ Title: Release Notes
 
 # Changes
 
+## Unreleased (v2.1.4)
+
+* Converting text between encodings no longer risks dropping characters.
+* Invalid gutter colors in a theme are ignored, and choosing a theme that could not be found no longer prevents it from being applied once it is available.
+* The software update progress window has padding on the right.
+* Building from source puts the build output in a `build` folder inside the source folder instead of `~/build`.
+
 ## 2026-10-30 (v2.1.3)
 
 * New windows open where the last window was closed, also when that was on a secondary display.
