@@ -345,17 +345,31 @@ static NSError* UpdateError (NSString* description)
 	[progress startAnimation:self];
 	NSButton* cancel = [NSButton buttonWithTitle:@"Cancel" target:self action:@selector(cancelDownload:)];
 
-	NSStackView* stack = [NSStackView stackViewWithViews:@[ label, progress, cancel ]];
-	stack.orientation = NSUserInterfaceLayoutOrientationVertical;
-	stack.alignment   = NSLayoutAttributeTrailing;
-	stack.edgeInsets  = NSEdgeInsetsMake(20, 20, 20, 20);
-	[label.leadingAnchor constraintEqualToAnchor:stack.leadingAnchor constant:20].active = YES;
-	[progress.leadingAnchor constraintEqualToAnchor:stack.leadingAnchor constant:20].active = YES;
-	[progress.widthAnchor constraintEqualToConstant:300].active = YES;
+	NSView* contentView = [[NSView alloc] initWithFrame:NSZeroRect];
+	for(NSView* view in @[ label, progress, cancel ])
+	{
+		view.translatesAutoresizingMaskIntoConstraints = NO;
+		[contentView addSubview:view];
+	}
+
+	[NSLayoutConstraint activateConstraints:@[
+		[label.topAnchor constraintEqualToAnchor:contentView.topAnchor constant:20],
+		[label.leadingAnchor constraintEqualToAnchor:contentView.leadingAnchor constant:20],
+		[label.trailingAnchor constraintLessThanOrEqualToAnchor:contentView.trailingAnchor constant:-20],
+
+		[progress.topAnchor constraintEqualToAnchor:label.bottomAnchor constant:12],
+		[progress.leadingAnchor constraintEqualToAnchor:contentView.leadingAnchor constant:20],
+		[progress.trailingAnchor constraintEqualToAnchor:contentView.trailingAnchor constant:-20],
+		[progress.widthAnchor constraintEqualToConstant:300],
+
+		[cancel.topAnchor constraintEqualToAnchor:progress.bottomAnchor constant:12],
+		[cancel.trailingAnchor constraintEqualToAnchor:contentView.trailingAnchor constant:-20],
+		[cancel.bottomAnchor constraintEqualToAnchor:contentView.bottomAnchor constant:-20],
+	]];
 
 	self.progressPanel = [[NSPanel alloc] initWithContentRect:NSZeroRect styleMask:NSWindowStyleMaskTitled backing:NSBackingStoreBuffered defer:NO];
 	self.progressPanel.title       = @"Software Update";
-	self.progressPanel.contentView = stack;
+	self.progressPanel.contentView = contentView;
 	self.progressPanel.releasedWhenClosed = NO;
 	[self.progressPanel center];
 	[self.progressPanel makeKeyAndOrderFront:self];
