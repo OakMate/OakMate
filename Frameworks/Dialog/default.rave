@@ -6,7 +6,7 @@ target "tm_dialog2" {
 }
 
 target "${dirname}" {
-	require ipc
+	require OakFoundation ipc
 	headers Dialog2.h
 
 	files @tm_dialog2 "Resources"

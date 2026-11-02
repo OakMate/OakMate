@@ -5,6 +5,7 @@
 #import <OakFoundation/NSString Additions.h>
 #import <OakFoundation/OakStringListTransformer.h>
 #import <OakFoundation/OakCompareVersionStrings.h>
+#import <OakFoundation/OakFoundation.h>
 #import <io/path.h>
 #import <io/exec.h>
 #import <ns/ns.h>
@@ -275,7 +276,7 @@ static bool uninstall_mate (std::string const& path)
 				{
 					if(cp_requires_admin(to_s(oldMate)))
 					{
-						dispatch_async(dispatch_get_main_queue(), ^{
+						OakRunOnMainRunLoop(^{ // Not the main queue: the alert is modal
 							NSAlert* alert        = [[NSAlert alloc] init];
 							alert.messageText     = @"Update Shell Support";
 							alert.informativeText = [NSString stringWithFormat:@"Would you like to update the installed version of mate to version %@?", newVersion];

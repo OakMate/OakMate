@@ -8,6 +8,7 @@
 #include <ipc/ipc.h>
 #include <ns/ns.h>
 #include <OakAppKit/IOAlertPanel.h>
+#include <OakFoundation/OakFoundation.h>
 
 /*
 	Protocol used by mate (over a Unix domain socket in the user’s private temporary folder) and rmate (over TCP).
@@ -312,7 +313,7 @@ namespace
 	// = Connection =
 	// ==============
 
-	struct connection_t
+	struct connection_t : std::enable_shared_from_this<connection_t>
 	{
 		connection_t (socket_t const& socket, bool isLocal) : _socket(socket), _is_local(isLocal) { }
 
@@ -335,10 +336,14 @@ namespace
 			if(_state != kDone)
 				return true;
 
-			if(_records.empty() || _records.front().command == "open") // No command brings OakMate to the front
-				open_documents();
-			else if(_is_local)
-				handle_marks();
+			// Opening documents can show modal windows, which must not run from a block on the main queue
+			auto connection = shared_from_this();
+			OakRunOnMainRunLoop(^{
+				if(connection->_records.empty() || connection->_records.front().command == "open") // No command brings OakMate to the front
+					connection->open_documents();
+				else if(connection->_is_local)
+					connection->handle_marks();
+			});
 			return false;
 		}
 

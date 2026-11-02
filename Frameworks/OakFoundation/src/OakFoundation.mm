@@ -28,3 +28,9 @@ void OakObserveUserDefaults (id <OakUserDefaultsObserver> obj)
 		else	[NSNotificationCenter.defaultCenter removeObserver:token];
 	}];
 }
+
+void OakRunOnMainRunLoop (void(^block)())
+{
+	CFRunLoopPerformBlock(CFRunLoopGetMain(), kCFRunLoopCommonModes, block);
+	CFRunLoopWakeUp(CFRunLoopGetMain());
+}

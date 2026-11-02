@@ -1,5 +1,6 @@
 #import "SoftwareUpdate.h"
 #import <OakFoundation/OakCompareVersionStrings.h>
+#import <OakFoundation/OakFoundation.h>
 #import <Security/Security.h>
 
 NSString* const kUserDefaultsDisableSoftwareUpdateKey        = @"disableSoftwareUpdate";
@@ -130,7 +131,7 @@ static NSError* UpdateError (NSString* description)
 			else	error = UpdateError([NSString stringWithFormat:@"GitHub responded with status %ld.", status]);
 		}
 
-		dispatch_async(dispatch_get_main_queue(), ^{
+		OakRunOnMainRunLoop(^{ // Not the main queue: the alerts are modal
 			self.busy = NO;
 			[self didFindRelease:release error:error inBackground:backgroundFlag];
 		});
@@ -246,7 +247,7 @@ static NSError* UpdateError (NSString* description)
 			appURL = [self verifiedApplicationFromArchive:location version:release.version requirement:requirement error:&error];
 		CFRelease(requirement);
 
-		dispatch_async(dispatch_get_main_queue(), ^{
+		OakRunOnMainRunLoop(^{ // Not the main queue: the alert is modal
 			[self.progressPanel orderOut:self];
 			self.progressPanel = nil;
 			self.downloadTask  = nil;

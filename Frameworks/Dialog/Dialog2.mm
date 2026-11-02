@@ -8,6 +8,7 @@
 #import "Dialog2.h"
 #import "TMDCommand.h"
 #import "CLIProxy.h"
+#import <OakFoundation/OakFoundation.h>
 #import <ipc/ipc.h>
 
 static void dispatch_command (CLIProxy* interface)
@@ -30,7 +31,7 @@ void OakStartDialogServer ()
 		if(fds.size() == 3 && [options isKindOfClass:[NSDictionary class]])
 		{
 			int inputFd = fds[0], outputFd = fds[1], errorFd = fds[2]; // Blocks capture C++ references by reference
-			dispatch_async(dispatch_get_main_queue(), ^{
+			OakRunOnMainRunLoop(^{ // Not the main queue: many commands show modal windows
 				dispatch_command([[CLIProxy alloc] initWithOptions:options inputFileDescriptor:inputFd outputFileDescriptor:outputFd errorFileDescriptor:errorFd connection:connection]);
 			});
 		}
