@@ -65,9 +65,10 @@ namespace
 	{
 		SMAppService* helper = service();
 
+		// A daemon that has never been registered reports SMAppServiceStatusNotFound, not SMAppServiceStatusNotRegistered, so register unless it is already known
 		NSError* error;
-		if(helper.status == SMAppServiceStatusNotRegistered && ![helper registerAndReturnError:&error])
-			os_log_info(OS_LOG_DEFAULT, "Register privileged helper: %{public}@", error);
+		if(helper.status != SMAppServiceStatusEnabled && helper.status != SMAppServiceStatusRequiresApproval && ![helper registerAndReturnError:&error])
+			os_log_error(OS_LOG_DEFAULT, "Register privileged helper: %{public}@", error);
 
 		switch(helper.status)
 		{
@@ -87,7 +88,7 @@ namespace
 			return false;
 
 			default:
-				show_alert(@"Unable to register OakMate’s privileged helper.", error.localizedDescription ?: @"The helper could not be found in the application bundle.");
+				show_alert(@"Unable to register OakMate’s privileged helper.", error.localizedDescription ?: [NSString stringWithFormat:@"macOS reports the status of the helper as %ld.", (long)helper.status]);
 			return false;
 		}
 	}
