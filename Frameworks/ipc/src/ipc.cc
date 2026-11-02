@@ -100,12 +100,18 @@ namespace ipc
 		fcntl(fd, F_SETFD, FD_CLOEXEC);
 		fcntl(fd, F_SETFL, O_NONBLOCK);
 
-		unlink(path.c_str());
-		mode_t oldMask = umask(S_IRWXG|S_IRWXO);
-		bool didBind = ::bind(fd, (sockaddr*)&addr, sizeof(addr)) == 0;
-		umask(oldMask);
+		// The umask is per process, so serialize changing it. The chmod() makes sure the socket ends up private should anything else change the umask meanwhile.
+		static std::mutex umaskMutex;
+		bool didBind;
+		{
+			std::lock_guard<std::mutex> lock(umaskMutex);
+			unlink(path.c_str());
+			mode_t oldMask = umask(S_IRWXG|S_IRWXO);
+			didBind = ::bind(fd, (sockaddr*)&addr, sizeof(addr)) == 0;
+			umask(oldMask);
+		}
 
-		if(!didBind || ::listen(fd, SOMAXCONN) == -1)
+		if(!didBind || chmod(path.c_str(), S_IRUSR|S_IWUSR) == -1 || ::listen(fd, SOMAXCONN) == -1)
 		{
 			int err = errno;
 			close(fd);
