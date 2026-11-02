@@ -33,6 +33,10 @@
   .seg { display: inline-flex; border: 1px solid #666; border-radius: 4px; overflow: hidden; box-shadow: 0 1px 0 rgba(255,255,255,.5); }
   .seg b { width: 26px; height: 20px; line-height: 20px; text-align: center; font-size: 10px; color: #333; background: linear-gradient(#fdfdfd, #d4d4d4 50%, #c4c4c4 51%, #e4e4e4); }
   .seg b + b { border-left: 1px solid #888; }
+  .seg b.back, .seg b.fwd { display: flex; align-items: center; justify-content: center; }
+  .seg b.back::before, .seg b.fwd::before { content: ""; border: 4px solid transparent; }
+  .seg b.back::before { border-right: 6px solid #333; border-left-width: 0; }
+  .seg b.fwd::before { border-left: 6px solid #333; border-right-width: 0; }
   .urlbar { flex: 1; height: 20px; line-height: 20px; padding: 0 8px; font-size: 12px; color: #333; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
             background: #fff; border: 1px solid #777; border-radius: 4px; box-shadow: inset 0 1px 2px rgba(0,0,0,.35); }
   .urlbar u { text-decoration: none; color: #3b7fd6; font-weight: bold; margin-right: 4px; }
@@ -62,7 +66,7 @@
   .cy-icon { width: 72px; height: 72px; margin: -7px; flex: none; display: block; }
   .cy-pkg b { font: bold 20px Helvetica, Arial, sans-serif; display: block; }
   .cy-pkg small { color: #7f7f7f; font-size: 12px; }
-  .cy-num { display: inline-block; width: 20px; height: 20px; line-height: 20px; margin-right: 8px; border-radius: 50%; text-align: center; font: bold 11px Helvetica, Arial, sans-serif;
+  .cy-num { display: inline-block; width: 20px; height: 20px; margin-right: 8px; vertical-align: middle; position: relative; top: -1px; border-radius: 50%; text-align: center; font: bold 11px/20px Helvetica, Arial, sans-serif;
             color: #fff; background: linear-gradient(#93a5bd, #4c6893); }
   a.cy-row span.cy-num, a.cy-row:hover span.cy-num { color: #fff; font-weight: bold; }
 
@@ -156,7 +160,7 @@
   <div class="chrome">
     <div class="titlebar"><span class="lights"><i class="r"></i><i class="y"></i><i class="g"></i></span>OakMate &mdash; The Text Editor For Your Mac</div>
     <div class="toolbar">
-      <span class="seg"><b>&#9664;</b><b>&#9654;</b></span>
+      <span class="seg"><b class="back"></b><b class="fwd"></b></span>
       <span class="seg"><b>+</b></span>
       <span class="urlbar"><u>@</u>https://github.com/OakMate/OakMate</span>
     </div>
