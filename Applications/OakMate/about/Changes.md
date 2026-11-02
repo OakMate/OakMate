@@ -8,6 +8,7 @@ Title: Release Notes
 * Invalid gutter colors in a theme are ignored, and choosing a theme that could not be found no longer prevents it from being applied once it is available.
 * The software update progress window has padding on the right.
 * Files that require administrator privileges, such as `/etc/hosts`, are opened and saved by a new helper which you allow once in System Settings → General → Login Items & Extensions, and you confirm with Touch ID or your password. The helper installed by earlier versions is removed.
+* `mate` talks to OakMate over a socket that only you can reach, runs as you when started with `sudo`, and uses the copy of OakMate it is inside. Connections to the `rmate` port can only open the content they send, not files on your computer or open documents.
 * Building from source puts the build output in a `build` folder inside the source folder instead of `~/build`.
 
 ## 2026-10-30 (v2.1.3)

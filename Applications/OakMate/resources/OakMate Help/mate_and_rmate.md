@@ -223,6 +223,8 @@ With settings like those in place, a bare `ssh` command (without `-R`) should st
 
 SSH tunneling is probably the lowest configuration option for using `rmate`.  It's also the safest since the computers chat over an encrypted connection.  Go that way if you can.
 
+The `rmate` port is not authenticated, so OakMate only opens the content that `rmate` sends over it.  Requests to open files on your own computer, or documents that are already open, are only accepted from `mate`.
+
 However, if you can't, you do have other options.  One reason you might need these is if you use multiple machines to connect to the same account on one remote.  They wouldn't all be able to use the same port.
 
 Of course, you can specify different ports when you setup OakMate and/or your SSH tunnel.  `rmate` also supports `--host` and `--port` options, so you can use those to customize the connection.

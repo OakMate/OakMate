@@ -1,5 +1,5 @@
 target "${dirname}" {
-	require io plist text
+	require io ipc text
 	sources src/*.mm
 	executable "${target}"
 	frameworks ApplicationServices

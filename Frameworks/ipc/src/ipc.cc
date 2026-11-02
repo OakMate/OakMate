@@ -87,22 +87,22 @@ namespace ipc
 		return dir + name;
 	}
 
-	bool listen (std::string const& path, void(^handler)(int connection, std::string const& message, std::vector<int> const& fds))
+	int bind (std::string const& path)
 	{
 		sockaddr_un addr;
 		if(!make_address(path, addr))
-			return false;
+			return -1;
 
 		int fd = socket(AF_UNIX, SOCK_STREAM, 0);
 		if(fd == -1)
-			return false;
+			return -1;
 
 		fcntl(fd, F_SETFD, FD_CLOEXEC);
 		fcntl(fd, F_SETFL, O_NONBLOCK);
 
 		unlink(path.c_str());
 		mode_t oldMask = umask(S_IRWXG|S_IRWXO);
-		bool didBind = bind(fd, (sockaddr*)&addr, sizeof(addr)) == 0;
+		bool didBind = ::bind(fd, (sockaddr*)&addr, sizeof(addr)) == 0;
 		umask(oldMask);
 
 		if(!didBind || ::listen(fd, SOMAXCONN) == -1)
@@ -110,18 +110,31 @@ namespace ipc
 			int err = errno;
 			close(fd);
 			errno = err;
-			return false;
+			return -1;
 		}
 
 		remove_socket_at_exit(path);
+		return fd;
+	}
+
+	bool is_same_user (int socket)
+	{
+		uid_t uid; gid_t gid;
+		return getpeereid(socket, &uid, &gid) == 0 && uid == getuid();
+	}
+
+	bool listen (std::string const& path, void(^handler)(int connection, std::string const& message, std::vector<int> const& fds))
+	{
+		int fd = bind(path);
+		if(fd == -1)
+			return false;
 
 		dispatch_source_t source = dispatch_source_create(DISPATCH_SOURCE_TYPE_READ, fd, 0, dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0));
 		dispatch_source_set_event_handler(source, ^{
 			int connection;
 			while((connection = accept(fd, nullptr, nullptr)) != -1)
 			{
-				uid_t uid; gid_t gid;
-				if(getpeereid(connection, &uid, &gid) == -1 || uid != getuid())
+				if(!is_same_user(connection))
 				{
 					close(connection);
 					continue;

@@ -15,6 +15,15 @@ namespace ipc
 	// Path to a socket named ‘name’ in the user’s private temporary folder.
 	std::string socket_path (std::string const& name);
 
+	// Returns a non-blocking listening socket at ‘path’ that only the current
+	// user can connect to, or -1 (errno is set). The socket is removed when the
+	// process exits.
+	int bind (std::string const& path);
+
+	// True when the process at the other end of ‘socket’ runs as the current
+	// user. Servers check this for each connection and clients for the server.
+	bool is_same_user (int socket);
+
 	// Calls ‘handler’ on a background queue for each message received by a
 	// connection to ‘path’. The handler owns the connection and the received
 	// descriptors and must close them. The socket is removed when the process

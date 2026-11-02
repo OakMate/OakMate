@@ -78,3 +78,32 @@ void test_listen ()
 
 	OAK_ASSERT_EQ(ipc::connect(ipc::socket_path("test_ipc.missing")), -1);
 }
+
+void test_bind ()
+{
+	std::string const path = ipc::socket_path("test_ipc_bind." + std::to_string(getpid()));
+	int listener = ipc::bind(path);
+	OAK_ASSERT_NE(listener, -1);
+
+	struct stat buf;
+	OAK_ASSERT_EQ(lstat(path.c_str(), &buf), 0);
+	OAK_ASSERT_EQ(buf.st_mode & (S_IRWXG|S_IRWXO), 0);
+
+	int client = ipc::connect(path);
+	OAK_ASSERT_NE(client, -1);
+	OAK_ASSERT(ipc::is_same_user(client));
+
+	int server;
+	while((server = accept(listener, nullptr, nullptr)) == -1 && errno == EAGAIN)
+		usleep(1000);
+	OAK_ASSERT_NE(server, -1);
+	OAK_ASSERT(ipc::is_same_user(server));
+
+	int sockets[2];
+	OAK_ASSERT_EQ(pipe(sockets), 0);
+	OAK_ASSERT(!ipc::is_same_user(sockets[0])); // Not a socket
+
+	for(int fd : { sockets[0], sockets[1], server, client, listener })
+		close(fd);
+	unlink(path.c_str());
+}
