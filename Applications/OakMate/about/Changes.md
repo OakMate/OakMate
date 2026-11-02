@@ -2,6 +2,10 @@ Title: Release Notes
 
 # Changes
 
+## 2026-11-02 (v2.1.6)
+
+* Saving a file that requires administrator privileges asks you to allow OakMate’s helper in System Settings, instead of reporting that the helper could not be found.
+
 ## 2026-11-02 (v2.1.5)
 
 * Converting text between encodings no longer risks dropping characters.
