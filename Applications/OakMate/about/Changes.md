@@ -2,7 +2,7 @@ Title: Release Notes
 
 # Changes
 
-## Unreleased (v2.1.4)
+## 2026-11-02 (v2.1.4)
 
 * Converting text between encodings no longer risks dropping characters.
 * Invalid gutter colors in a theme are ignored, and choosing a theme that could not be found no longer prevents it from being applied once it is available.
