@@ -5,5 +5,5 @@ target "${dirname}" {
 	files resources/* templates/*.plist gfx/**/*.png "Resources"
 
 	sources src/*.{cc,mm}
-	frameworks Cocoa AddressBook
+	frameworks Cocoa
 }

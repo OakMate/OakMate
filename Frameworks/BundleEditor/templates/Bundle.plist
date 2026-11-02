@@ -1,5 +1,4 @@
 {	name = "${TM_FULLNAME/^(\\S+).*$/$1/}’s Bundle";
 	contactName = "$TM_FULLNAME";
-	contactEmailRot13 = "$TM_ROT13_EMAIL";
 	description = "New shiny bundle for X.";
 }

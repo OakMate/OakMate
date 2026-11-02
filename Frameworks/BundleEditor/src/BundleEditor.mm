@@ -17,7 +17,6 @@
 #import <plist/ascii.h>
 #import <plist/delta.h>
 #import <regexp/format_string.h>
-#import <text/decode.h>
 #import <cf/cf.h>
 #import <ns/ns.h>
 #import <io/environment.h>
@@ -358,10 +357,6 @@ static be::entry_ptr parent_for_column (NSBrowser* aBrowser, NSInteger aColumn, 
 	if(aType == bundles::kItemTypeBundle || bundle)
 	{
 		std::map<std::string, std::string> environment = variables_for_path(oak::basic_environment());
-		ABMutableMultiValue* value = [[[ABAddressBook sharedAddressBook] me] valueForProperty:kABEmailProperty];
-		if(NSString* email = [value valueAtIndex:[value indexForIdentifier:[value primaryIdentifier]]])
-			environment.emplace("TM_ROT13_EMAIL", decode::rot13(to_s(email)));
-
 		auto item = std::make_shared<bundles::item_t>(oak::uuid_t().generate(), aType == bundles::kItemTypeBundle ? bundles::item_ptr() : bundle, aType);
 		plist::dictionary_t plist = plist::load(to_s(path));
 		expand_visitor_t visitor(environment);

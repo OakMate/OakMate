@@ -5,7 +5,6 @@
 #include "prelude-mac.h"
 
 #import <objc/objc-runtime.h>
-#import <AddressBook/AddressBook.h>
 #import <Cocoa/Cocoa.h>
 #import <ExceptionHandling/NSExceptionHandler.h>
 #import <CoreFoundation/CFPlugInCOM.h> // must be loaded before QuickLook.h
