@@ -4,7 +4,6 @@
 @class OakThemeStyles;
 
 @interface OakTheme : NSObject
-@property (nonatomic, readonly) NSUUID* identifier;
 @property (nonatomic, readonly) NSColor* foregroundColor;
 @property (nonatomic, readonly) NSColor* backgroundColor;
 @property (nonatomic, readonly) NSFont* font;

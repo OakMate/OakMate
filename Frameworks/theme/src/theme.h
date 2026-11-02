@@ -38,28 +38,20 @@ private:
 
 struct gutter_styles_t
 {
-	gutter_styles_t () { }
-	gutter_styles_t (gutter_styles_t const& rhs) = delete;
-	gutter_styles_t& operator= (gutter_styles_t const& rhs) = delete;
-	~gutter_styles_t ();
+	CGColorPtr divider;
+	CGColorPtr selectionBorder;
 
-	bool is_transparent () const;
-	void clear ();
+	CGColorPtr foreground;
+	CGColorPtr background;
+	CGColorPtr icons;
+	CGColorPtr iconsHover;
+	CGColorPtr iconsPressed;
 
-	CGColorRef divider               = NULL;
-	CGColorRef selectionBorder       = NULL;
-
-	CGColorRef foreground            = NULL;
-	CGColorRef background            = NULL;
-	CGColorRef icons                 = NULL;
-	CGColorRef iconsHover            = NULL;
-	CGColorRef iconsPressed          = NULL;
-
-	CGColorRef selectionForeground   = NULL;
-	CGColorRef selectionBackground   = NULL;
-	CGColorRef selectionIcons        = NULL;
-	CGColorRef selectionIconsHover   = NULL;
-	CGColorRef selectionIconsPressed = NULL;
+	CGColorPtr selectionForeground;
+	CGColorPtr selectionBackground;
+	CGColorPtr selectionIcons;
+	CGColorPtr selectionIconsHover;
+	CGColorPtr selectionIconsPressed;
 };
 
 struct theme_t;
@@ -87,7 +79,6 @@ struct theme_t
 		color_info_t (double red, double green, double blue, double alpha = 1) : red(red), green(green), blue(blue), alpha(alpha) { }
 
 		bool is_blank () const  { return red < 0; }
-		bool is_opaque () const { return alpha == 1; };
 
 		double red, green, blue, alpha;
 	};
@@ -132,7 +123,7 @@ private:
 		static decomposed_style_t parse_styles (plist::dictionary_t const& plist);
 
 		bundles::item_ptr _item;
-		CGColorSpaceRef _color_space = NULL;
+		std::shared_ptr<std::remove_pointer<CGColorSpaceRef>::type> _color_space;
 		std::vector<decomposed_style_t> _styles;
 		gutter_styles_t _gutter_styles;
 		CGColorPtr _foreground;
@@ -152,5 +143,8 @@ private:
 };
 
 theme_ptr parse_theme (bundles::item_ptr const& themeItem);
+
+// Positive results are absolute point sizes, negative results are relative (-1.5 means 150% of the parent size). Returns -1 (100%) for NULL_STR or unparsable input.
+CGFloat parse_font_size (std::string const& fontSize);
 
 #endif /* end of include guard: THEME_H_T0VVCP8F */

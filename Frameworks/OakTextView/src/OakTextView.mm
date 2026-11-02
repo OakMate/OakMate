@@ -835,10 +835,12 @@ static std::string shell_quote (std::vector<std::string> paths)
 {
 	if(_themeUUID && [_themeUUID isEqualToString:newThemeUUID])
 		return;
-	_themeUUID = newThemeUUID;
 
-	if(bundles::item_ptr const& themeItem = bundles::lookup(to_s(_themeUUID)))
+	if(bundles::item_ptr const& themeItem = bundles::lookup(to_s(newThemeUUID)))
+	{
+		_themeUUID = newThemeUUID;
 		self.theme = parse_theme(themeItem);
+	}
 }
 
 - (void)setDocument:(OakDocument*)aDocument

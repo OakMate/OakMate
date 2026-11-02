@@ -1,5 +1,5 @@
 #import "OakTheme.h"
-#import "theme.h" // kSystemUIThemeUUID
+#import "theme.h" // kSystemUIThemeUUID, parse_font_size()
 #import <ns/ns.h>
 
 typedef NS_OPTIONS(NSUInteger, OakThemeStyleOptions) {
@@ -14,7 +14,7 @@ typedef NS_OPTIONS(NSUInteger, OakThemeStyleOptions) {
 @property (nonatomic, readonly) NSString* name;
 @property (nonatomic, readonly) scope::selector_t scopeSelector;
 @property (nonatomic, readonly) NSString* fontName;
-@property (nonatomic, readonly) CGFloat fontSize; // Negative size means it is relative to font size of parent style
+@property (nonatomic, readonly) CGFloat fontSize; // Negative size is relative to font size of parent style, see parse_font_size()
 @property (nonatomic, readonly) NSColorSpace* colorSpace;
 @property (nonatomic, readonly) NSString* foregroundColorString;
 @property (nonatomic, readonly) NSString* backgroundColorString;
@@ -24,47 +24,6 @@ typedef NS_OPTIONS(NSUInteger, OakThemeStyleOptions) {
 @property (nonatomic, readonly) OakThemeStyleOptions options;
 @property (nonatomic, readonly) OakThemeStyleOptions optionsMask;
 @end
-
-static double my_strtod (char const* str, char const** last) // The problem with strtod() is that it uses LC_NUMERIC for point separator.
-{
-	double res = atof(str);
-	if(last)
-	{
-		while(*str && (isdigit(*str) || *str == '.'))
-			++str;
-		*last = str;
-	}
-	return res;
-}
-
-static CGFloat ParseFontSize (NSString* fontSizeString)
-{
-	if(fontSizeString)
-	{
-		char const* first = fontSizeString.UTF8String;
-		char const* last;
-		double size = my_strtod(first, &last);
-		if(first != last)
-		{
-			while(*last == ' ')
-				++last;
-
-			if(strcmp(last, "pt") == 0 || *last == '\0')
-				return size;
-			else if(strcmp(last, "em") == 0)
-				return -size;
-			else if(strcmp(last, "%") == 0)
-				return -size / 100;
-			else
-				NSLog(@"*** unsupported font size unit: %s (%@)", last, fontSizeString);
-		}
-		else
-		{
-			NSLog(@"*** unsupported font size format: %@", fontSizeString);
-		}
-	}
-	return 0;
-}
 
 @implementation OakThemeRawStyle
 - (instancetype)initWithDefaultStyles
@@ -88,7 +47,7 @@ static CGFloat ParseFontSize (NSString* fontSizeString)
 	if(self = [super init])
 	{
 		_fontName = [self stringForSetting:@"fontName" inScope:scope];
-		_fontSize = ParseFontSize([self stringForSetting:@"fontSize" inScope:scope]);
+		_fontSize = parse_font_size(to_s([self stringForSetting:@"fontSize" inScope:scope]));
 
 		_foregroundColorString = [self stringForSetting:@"foreground" inScope:scope];
 		_backgroundColorString = [self stringForSetting:@"background" inScope:scope];
@@ -131,7 +90,7 @@ static CGFloat ParseFontSize (NSString* fontSizeString)
 		if(NSDictionary* settings = plist[@"settings"])
 		{
 			_fontName = settings[@"fontName"];
-			_fontSize = ParseFontSize(settings[@"fontSize"]);
+			_fontSize = parse_font_size(to_s(settings[@"fontSize"]));
 
 			_foregroundColorString = settings[@"foreground"];
 			_backgroundColorString = settings[@"background"];
@@ -185,7 +144,7 @@ static CGFloat ParseFontSize (NSString* fontSizeString)
 	info[@"name"]            = _name;
 	info[@"scopeSelector"]   = to_ns(to_s(_scopeSelector));
 	info[@"fontName"]        = _fontName;
-	info[@"fontSize"]        = _fontSize != 0 ? @(_fontSize) : nil;
+	info[@"fontSize"]        = _fontSize != -1 ? @(_fontSize) : nil;
 	info[@"foregroundColor"] = _foregroundColorString;
 	info[@"backgroundColor"] = _backgroundColorString;
 	info[@"caretColor"]      = _caretColorString;
@@ -342,7 +301,6 @@ static CGFloat ParseFontSize (NSString* fontSizeString)
 // ============
 
 @interface OakTheme ()
-@property (nonatomic) NSArray<OakThemeRawStyle*>* globalStyles;
 @property (nonatomic) NSArray<OakThemeRawStyle*>* themeStyles;
 @end
 
@@ -373,9 +331,7 @@ static CGFloat ParseFontSize (NSString* fontSizeString)
 
 - (instancetype)initWithBundleItem:(bundles::item_ptr const&)themeItem
 {
-	if(self = [self initWithPropertyList:themeItem ? ns::to_dictionary(themeItem->plist()) : nil])
-		_identifier = [[NSUUID alloc] initWithUUIDString:to_ns(themeItem->uuid())];
-	return self;
+	return [self initWithPropertyList:themeItem ? ns::to_dictionary(themeItem->plist()) : nil];
 }
 
 - (NSFont*)font
@@ -400,12 +356,6 @@ static CGFloat ParseFontSize (NSString* fontSizeString)
 	[styles addObject:[[OakThemeRawStyle alloc] initWithGlobalStylesForScope:scope]];
 
 	std::multimap<double, OakThemeRawStyle*> ordering;
-	for(OakThemeRawStyle* style in _globalStyles)
-	{
-		if(auto rank = style.scopeSelector.does_match(scope))
-			ordering.emplace(*rank, style);
-	}
-
 	for(OakThemeRawStyle* style in _themeStyles)
 	{
 		if(auto rank = style.scopeSelector.does_match(scope))

@@ -338,19 +338,19 @@ static NSString* const kFoldingsColumnIdentifier  = @"foldings";
 		[self updateGutterViewFont:self]; // trigger update of gutter view’s line number font
 		auto const& styles = theme->gutter_styles();
 
-		gutterView.foregroundColor           = [NSColor colorWithCGColor:styles.foreground];
-		gutterView.backgroundColor           = [NSColor colorWithCGColor:styles.background];
-		gutterView.iconColor                 = [NSColor colorWithCGColor:styles.icons];
-		gutterView.iconHoverColor            = [NSColor colorWithCGColor:styles.iconsHover];
-		gutterView.iconPressedColor          = [NSColor colorWithCGColor:styles.iconsPressed];
-		gutterView.selectionForegroundColor  = [NSColor colorWithCGColor:styles.selectionForeground];
-		gutterView.selectionBackgroundColor  = [NSColor colorWithCGColor:styles.selectionBackground];
-		gutterView.selectionIconColor        = [NSColor colorWithCGColor:styles.selectionIcons];
-		gutterView.selectionIconHoverColor   = [NSColor colorWithCGColor:styles.selectionIconsHover];
-		gutterView.selectionIconPressedColor = [NSColor colorWithCGColor:styles.selectionIconsPressed];
-		gutterView.selectionBorderColor      = [NSColor colorWithCGColor:styles.selectionBorder];
+		gutterView.foregroundColor           = [NSColor colorWithCGColor:styles.foreground.get()];
+		gutterView.backgroundColor           = [NSColor colorWithCGColor:styles.background.get()];
+		gutterView.iconColor                 = [NSColor colorWithCGColor:styles.icons.get()];
+		gutterView.iconHoverColor            = [NSColor colorWithCGColor:styles.iconsHover.get()];
+		gutterView.iconPressedColor          = [NSColor colorWithCGColor:styles.iconsPressed.get()];
+		gutterView.selectionForegroundColor  = [NSColor colorWithCGColor:styles.selectionForeground.get()];
+		gutterView.selectionBackgroundColor  = [NSColor colorWithCGColor:styles.selectionBackground.get()];
+		gutterView.selectionIconColor        = [NSColor colorWithCGColor:styles.selectionIcons.get()];
+		gutterView.selectionIconHoverColor   = [NSColor colorWithCGColor:styles.selectionIconsHover.get()];
+		gutterView.selectionIconPressedColor = [NSColor colorWithCGColor:styles.selectionIconsPressed.get()];
+		gutterView.selectionBorderColor      = [NSColor colorWithCGColor:styles.selectionBorder.get()];
 		gutterScrollView.backgroundColor     = gutterView.backgroundColor;
-		gutterDividerView.activeBackgroundColor = [NSColor colorWithCGColor:styles.divider];
+		gutterDividerView.activeBackgroundColor = [NSColor colorWithCGColor:styles.divider.get()];
 
 		[gutterView setNeedsDisplay:YES];
 	}
