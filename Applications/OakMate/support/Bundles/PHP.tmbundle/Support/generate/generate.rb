@@ -1,4 +1,4 @@
-#!/usr/local/opt/ruby187/bin/ruby -wKU
+#!/usr/bin/env ruby20 -w
 
 # Generate grammar selectors from the PHP docs JSON file produced by generate.php
 #

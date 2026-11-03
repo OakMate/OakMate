@@ -9,6 +9,7 @@ Title: Release Notes
 * zsh startup files (`.zshrc`, `.zprofile`, `.zshenv`, `.zlogin`, `.zlogout`) are opened as shell scripts.
 * Preferences → Terminal and the help refer to the startup file of your shell, e.g. `~/.zshrc`, instead of `~/.bashrc`.
 * Nightly builds are published as pre-releases on GitHub when there are unreleased changes. Check _Include nightly builds_ in the dialog shown by OakMate → Check for Updates… to be offered them.
+* The _Ruby 1.8 Shebang_ snippet in the Bundle Development bundle is renamed _Ruby Shebang_. New commands, and the bundled commands that ran the system ruby directly (Align Assignments, Validate Syntax for shell scripts, Add/Remove Numbers in Markdown, and the SCM Diff Gutter update on save), use `ruby20`, which runs ruby 2.6 or later and honors `TM_RUBY`.
 
 ## 2026-11-02 (v2.1.7)
 
