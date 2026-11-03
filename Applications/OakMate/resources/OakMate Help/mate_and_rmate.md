@@ -28,7 +28,7 @@ To install or upgrade `mate`, just select a Location and hit Install.  You may b
 
 This pane can later be used to uninstall the command if you need to do that.
 
-Users usually install `mate` into `~/bin` if they just need it for the current user and `/usr/local/bin` if they would rather make it accessible to all users (assuming they have `/usr/local/bin` in their `PATH`).  If you would like to find where your TextMate 1 version is before you upgrade, feed your Terminal this command:  `which mate`.
+The default location is `~/.local/bin`, which only needs your own permissions and is what most current command-line tools use.  Leave _Add to PATH_ checked and OakMate adds that folder to `PATH` in your shell startup file (`~/.zshrc` for zsh, the default shell on macOS), and removes the line again if you uninstall.  Choose `/usr/local/bin` if you would rather make `mate` accessible to all users; it is already in the system `PATH`.  If you would like to find where your TextMate 1 version is before you upgrade, feed your Terminal this command:  `which mate`.
 
 ## Your New mate
 
@@ -44,7 +44,7 @@ Next, `mate` has picked up some new command-line options.  One is `-t`, which al
 
     mate -t text.html.markdown README
 
-Another new option is `--name`.  This allows you to set `TM_DISPLAYNAME` which is typically shown in the title bar on OakMate's windows.  For a good use of that, let me share a line from my Bash configuration:
+Another new option is `--name`.  This allows you to set `TM_DISPLAYNAME` which is typically shown in the title bar on OakMate's windows.  For a good use of that, let me share a line from my shell configuration (`~/.zshrc`):
 
     export GIT_EDITOR="mate --name 'Git Commit Message' -w -l 1"
 
@@ -249,7 +249,7 @@ You also need a similar entry in your local `~/.ssh/config`:
 
 Again, you can put that setting under the host wildcard if you prefer.
 
-Then you can add lines like the following to your local `~/.bashrc`:
+Then you can add lines like the following to your local `~/.zshrc` (or the startup file of the shell you use):
 
     export RMATE_HOST=auto
     export RMATE_PORT=12345

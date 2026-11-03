@@ -174,6 +174,17 @@ static NSString* ShellPathLine (NSString* dir)
 	return [NSString stringWithFormat:@"%@ %@", command, kShellConfigMarker];
 }
 
+static NSString* ShellEditorLine (NSString* matePath)
+{
+	NSString* home = NSHomeDirectory();
+	if([matePath hasPrefix:[home stringByAppendingString:@"/"]])
+		matePath = [@"$HOME" stringByAppendingString:[matePath substringFromIndex:home.length]];
+
+	if([LoginShellName() isEqualToString:@"fish"])
+		return [NSString stringWithFormat:@"set -gx EDITOR \"%@ -w\"", matePath];
+	return [NSString stringWithFormat:@"export EDITOR=\"%@ -w\"", matePath];
+}
+
 static BOOL AddToShellConfig (NSString* dir, NSString* configPath)
 {
 	NSString* existing = [NSString stringWithContentsOfFile:configPath encoding:NSUTF8StringEncoding error:nil] ?: @"";
@@ -275,6 +286,8 @@ static void RemoveFromShellConfig (NSString* configPath)
 	if(isInstalled)
 		variables["installed"] = "installed";
 	variables["mate_path"] = to_s([self.mateInstallPath stringByAbbreviatingWithTildeInPath] ?: [installPathPopUp titleOfSelectedItem]);
+	variables["shell_config"] = to_s([ShellConfigPath() stringByAbbreviatingWithTildeInPath]);
+	variables["editor_line"]  = to_s(ShellEditorLine([self.mateInstallPath ?: [installPathPopUp titleOfSelectedItem] stringByExpandingTildeInPath]));
 
 	[installStatusText setStringValue:[NSString stringWithCxxString:format_string::expand(statusTextFormat, variables)]];
 	[installSummaryText setStringValue:[NSString stringWithCxxString:format_string::expand(summaryTextFormat, variables)]];

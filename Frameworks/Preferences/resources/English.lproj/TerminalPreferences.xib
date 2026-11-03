@@ -190,9 +190,9 @@
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <textFieldCell key="cell" controlSize="mini" selectable="YES" allowsUndo="NO" sendsActionOnEndEditing="YES" id="50">
                         <font key="font" metaFont="toolTip"/>
-                        <string key="title">To use OakMate as editor for subversion, git, and similar you need to install the mate shell command and add a line like the following to ~/.bashrc:
+                        <string key="title">To use OakMate as editor for subversion, git, and similar you need to install the mate shell command and add a line like the following to ${shell_config}:
 
-	export EDITOR="${mate_path/^~/\$HOME/} -w"
+	${editor_line}
 
 For more information use the help button down in the corner.</string>
                         <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
