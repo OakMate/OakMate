@@ -12,6 +12,7 @@
 	std::string summaryTextFormat;
 }
 @property (nonatomic) NSImage* installIndicaitorImage;
+- (IBAction)toggleAddToPath:(NSButton*)sender;
 - (IBAction)performInstallMate:(id)sender;
 - (IBAction)performUninstallMate:(id)sender;
 

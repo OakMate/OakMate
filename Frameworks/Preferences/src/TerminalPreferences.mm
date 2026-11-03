@@ -234,7 +234,6 @@ static void RemoveFromShellConfig (NSString* configPath)
 
 		self.defaultsProperties = @{
 			@"path":         kUserDefaultsMateInstallPathKey,
-			@"addToPath":    kUserDefaultsMateAddToPathKey,
 			@"disableRMate": kUserDefaultsDisableRMateServerKey,
 			@"interface":    kUserDefaultsRMateServerListenKey,
 			@"port":         kUserDefaultsRMateServerPortKey,
@@ -297,17 +296,30 @@ static void RemoveFromShellConfig (NSString* configPath)
 
 	NSString* addedTo = [NSUserDefaults.standardUserDefaults stringForKey:kUserDefaultsMateShellConfigPathKey];
 	NSString* mateDir = [(self.mateInstallPath ?: [[installPathPopUp titleOfSelectedItem] stringByExpandingTildeInPath]) stringByDeletingLastPathComponent];
-	if(isInstalled)
+	NSString* dirName    = [mateDir stringByAbbreviatingWithTildeInPath];
+	NSString* configName = [ShellConfigPath() stringByAbbreviatingWithTildeInPath];
+	if(isInstalled && addedTo)
 	{
-		addToPathCheckBox.hidden  = addedTo ? NO : YES;
+		addToPathCheckBox.title   = @"Added to PATH";
+		addToPathCheckBox.state   = NSControlStateValueOn;
 		addToPathCheckBox.enabled = NO;
-		addToPathCheckBox.toolTip = addedTo ? [NSString stringWithFormat:@"%@ was added to PATH in %@.", [mateDir stringByAbbreviatingWithTildeInPath], [addedTo stringByAbbreviatingWithTildeInPath]] : nil;
+		addToPathCheckBox.toolTip = [NSString stringWithFormat:@"%@ was added to PATH in %@. Uninstalling removes it again.", dirName, [addedTo stringByAbbreviatingWithTildeInPath]];
+	}
+	else if(!NeedsToBeAddedToPath(mateDir))
+	{
+		addToPathCheckBox.title   = @"Already in PATH";
+		addToPathCheckBox.state   = NSControlStateValueOn;
+		addToPathCheckBox.enabled = NO;
+		addToPathCheckBox.toolTip = [NSString stringWithFormat:@"%@ is already in PATH, set up in %@ or by macOS (/etc/paths).", dirName, configName];
 	}
 	else
 	{
-		addToPathCheckBox.hidden  = NeedsToBeAddedToPath(mateDir) ? NO : YES;
-		addToPathCheckBox.enabled = YES;
-		addToPathCheckBox.toolTip = [NSString stringWithFormat:@"Add %@ to PATH in %@. This takes effect in new terminal windows.", [mateDir stringByAbbreviatingWithTildeInPath], [ShellConfigPath() stringByAbbreviatingWithTildeInPath]];
+		addToPathCheckBox.title   = @"Add to PATH";
+		addToPathCheckBox.state   = !isInstalled && [NSUserDefaults.standardUserDefaults boolForKey:kUserDefaultsMateAddToPathKey] ? NSControlStateValueOn : NSControlStateValueOff;
+		addToPathCheckBox.enabled = !isInstalled;
+		addToPathCheckBox.toolTip = isInstalled
+			? [NSString stringWithFormat:@"mate was installed without adding %@ to PATH. Uninstall and install again to add it.", dirName]
+			: [NSString stringWithFormat:@"Add %@ to PATH in %@ when installing. This takes effect in new terminal windows.", dirName, configName];
 	}
 	[installButton setAction:isInstalled ? @selector(performUninstallMate:) : @selector(performInstallMate:)];
 	[installButton setState:isInstalled ? NSControlStateValueOn : NSControlStateValueOff];
@@ -382,6 +394,11 @@ static void RemoveFromShellConfig (NSString* configPath)
 		[alert runModal];
 	}
 	[self updateUI:self];
+}
+
+- (IBAction)toggleAddToPath:(NSButton*)sender
+{
+	[NSUserDefaults.standardUserDefaults setBool:sender.state == NSControlStateValueOn forKey:kUserDefaultsMateAddToPathKey];
 }
 
 - (IBAction)performInstallMate:(id)sender
