@@ -1,7 +1,15 @@
-# Builds, signs, notarizes, and publishes OakMate when a version tag is pushed.
+# Builds, signs, notarizes, and publishes OakMate.
 #
-# The tag must match the newest entry in Applications/OakMate/about/Changes.md,
-# e.g. ‘## 2026-11-01 (v2.1.0)’ is released by pushing the tag ‘v2.1.0’.
+# Releases: pushing a version tag publishes a release. The tag must match the
+# newest entry in Applications/OakMate/about/Changes.md, e.g. ‘## 2026-11-01 (v2.1.0)’
+# is released by pushing the tag ‘v2.1.0’.
+#
+# Nightlies: every night (or when run manually) a pre-release is published
+# when the newest entry in Changes.md has no date yet, e.g. ‘## Unreleased (v2.1.8)’,
+# and main has commits that are not in the previous nightly (a manual run
+# always builds). Nightlies are
+# versioned ‘2.1.8-nightly.YYYYMMDD.HHMM’, which sorts after 2.1.7 and before
+# 2.1.8, are tagged ‘v«version»’, and only the newest few are kept.
 #
 # Required repository secrets (Settings → Secrets and variables → Actions):
 #
@@ -15,15 +23,86 @@ name: Release
 
 on:
   push:
-    tags: [ 'v*' ]
+    tags: [ 'v*', '!v*-nightly.*' ]
+  schedule:
+    - cron: '0 3 * * *'
+  workflow_dispatch:
 
 permissions:
   contents: write  # Create the GitHub release
 
+concurrency:
+  group: release-${{ github.ref }}
+
+env:
+  CHANGES: Applications/OakMate/about/Changes.md
+  NIGHTLIES_TO_KEEP: 7
+
 jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      build: ${{ steps.plan.outputs.build }}
+      nightly: ${{ steps.plan.outputs.nightly }}
+      version: ${{ steps.plan.outputs.version }}
+
+    steps:
+    - uses: actions/checkout@v7
+      with:
+        fetch-depth: 0  # Tags of previous nightlies
+
+    - name: Plan
+      id: plan
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        heading=$(grep -m1 '^## .* (v.*)$' "$CHANGES")
+        version=$(sed 's/.*(v\(.*\))/\1/' <<< "$heading")
+        is_dated=false
+        [[ "$heading" == "## "[0-9][0-9][0-9][0-9]-* ]] && is_dated=true
+
+        if [[ "$GITHUB_EVENT_NAME" == push ]]; then
+          if [[ "v$version" != "$GITHUB_REF_NAME" ]]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match the newest version in $CHANGES ($version)"
+            exit 1
+          fi
+          if [[ $is_dated != true ]]; then
+            echo "::error::Set the release date in $CHANGES: $heading"
+            exit 1
+          fi
+          { echo "build=true"; echo "nightly=false"; echo "version=$version"; } >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+
+        if [[ "$GITHUB_REF_NAME" != "${{ github.event.repository.default_branch }}" ]]; then
+          echo "::error::Nightlies are built from ${{ github.event.repository.default_branch }}, not $GITHUB_REF_NAME"
+          exit 1
+        fi
+
+        if [[ $is_dated == true ]]; then
+          echo "::notice::No nightly: the newest entry in $CHANGES has a release date ($heading)"
+          echo "build=false" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+
+        previous=$(gh release list --limit 100 --json tagName,isPrerelease,createdAt --jq '[ .[] | select(.isPrerelease and (.tagName | test("-nightly\\."))) ] | sort_by(.createdAt) | last | .tagName // empty')
+        if [[ "$GITHUB_EVENT_NAME" == schedule && -n "$previous" && "$(git rev-list -n 1 "$previous" 2>/dev/null)" == "$GITHUB_SHA" ]]; then
+          echo "::notice::No nightly: $previous was built from the same commit"
+          echo "build=false" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+
+        { echo "build=true"; echo "nightly=true"; echo "version=$version-nightly.$(date -u +%Y%m%d.%H%M)"; } >> "$GITHUB_OUTPUT"
+
   release:
+    needs: plan
+    if: needs.plan.outputs.build == 'true'
     runs-on: macos-26
     environment: release
+
+    env:
+      VERSION: ${{ needs.plan.outputs.version }}
+      NIGHTLY: ${{ needs.plan.outputs.nightly }}
 
     steps:
     - name: Set paths
@@ -35,22 +114,18 @@ jobs:
       with:
         fetch-depth: 0  # The Contributions page is generated from the commit history
 
-    - name: Check version
-      id: version
+    - name: Prepare release notes
       run: |
-        changes=Applications/OakMate/about/Changes.md
-        heading=$(grep -m1 '^## .* (v.*)$' "$changes")
-        version=$(sed 's/.*(v\(.*\))/\1/' <<< "$heading")
-        if [[ "v$version" != "$GITHUB_REF_NAME" ]]; then
-          echo "::error::Tag $GITHUB_REF_NAME does not match the newest version in $changes ($version)"
-          exit 1
+        if [[ "$NIGHTLY" == true ]]; then
+          # The application takes its version from the newest entry in Changes.md
+          sed -i '' -E "1,/^## .* \(v.*\)$/s/^## (.*) \(v.*\)$/## \1 (v$VERSION)/" "$CHANGES"
+          grep -m1 "^## .* (v$VERSION)$" "$CHANGES"
         fi
-        if [[ "$heading" != "## "[0-9][0-9][0-9][0-9]-* ]]; then
-          echo "::error::Set the release date in $changes: $heading"
-          exit 1
+
+        bin/extract_changes -v "$VERSION" "$CHANGES" | tail -n +2 > "$RUNNER_TEMP/notes.md"
+        if [[ "$NIGHTLY" == true ]]; then
+          printf '\nNightly build of %s. Nightly builds contain changes that are not released yet and may be less stable than releases.\n' "${GITHUB_SHA:0:8}" >> "$RUNNER_TEMP/notes.md"
         fi
-        echo "version=$version" >> "$GITHUB_OUTPUT"
-        bin/extract_changes -v "$version" "$changes" | tail -n +2 > "$RUNNER_TEMP/notes.md"
 
     - name: Select newest Xcode
       run: sudo xcode-select -s "$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)" && xcodebuild -version
@@ -96,10 +171,15 @@ jobs:
         APPLE_ID: ${{ secrets.NOTARIZATION_APPLE_ID }}
         APPLE_PASSWORD: ${{ secrets.NOTARIZATION_PASSWORD }}
         TEAM_ID: ${{ secrets.NOTARIZATION_TEAM_ID }}
-        VERSION: ${{ steps.version.outputs.version }}
       run: |
         app="$BUILD_DIR/release/Applications/OakMate/OakMate.app"
         codesign --verify --deep --strict --verbose=2 "$app"
+
+        built_version=$(plutil -extract CFBundleShortVersionString raw "$app/Contents/Info.plist")
+        if [[ "$built_version" != "$VERSION" ]]; then
+          echo "::error::Built version $built_version, expected $VERSION"
+          exit 1
+        fi
 
         notarize () {
           xcrun notarytool submit "$1" --apple-id "$APPLE_ID" --password "$APPLE_PASSWORD" --team-id "$TEAM_ID" --wait --output-format json > "$RUNNER_TEMP/notarization.json" || true
@@ -128,8 +208,23 @@ jobs:
     - name: Publish release
       env:
         GH_TOKEN: ${{ github.token }}
-        VERSION: ${{ steps.version.outputs.version }}
-      run: gh release create "$GITHUB_REF_NAME" dist/* --verify-tag --title "OakMate $VERSION" --notes-file "$RUNNER_TEMP/notes.md"
+      run: |
+        if [[ "$NIGHTLY" == true ]]; then
+          gh release create "v$VERSION" dist/* --target "$GITHUB_SHA" --prerelease --latest=false --title "OakMate $VERSION" --notes-file "$RUNNER_TEMP/notes.md"
+        else
+          gh release create "$GITHUB_REF_NAME" dist/* --verify-tag --title "OakMate $VERSION" --notes-file "$RUNNER_TEMP/notes.md"
+        fi
+
+    - name: Remove old nightlies
+      if: env.NIGHTLY == 'true'
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        gh release list --limit 100 --json tagName,isPrerelease,createdAt --jq '[ .[] | select(.isPrerelease and (.tagName | test("-nightly\\."))) ] | sort_by(.createdAt) | reverse | .[(env.NIGHTLIES_TO_KEEP | tonumber):] | .[].tagName' |
+        while read -r tag; do
+          echo "Removing $tag"
+          gh release delete "$tag" --cleanup-tag --yes
+        done
 
     - name: Remove keychain
       if: always()

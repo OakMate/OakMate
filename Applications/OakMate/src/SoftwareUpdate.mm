@@ -5,8 +5,10 @@
 
 NSString* const kUserDefaultsDisableSoftwareUpdateKey        = @"disableSoftwareUpdate";
 NSString* const kUserDefaultsSkippedSoftwareUpdateVersionKey = @"skippedSoftwareUpdateVersion";
+NSString* const kUserDefaultsSoftwareUpdateNightliesKey      = @"softwareUpdateIncludeNightlies";
 
 static NSString* const kLatestReleaseURL     = @"https://api.github.com/repos/OakMate/OakMate/releases/latest";
+static NSString* const kRecentReleasesURL    = @"https://api.github.com/repos/OakMate/OakMate/releases?per_page=30";
 static NSTimeInterval const kCheckInterval   = 24*60*60;
 
 @interface SoftwareUpdateRelease : NSObject
@@ -31,6 +33,30 @@ static NSTimeInterval const kCheckInterval   = 24*60*60;
 static NSString* CurrentVersion ()
 {
 	return [NSBundle.mainBundle objectForInfoDictionaryKey:@"CFBundleShortVersionString"];
+}
+
+// Nightly builds have versions like ‘2.1.8-nightly.20261103.0300’ and are published as pre-releases
+static BOOL IncludeNightlies ()
+{
+	if([NSUserDefaults.standardUserDefaults objectForKey:kUserDefaultsSoftwareUpdateNightliesKey])
+		return [NSUserDefaults.standardUserDefaults boolForKey:kUserDefaultsSoftwareUpdateNightliesKey];
+	return [CurrentVersion() containsString:@"-nightly."]; // Someone running a nightly most likely wants the next one
+}
+
+// Adds an “Include nightly builds” checkbox to the alert and returns a block that saves its state, returning YES if it was turned on
+static BOOL (^AddNightliesCheckBox (NSAlert* alert))()
+{
+	BOOL wasOn = IncludeNightlies();
+	alert.showsSuppressionButton    = YES;
+	alert.suppressionButton.title   = @"Include nightly builds";
+	alert.suppressionButton.state   = wasOn ? NSControlStateValueOn : NSControlStateValueOff;
+	alert.suppressionButton.toolTip = @"Nightly builds contain changes that are not released yet. They are published every night when there are new changes.";
+	return ^BOOL(){
+		BOOL isOn = alert.suppressionButton.state == NSControlStateValueOn;
+		if(isOn != wasOn)
+			[NSUserDefaults.standardUserDefaults setBool:isOn forKey:kUserDefaultsSoftwareUpdateNightliesKey];
+		return isOn && !wasOn;
+	};
 }
 
 // Returns the designated requirement of the running application if it is signed by a team (Developer ID), otherwise NULL
@@ -109,7 +135,9 @@ static NSError* UpdateError (NSString* description)
 		return;
 	self.busy = YES;
 
-	NSMutableURLRequest* request = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:kLatestReleaseURL] cachePolicy:NSURLRequestReloadIgnoringLocalCacheData timeoutInterval:30];
+	// The latest release is never a pre-release, so with nightlies we pick the newest of the recent releases
+	BOOL includeNightlies = IncludeNightlies();
+	NSMutableURLRequest* request = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:includeNightlies ? kRecentReleasesURL : kLatestReleaseURL] cachePolicy:NSURLRequestReloadIgnoringLocalCacheData timeoutInterval:30];
 	[request setValue:@"application/vnd.github+json" forHTTPHeaderField:@"Accept"];
 	[request setValue:[NSString stringWithFormat:@"OakMate/%@", CurrentVersion()] forHTTPHeaderField:@"User-Agent"];
 
@@ -119,7 +147,7 @@ static NSError* UpdateError (NSString* description)
 		{
 			NSInteger status = [(NSHTTPURLResponse*)response statusCode];
 			if(status == 200)
-					release = [self releaseFromJSON:data error:&error];
+					release = includeNightlies ? [self newestReleaseFromJSON:data error:&error] : [self releaseFromJSON:data error:&error];
 			else if(status == 404)
 					error = UpdateError(@"No release of OakMate has been published yet.");
 			else if((status == 403 || status == 429) && [[(NSHTTPURLResponse*)response valueForHTTPHeaderField:@"X-RateLimit-Remaining"] isEqualToString:@"0"])
@@ -141,11 +169,40 @@ static NSError* UpdateError (NSString* description)
 - (SoftwareUpdateRelease*)releaseFromJSON:(NSData*)data error:(NSError**)error
 {
 	NSDictionary* json = [NSJSONSerialization JSONObjectWithData:data options:0 error:error];
-	if(![json isKindOfClass:[NSDictionary class]] || ![json[@"tag_name"] isKindOfClass:[NSString class]])
+	if(SoftwareUpdateRelease* res = [self releaseFromDictionary:json])
+		return res;
+	*error = UpdateError(@"Unexpected response from GitHub.");
+	return nil;
+}
+
+- (SoftwareUpdateRelease*)newestReleaseFromJSON:(NSData*)data error:(NSError**)error
+{
+	NSArray* json = [NSJSONSerialization JSONObjectWithData:data options:0 error:error];
+	if(![json isKindOfClass:[NSArray class]])
 	{
 		*error = UpdateError(@"Unexpected response from GitHub.");
 		return nil;
 	}
+
+	SoftwareUpdateRelease* res = nil;
+	for(NSDictionary* dict in json)
+	{
+		if(![dict isKindOfClass:[NSDictionary class]] || [dict[@"draft"] isEqual:@YES])
+			continue;
+		SoftwareUpdateRelease* release = [self releaseFromDictionary:dict];
+		if(release && (!res || OakCompareVersionStrings(release.version, res.version) == NSOrderedDescending))
+			res = release;
+	}
+
+	if(!res)
+		*error = UpdateError(@"No release of OakMate has been published yet.");
+	return res;
+}
+
+- (SoftwareUpdateRelease*)releaseFromDictionary:(NSDictionary*)json
+{
+	if(![json isKindOfClass:[NSDictionary class]] || ![json[@"tag_name"] isKindOfClass:[NSString class]])
+		return nil;
 
 	SoftwareUpdateRelease* res = [[SoftwareUpdateRelease alloc] init];
 	res.version = [json[@"tag_name"] hasPrefix:@"v"] ? [json[@"tag_name"] substringFromIndex:1] : json[@"tag_name"];
@@ -184,7 +241,10 @@ static NSError* UpdateError (NSString* description)
 			NSAlert* alert = [[NSAlert alloc] init];
 			alert.messageText     = @"OakMate Is Up to Date";
 			alert.informativeText = [NSString stringWithFormat:@"Version %@ is the newest version available.", CurrentVersion()];
+			BOOL (^saveNightlies)() = AddNightliesCheckBox(alert);
 			[alert runModal];
+			if(saveNightlies())
+				[self checkInBackground:NO]; // Look for a nightly right away
 		}
 		return;
 	}
@@ -208,8 +268,10 @@ static NSError* UpdateError (NSString* description)
 	[alert addButtonWithTitle:canInstall ? @"Install and Relaunch" : @"View Release"];
 	[alert addButtonWithTitle:@"Later"];
 	[alert addButtonWithTitle:@"Skip This Version"];
+	BOOL (^saveNightlies)() = AddNightliesCheckBox(alert);
 
 	NSModalResponse choice = [alert runModal];
+	saveNightlies();
 	if(choice == NSAlertFirstButtonReturn)
 	{
 		if(canInstall)

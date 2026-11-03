@@ -2,6 +2,14 @@ Title: Release Notes
 
 # Changes
 
+## Unreleased (v2.1.8)
+
+* Shell support (`mate`) is installed in `~/.local/bin` by default. Choose it in Preferences → Terminal; `/usr/local/bin` and `~/bin` are still offered.
+* Preferences → Terminal can add the folder you install `mate` in to `PATH` in your shell startup file (`~/.zshrc` for zsh, the default shell on macOS). The line is removed again when you uninstall `mate`.
+* zsh startup files (`.zshrc`, `.zprofile`, `.zshenv`, `.zlogin`, `.zlogout`) are opened as shell scripts.
+* Preferences → Terminal and the help refer to the startup file of your shell, e.g. `~/.zshrc`, instead of `~/.bashrc`.
+* Nightly builds are published as pre-releases on GitHub when there are unreleased changes. Check _Include nightly builds_ in the dialog shown by OakMate → Check for Updates… to be offered them.
+
 ## 2026-11-02 (v2.1.7)
 
 * Converting text between encodings no longer risks dropping characters.

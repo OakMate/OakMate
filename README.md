@@ -40,6 +40,8 @@ OakMate checks for new releases once a day and offers to install them. To check 
 defaults write com.isztld.oakmate disableSoftwareUpdate -bool YES
 ```
 
+Nightly builds with changes that are not released yet are published as [pre-releases](https://github.com/OakMate/OakMate/releases) every night when there are new changes. To get them as updates, check _Include nightly builds_ in the dialog shown by _Check for Updates…_.
+
 ## Bundles
 
 The default bundles are included with OakMate. To add another bundle, double-click a `.tmbundle` file or place it in `~/Library/Application Support/OakMate/Bundles`.

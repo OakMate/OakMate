@@ -56,3 +56,17 @@ void test_exhaustive ()
 		}
 	}
 }
+
+void test_nightly_versions ()
+{
+	// Nightly builds published by .github/workflows/release.yml must sort after the previous release, before the next release, and by build time
+	NSArray* versions = @[ @"2.1.7", @"2.1.8-nightly.20261103.0300", @"2.1.8-nightly.20261103.1415", @"2.1.8-nightly.20261104.0300", @"2.1.8", @"2.1.9-nightly.20261201.0300" ];
+	for(NSUInteger i = 0; i < versions.count; ++i)
+	{
+		for(NSUInteger j = 0; j < versions.count; ++j)
+		{
+			NSString* msg = [NSString stringWithFormat:@"%@ vs %@", versions[i], versions[j]];
+			OAK_MASSERT_EQ(msg.UTF8String, OakCompareVersionStrings(versions[i], versions[j]), i < j ? NSOrderedAscending : (i == j ? NSOrderedSame : NSOrderedDescending));
+		}
+	}
+}
