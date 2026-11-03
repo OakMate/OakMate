@@ -49,6 +49,8 @@ extern NSString* const kUserDefaultsEnvironmentVariablesKey;
 
 extern NSString* const kUserDefaultsMateInstallPathKey;
 extern NSString* const kUserDefaultsMateInstallVersionKey;
+extern NSString* const kUserDefaultsMateAddToPathKey;
+extern NSString* const kUserDefaultsMateShellConfigPathKey;
 
 extern NSString* const kUserDefaultsDisableRMateServerKey;
 extern NSString* const kUserDefaultsRMateServerListenKey;

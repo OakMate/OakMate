@@ -85,6 +85,135 @@ static bool uninstall_mate (std::string const& path)
 	return error == NULL_STR;
 }
 
+// ========================================
+// = Adding the install folder to PATH =
+// ========================================
+
+static NSString* const kShellConfigMarker = @"# Added by OakMate so that the mate command is found";
+
+static BOOL IsInSystemPath (NSString* dir)
+{
+	NSMutableArray* files = [NSMutableArray arrayWithObject:@"/etc/paths"];
+	for(NSString* name in [NSFileManager.defaultManager contentsOfDirectoryAtPath:@"/etc/paths.d" error:nil])
+		[files addObject:[@"/etc/paths.d" stringByAppendingPathComponent:name]];
+
+	for(NSString* file in files)
+	{
+		NSString* content = [NSString stringWithContentsOfFile:file encoding:NSUTF8StringEncoding error:nil];
+		for(NSString* line in [content componentsSeparatedByCharactersInSet:NSCharacterSet.newlineCharacterSet])
+		{
+			if([[[line stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceCharacterSet] stringByStandardizingPath] isEqualToString:dir])
+				return YES;
+		}
+	}
+	return NO;
+}
+
+static NSString* LoginShellName ()
+{
+	struct passwd* pw = getpwuid(getuid());
+	return (pw && pw->pw_shell ? @(pw->pw_shell) : @"/bin/zsh").lastPathComponent;
+}
+
+static NSString* ShellConfigPath ()
+{
+	NSString* shell = LoginShellName();
+	NSString* file  = @".profile";
+	if([shell isEqualToString:@"zsh"])
+		file = @".zshrc";
+	else if([shell isEqualToString:@"bash"])
+		file = @".bash_profile";
+	else if([shell isEqualToString:@"fish"])
+		file = @".config/fish/config.fish";
+	return [NSHomeDirectory() stringByAppendingPathComponent:file];
+}
+
+// Spellings of the folder that someone may already have used in their shell startup file
+static NSArray<NSString*>* DirectorySpellings (NSString* dir)
+{
+	NSMutableArray* res = [NSMutableArray arrayWithObject:dir];
+	NSString* home = NSHomeDirectory();
+	if([dir hasPrefix:[home stringByAppendingString:@"/"]])
+	{
+		NSString* rel = [dir substringFromIndex:home.length];
+		[res addObjectsFromArray:@[ [@"~" stringByAppendingString:rel], [@"$HOME" stringByAppendingString:rel], [@"${HOME}" stringByAppendingString:rel] ]];
+	}
+	return res;
+}
+
+static BOOL ShellConfigMentionsDirectory (NSString* configPath, NSString* dir)
+{
+	NSString* content = [NSString stringWithContentsOfFile:configPath encoding:NSUTF8StringEncoding error:nil];
+	for(NSString* spelling in DirectorySpellings(dir))
+	{
+		if([content containsString:spelling])
+			return YES;
+	}
+	return NO;
+}
+
+static BOOL NeedsToBeAddedToPath (NSString* dir)
+{
+	return !IsInSystemPath(dir) && !ShellConfigMentionsDirectory(ShellConfigPath(), dir);
+}
+
+static NSString* ShellPathLine (NSString* dir)
+{
+	BOOL isFish = [LoginShellName() isEqualToString:@"fish"];
+
+	NSString* home = NSHomeDirectory();
+	NSString* rel  = [dir hasPrefix:[home stringByAppendingString:@"/"]] ? [dir substringFromIndex:home.length] : nil;
+
+	NSMutableString* quoted = [(rel ?: dir) mutableCopy];
+	for(NSString* ch in isFish ? @[ @"\\", @"\"", @"$" ] : @[ @"\\", @"\"", @"$", @"`" ])
+		[quoted replaceOccurrencesOfString:ch withString:[@"\\" stringByAppendingString:ch] options:0 range:NSMakeRange(0, quoted.length)];
+	if(rel)
+		[quoted insertString:@"$HOME" atIndex:0];
+
+	NSString* command = isFish ? [NSString stringWithFormat:@"fish_add_path -g \"%@\"", quoted] : [NSString stringWithFormat:@"export PATH=\"%@:$PATH\"", quoted];
+	return [NSString stringWithFormat:@"%@ %@", command, kShellConfigMarker];
+}
+
+static BOOL AddToShellConfig (NSString* dir, NSString* configPath)
+{
+	NSString* existing = [NSString stringWithContentsOfFile:configPath encoding:NSUTF8StringEncoding error:nil] ?: @"";
+	NSString* addition = [NSString stringWithFormat:@"%@%@\n", (existing.length == 0 || [existing hasSuffix:@"\n"] ? @"" : @"\n"), ShellPathLine(dir)];
+
+	if(![NSFileManager.defaultManager fileExistsAtPath:configPath])
+	{
+		[NSFileManager.defaultManager createDirectoryAtPath:configPath.stringByDeletingLastPathComponent withIntermediateDirectories:YES attributes:nil error:nil];
+		if(![NSFileManager.defaultManager createFileAtPath:configPath contents:nil attributes:nil])
+			return NO;
+	}
+
+	// Append rather than rewrite so that a symbolic link to a dotfiles repository is kept
+	NSFileHandle* handle = [NSFileHandle fileHandleForWritingAtPath:configPath];
+	if(!handle || ![handle seekToEndReturningOffset:nil error:nil] || ![handle writeData:[addition dataUsingEncoding:NSUTF8StringEncoding] error:nil])
+	{
+		os_log_error(OS_LOG_DEFAULT, "TerminalPreferences: unable to add PATH line to %{public}@", configPath);
+		return NO;
+	}
+	return [handle closeAndReturnError:nil];
+}
+
+static void RemoveFromShellConfig (NSString* configPath)
+{
+	NSString* content = [NSString stringWithContentsOfFile:configPath encoding:NSUTF8StringEncoding error:nil];
+	if(!content)
+		return;
+
+	NSMutableArray* lines = [NSMutableArray array];
+	for(NSString* line in [content componentsSeparatedByString:@"\n"])
+	{
+		if(![line hasSuffix:kShellConfigMarker])
+			[lines addObject:line];
+	}
+
+	NSString* newContent = [lines componentsJoinedByString:@"\n"];
+	if(![newContent isEqualToString:content])
+		[newContent writeToFile:configPath atomically:NO encoding:NSUTF8StringEncoding error:nil];
+}
+
 @implementation TerminalPreferences
 - (id)init
 {
@@ -94,6 +223,7 @@ static bool uninstall_mate (std::string const& path)
 
 		self.defaultsProperties = @{
 			@"path":         kUserDefaultsMateInstallPathKey,
+			@"addToPath":    kUserDefaultsMateAddToPathKey,
 			@"disableRMate": kUserDefaultsDisableRMateServerKey,
 			@"interface":    kUserDefaultsRMateServerListenKey,
 			@"port":         kUserDefaultsRMateServerPortKey,
@@ -151,6 +281,21 @@ static bool uninstall_mate (std::string const& path)
 	self.installIndicaitorImage = [NSImage imageNamed:(isInstalled ? NSImageNameStatusAvailable : NSImageNameStatusUnavailable)];
 
 	[installPathPopUp setEnabled:isInstalled ? NO : YES];
+
+	NSString* addedTo = [NSUserDefaults.standardUserDefaults stringForKey:kUserDefaultsMateShellConfigPathKey];
+	NSString* mateDir = [(self.mateInstallPath ?: [[installPathPopUp titleOfSelectedItem] stringByExpandingTildeInPath]) stringByDeletingLastPathComponent];
+	if(isInstalled)
+	{
+		addToPathCheckBox.hidden  = addedTo ? NO : YES;
+		addToPathCheckBox.enabled = NO;
+		addToPathCheckBox.toolTip = addedTo ? [NSString stringWithFormat:@"%@ was added to PATH in %@.", [mateDir stringByAbbreviatingWithTildeInPath], [addedTo stringByAbbreviatingWithTildeInPath]] : nil;
+	}
+	else
+	{
+		addToPathCheckBox.hidden  = NeedsToBeAddedToPath(mateDir) ? NO : YES;
+		addToPathCheckBox.enabled = YES;
+		addToPathCheckBox.toolTip = [NSString stringWithFormat:@"Add %@ to PATH in %@. This takes effect in new terminal windows.", [mateDir stringByAbbreviatingWithTildeInPath], [ShellConfigPath() stringByAbbreviatingWithTildeInPath]];
+	}
 	[installButton setAction:isInstalled ? @selector(performUninstallMate:) : @selector(performInstallMate:)];
 	[installButton setState:isInstalled ? NSControlStateValueOn : NSControlStateValueOff];
 }
@@ -204,6 +349,12 @@ static bool uninstall_mate (std::string const& path)
 		if(install_mate(to_s(srcPath), to_s(dstPath)))
 		{
 			[self setMateInstallPath:dstPath];
+
+			NSString* dir = [dstPath stringByDeletingLastPathComponent];
+			NSString* configPath = ShellConfigPath();
+			if([NSUserDefaults.standardUserDefaults boolForKey:kUserDefaultsMateAddToPathKey] && NeedsToBeAddedToPath(dir) && AddToShellConfig(dir, configPath))
+				[NSUserDefaults.standardUserDefaults setObject:configPath forKey:kUserDefaultsMateShellConfigPathKey];
+
 			std::string res = io::exec(to_s(srcPath), "--version", NULL);
 			if(regexp::match_t const& m = regexp::search("\\Amate ([\\d.]+)", res))
 				[NSUserDefaults.standardUserDefaults setObject:[NSString stringWithCxxString:m[1]] forKey:kUserDefaultsMateInstallVersionKey];
@@ -258,7 +409,14 @@ static bool uninstall_mate (std::string const& path)
 - (IBAction)performUninstallMate:(id)sender
 {
 	if(uninstall_mate(to_s(self.mateInstallPath)))
+	{
 		[self setMateInstallPath:nil];
+		if(NSString* configPath = [NSUserDefaults.standardUserDefaults stringForKey:kUserDefaultsMateShellConfigPathKey])
+		{
+			RemoveFromShellConfig(configPath);
+			[NSUserDefaults.standardUserDefaults removeObjectForKey:kUserDefaultsMateShellConfigPathKey];
+		}
+	}
 	[self updateUI:self];
 }
 

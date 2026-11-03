@@ -23,6 +23,7 @@ static NSDictionary* default_settings ()
 		kUserDefaultsFileBrowserPlacementKey:    @"right",
 		kUserDefaultsShowFileExtensionsKey:      @NO,
 		kUserDefaultsEnvironmentVariablesKey:    default_environment(),
+		kUserDefaultsMateAddToPathKey:           @YES,
 		kUserDefaultsDisableRMateServerKey:      @NO,
 		kUserDefaultsRMateServerListenKey:       kRMateServerListenLocalhost,
 		kUserDefaultsRMateServerPortKey:         @"52698",
@@ -86,6 +87,8 @@ NSString* const kUserDefaultsEnvironmentVariablesKey    = @"environmentVariables
 
 NSString* const kUserDefaultsMateInstallPathKey         = @"mateInstallPath";
 NSString* const kUserDefaultsMateInstallVersionKey      = @"mateInstallVersion";
+NSString* const kUserDefaultsMateAddToPathKey           = @"mateAddToPath";
+NSString* const kUserDefaultsMateShellConfigPathKey     = @"mateShellConfigPath"; // the shell startup file where we added the install folder to PATH
 
 NSString* const kUserDefaultsDisableRMateServerKey      = @"rmateServerDisabled";
 NSString* const kUserDefaultsRMateServerListenKey       = @"rmateServerListen"; // localhost (default), remote

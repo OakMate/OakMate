@@ -7,6 +7,7 @@
     <objects>
         <customObject id="-2" userLabel="File's Owner" customClass="TerminalPreferences">
             <connections>
+                <outlet property="addToPathCheckBox" destination="APc-hk-bx1" id="APc-hk-ol1"/>
                 <outlet property="installButton" destination="53" id="75"/>
                 <outlet property="installPathPopUp" destination="32" id="77"/>
                 <outlet property="installStatusText" destination="37" id="73"/>
@@ -114,6 +115,17 @@
                         </menu>
                     </popUpButtonCell>
                 </popUpButton>
+                <button fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="APc-hk-bx1">
+                    <rect key="frame" x="430" y="264" width="174" height="18"/>
+                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                    <buttonCell key="cell" type="check" title="Add to PATH" bezelStyle="regularSquare" imagePosition="left" alignment="left" state="on" inset="2" id="APc-hk-cl1">
+                        <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                        <font key="font" metaFont="system"/>
+                    </buttonCell>
+                    <connections>
+                        <binding destination="-2" name="value" keyPath="addToPath" id="APc-hk-bd1"/>
+                    </connections>
+                </button>
                 <textField verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="37">
                     <rect key="frame" x="35" y="390" width="428" height="17"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>

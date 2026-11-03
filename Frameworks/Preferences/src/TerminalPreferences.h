@@ -5,6 +5,7 @@
 	IBOutlet NSTextField* installSummaryText;
 	IBOutlet NSPopUpButton* installPathPopUp;
 	IBOutlet NSButton* installButton;
+	IBOutlet NSButton* addToPathCheckBox;
 	IBOutlet NSTextField* rmateSummaryText;
 
 	std::string statusTextFormat;
