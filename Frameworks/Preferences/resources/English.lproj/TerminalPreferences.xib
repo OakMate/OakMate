@@ -100,13 +100,14 @@
                 <popUpButton verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="32">
                     <rect key="frame" x="238" y="259" width="188" height="26"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                    <popUpButtonCell key="cell" type="push" title="/usr/local/bin/mate" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" selectedItem="35" id="33">
+                    <popUpButtonCell key="cell" type="push" title="~/.local/bin/mate" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" selectedItem="LBm-ma-te" id="33">
                         <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
                         <font key="font" metaFont="system"/>
                         <menu key="menu" title="OtherViews" id="34">
                             <items>
+                                <menuItem title="~/.local/bin/mate" state="on" id="LBm-ma-te"/>
+                                <menuItem title="/usr/local/bin/mate" id="35"/>
                                 <menuItem title="~/bin/mate" id="36"/>
-                                <menuItem title="/usr/local/bin/mate" state="on" id="35"/>
                                 <menuItem isSeparatorItem="YES" id="57"/>
                                 <menuItem title="Other…" id="56"/>
                             </items>

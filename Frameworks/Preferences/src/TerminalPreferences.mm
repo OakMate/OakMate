@@ -119,11 +119,14 @@ static bool uninstall_mate (std::string const& path)
 	NSMenu* menu = [installPathPopUp menu];
 	[menu removeAllItems];
 
+	// The first item is the default when mate is not installed
+	NSArray<NSString*>* standardPaths = @[ @"~/.local/bin/mate", @"/usr/local/bin/mate", @"~/bin/mate" ];
+
 	path = [path stringByAbbreviatingWithTildeInPath];
-	if(path && ![path isEqualToString:@"~/bin/mate"] && ![path isEqualToString:@"/usr/local/bin/mate"])
+	if(path && ![standardPaths containsObject:path])
 		[menu addItemWithTitle:path action:@selector(updateUI:) keyEquivalent:@""];
-	[menu addItemWithTitle:@"/usr/local/bin/mate" action:@selector(updateUI:) keyEquivalent:@""];
-	[menu addItemWithTitle:@"~/bin/mate" action:@selector(updateUI:) keyEquivalent:@""];
+	for(NSString* standardPath in standardPaths)
+		[menu addItemWithTitle:standardPath action:@selector(updateUI:) keyEquivalent:@""];
 	[menu addItem:[NSMenuItem separatorItem]];
 	[menu addItemWithTitle:@"Other…" action:@selector(selectInstallPath:) keyEquivalent:@""];
 
