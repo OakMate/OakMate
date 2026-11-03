@@ -12,6 +12,11 @@
 		<string>bash_login</string>
 		<string>profile</string>
 		<string>bash_logout</string>
+		<string>zshrc</string>
+		<string>zprofile</string>
+		<string>zshenv</string>
+		<string>zlogin</string>
+		<string>zlogout</string>
 		<string>.textmate_init</string>
 	</array>
 	<key>firstLineMatch</key>

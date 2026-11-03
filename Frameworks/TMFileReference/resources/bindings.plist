@@ -23,7 +23,7 @@
 	small-latex                = ( lhs, tex, sty, cls );
 	small-latex-alt            = ( bib, rd, snw, rnw );
 
-	small-grey                 = ( diff, patch, csv, tsv, sh, bash, zsh, bashrc, bash_profile, bash_login, profile, bash_logout );
+	small-grey                 = ( diff, patch, csv, tsv, sh, bash, zsh, bashrc, bash_profile, bash_login, profile, bash_logout, zshrc, zprofile, zshenv, zlogin, zlogout );
 	small-charcoal             = ( commit_editmsg, git-rebase-todo, svn-commit.tmp, svn-commit.2.tmp, portfile, gemspec, gemfile, erbsql, sql.erb );
 	small-blue                 = ( groovy, gvy, gradle, java, bsh );
 }
