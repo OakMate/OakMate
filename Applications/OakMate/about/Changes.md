@@ -2,7 +2,7 @@ Title: Release Notes
 
 # Changes
 
-## Unreleased (v2.1.8)
+## 2026-11-09 (v2.1.8)
 
 * Shell support (`mate`) is installed in `~/.local/bin` by default. Choose it in Preferences → Terminal; `/usr/local/bin` and `~/bin` are still offered.
 * Preferences → Terminal can add the folder you install `mate` in to `PATH` in your shell startup file (`~/.zshrc` for zsh, the default shell on macOS). Choose this with _Add to PATH_ next to the Install button, which says when the folder is already in `PATH`. The line is removed again when you uninstall `mate`.
