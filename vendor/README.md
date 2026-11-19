@@ -54,3 +54,4 @@ The bundles in `Applications/OakMate/support/Bundles` were downloaded from the T
 | `Themes.tmbundle` | https://github.com/textmate/themes.tmbundle | 1067 (2018-11-22) |
 | `TODO.tmbundle` | https://github.com/textmate/todo.tmbundle | 487 (2014-10-07) |
 | `XML.tmbundle` | https://github.com/textmate/xml.tmbundle | 1039 (2018-07-04) |
+| `YAML.tmbundle` | https://github.com/textmate/yaml.tmbundle | commit `e54ceae` (2017-08-24); the grammar is MIT licensed, see `Syntaxes/YAML-license.txt` |
