@@ -2,6 +2,10 @@ Title: Release Notes
 
 # Changes
 
+## Unreleased (v2.1.9)
+
+* YAML files (`.yaml`, `.yml`) are highlighted, folded, and listed in the symbol list by the new YAML bundle. Its commands run with `ruby20`, and _Convert to Ruby_ works with ruby 2.6 or later.
+
 ## 2026-11-09 (v2.1.8)
 
 * Shell support (`mate`) is installed in `~/.local/bin` by default. Choose it in Preferences → Terminal; `/usr/local/bin` and `~/bin` are still offered.
