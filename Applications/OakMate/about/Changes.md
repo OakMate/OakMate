@@ -5,6 +5,7 @@ Title: Release Notes
 ## Unreleased (v2.1.9)
 
 * YAML files (`.yaml`, `.yml`) are highlighted, folded, and listed in the symbol list by the new YAML bundle. Its commands run with `ruby20`, and _Convert to Ruby_ works with ruby 2.6 or later.
+* Bundles that come with an OakMate update, such as the YAML bundle, are found the first time the new version is launched, instead of after the bundle index is rebuilt.
 
 ## 2026-11-09 (v2.1.8)
 

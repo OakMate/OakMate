@@ -258,9 +258,28 @@ namespace
 {
 	for(auto path : bundles::locations())
 		bundlesPaths.push_back(path::join(path, "Bundles"));
-	bundlesIndexPath = path::join(path::home(), "Library/Caches/com.isztld.oakmate/BundlesIndex.binary");
+
+	std::string const cachePath    = path::join(path::home(), "Library/Caches/com.isztld.oakmate");
+	bundlesIndexPath               = path::join(cachePath, "BundlesIndex.binary");
+	std::string const versionPath  = path::join(cachePath, "BundlesIndex.version");
+
 	cache.set_content_filter(&prune_dictionary);
-	cache.load_binary(bundlesIndexPath);
+
+	// The cache is only kept up-to-date via FSEvents replay, which can miss changes made
+	// while the app was not running, e.g. bundles shipped with an application update.
+	// Store the running app’s version next to the cache and do a full rescan (by not
+	// loading the cache) whenever it changes.
+	NSString* appVersion    = [NSBundle.mainBundle objectForInfoDictionaryKey:@"CFBundleShortVersionString"] ?: ([NSBundle.mainBundle objectForInfoDictionaryKey:@"CFBundleVersion"] ?: @"");
+	NSString* cachedVersion = [NSString stringWithContentsOfFile:[NSString stringWithCxxString:versionPath] encoding:NSUTF8StringEncoding error:NULL];
+	if([appVersion isEqualToString:cachedVersion])
+	{
+		cache.load_binary(bundlesIndexPath);
+	}
+	else
+	{
+		self.needsSaveBundlesIndex = YES;
+	}
+	[appVersion writeToFile:[NSString stringWithCxxString:versionPath] atomically:YES encoding:NSUTF8StringEncoding error:NULL];
 
 	_needsCreateBundlesIndex = YES;
 	[self createBundlesIndex:self];
